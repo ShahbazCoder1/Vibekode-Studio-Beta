@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /project/
+Disallow: /project/*
+
+# Sitemap location
+Sitemap: https://vibekode.studio/sitemap.xml
+
+# Crawl delay for better server performance
+Crawl-delay: 1

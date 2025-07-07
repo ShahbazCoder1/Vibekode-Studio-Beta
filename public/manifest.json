@@ -1,0 +1,96 @@
+{
+    "name": "VibeKode - AI-Powered App Creator | Build Apps with Simple Prompts",
+    "short_name": "VibeKode",
+    "description": "Transform your ideas into fully functional web applications instantly with VibeKode's revolutionary AI platform. Simply describe what you want to build, and our advanced AI will generate complete, production-ready code in seconds. No programming experience required!",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#18181b",
+    "theme_color": "#7b61ff",
+    "orientation": "portrait-primary",
+    "categories": ["productivity", "developer", "utilities", "business"],
+    "lang": "en-US",
+    "scope": "/",
+    "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+    "edge_side_panel": {
+      "preferred_width": 400
+    },
+    "launch_handler": {
+      "client_mode": "navigate-existing"
+    },
+    "icons": [
+      {
+        "src": "/web-app-manifest-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/web-app-manifest-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/web-app-manifest-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+      },
+      {
+        "src": "/favicon-96x96.png",
+        "sizes": "96x96",
+        "type": "image/png",
+        "purpose": "any"
+      }
+    ],
+    "screenshots": [
+      {
+        "src": "/logo.png",
+        "sizes": "1200x630",
+        "type": "image/png",
+        "form_factor": "wide",
+        "label": "VibeKode AI App Builder - Main Interface"
+      }
+    ],
+    "shortcuts": [
+      {
+        "name": "Create New App",
+        "short_name": "New App",
+        "description": "Create a new AI-powered application with VibeKode",
+        "url": "/?action=new",
+        "icons": [
+          {
+            "src": "/web-app-manifest-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+          }
+        ]
+      },
+      {
+        "name": "Browse Community",
+        "short_name": "Community",
+        "description": "Explore community-created applications",
+        "url": "/?action=community",
+        "icons": [
+          {
+            "src": "/web-app-manifest-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+          }
+        ]
+      },
+      {
+        "name": "Pricing",
+        "short_name": "Pricing",
+        "description": "View VibeKode pricing plans",
+        "url": "/pricing",
+        "icons": [
+          {
+            "src": "/web-app-manifest-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+          }
+        ]
+      }
+    ]
+  }

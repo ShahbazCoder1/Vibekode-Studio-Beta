@@ -91,9 +91,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-verification-code",
-    yandex: "your-yandex-verification-code",
-    yahoo: "your-yahoo-verification-code",
+    google: "015xBxzag336d2WnLnZdbJvYgLEj-Vo87DfZebanWmE",
   },
   category: "Technology",
   other: {

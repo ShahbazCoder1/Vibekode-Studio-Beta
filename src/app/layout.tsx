@@ -206,6 +206,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="VibeKode" />
         <meta name="application-name" content="VibeKode" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msvalidate.01" content="B6049CF5175263390C4915A70D62AAD7" />
         
         {/* Canonical URL */}
         <link rel="canonical" href="https://vibekode.studio" />

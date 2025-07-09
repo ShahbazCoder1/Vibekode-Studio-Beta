@@ -36,27 +36,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  redirects: async () => {
-    return [
-      {
-        source: '/home',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        // Redirect non-www to www
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'vibekode.studio',
-          },
-        ],
-        destination: 'https://www.vibekode.studio/:path*',
-        permanent: true,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

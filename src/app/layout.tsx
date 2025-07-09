@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://vibekode.studio'),
   title: {
     default: "VibeKode - Turn Ideas into Apps Instantly",
-    template: "%s | VibeKode - AI App Builder"
+    template: "%s"
   },
   description: "Build software products, using only a chat interface. Prompt, run, edit & deploy apps",
 keywords: [
@@ -70,8 +70,8 @@ keywords: [
     type: "website",
     locale: "en_US",
     url: "https://vibekode.studio",
-    title: "VibeKode - AI-Powered App Creator | Build Apps with Simple Prompts",
-    description: "Transform your ideas into fully functional web applications instantly with VibeKode's revolutionary AI platform. Simply describe what you want to build, and our advanced AI will generate complete, production-ready code in seconds.",
+    title: "VibeKode - Turn Ideas into Apps Instantly",
+    description: "Build software products, using only a chat interface. Prompt, run, edit & deploy apps",
     siteName: "VibeKode",
     images: [
       {
@@ -84,8 +84,8 @@ keywords: [
   },
   twitter: {
     card: "summary_large_image",
-    title: "VibeKode - AI-Powered App Creator | Build Apps with Simple Prompts",
-    description: "Transform your ideas into fully functional web applications instantly with VibeKode's revolutionary AI platform. Simply describe what you want to build, and our advanced AI will generate complete, production-ready code in seconds.",
+    title: "VibeKode - Turn Ideas into Apps Instantly",
+    description: "Build software products, using only a chat interface. Prompt, run, edit & deploy apps",
     images: ["/logo.png"],
     creator: "@vibekode",
     site: "@vibekode",

@@ -1,0 +1,5 @@
+{
+  "source": "/(.*)",
+  "destination": "https://www.vibekode.studio/$1",
+  "permanent": true
+}

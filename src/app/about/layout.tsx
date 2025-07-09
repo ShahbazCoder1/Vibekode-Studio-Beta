@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "About VibeKode - Revolutionary AI-Powered App Creator",
-    description: "Learn about VibeKode's mission to democratize app development through AI. Transform ideas into reality with simple text prompts.",
+    description: "Learn how VibeKode makes app building easy with AI. Turn your ideas into real apps using simple text prompts. Build apps and websites fast with no-code tools.",
     url: "https://vibekode.studio/about",
     type: "website",
     images: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "About VibeKode - Revolutionary AI-Powered App Creator",
-    description: "Learn about VibeKode's mission to democratize app development through AI.",
+    description: "Learn how VibeKode makes app building easy with AI. Turn your ideas into real apps using simple text prompts. Build apps and websites fast with no-code tools.",
     images: ["/logo.png"],
   },
   alternates: {

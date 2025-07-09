@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - VibeKode AI App Builder",
-  description: "Learn how VibeKode protects your privacy and handles your personal data. Our comprehensive privacy policy outlines data collection, usage, and your rights as a user of our AI-powered app creation platform.",
+  description: "LSee how VibeKode keeps your data safe. Learn what data we collect, how we use it, and your rights when using our AI app builder.",
   keywords: [
     "VibeKode privacy policy",
     "data protection",

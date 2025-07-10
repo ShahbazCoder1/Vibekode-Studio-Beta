@@ -108,7 +108,7 @@ keywords: [
   },
   category: "Technology",
   other: {
-    'theme-color': '#7b61ff',
+    'theme-color': '#18181b',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
     'apple-mobile-web-app-title': 'VibeKode',

@@ -126,7 +126,7 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "VibeKode",
-    "alternateName": "VibeKode AI App Builder",
+    "alternateName": "VibeKode - Turn Ideas into Apps Instantly",
     "description": "Build software products, using only a chat interface. Prompt, run, edit & deploy apps",
     "url": "https://vibekode.studio",
     "applicationCategory": "DeveloperApplication",
@@ -199,8 +199,8 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#7b61ff" />
-        <meta name="msapplication-TileColor" content="#7b61ff" />
+        <meta name="theme-color" content="#18181b" />
+        <meta name="msapplication-TileColor" content="#18181b" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="VibeKode" />

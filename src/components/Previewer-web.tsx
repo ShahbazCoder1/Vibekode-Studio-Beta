@@ -63,11 +63,11 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
   useEffect(() => {
     // Use URL instead of inline HTML for default loading screen
-    const defaultConsoleHTML = "https://vibekode-acee5.web.app/";
+    const defaultConsoleHTML = "https://preview.vibekode.studio/";
 
     // Only use preview URL if we have both projectId AND code has been generated
     const codeToRender = projectId && hasGeneratedCode
-      ? `https://vibekode-acee5.web.app/preview/${projectId}?token=pVRqz5PtHFy5Exjv6ijE0WPokfO1vSKiEPoEy9Adg`
+      ? `https://preview.vibekode.studio/preview/${projectId}?token=${process.env.NEXT_PUBLIC_PREVIEW_TOKEN}`
       : defaultConsoleHTML;
     
     setHtmlContent(codeToRender);

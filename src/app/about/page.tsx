@@ -3,6 +3,7 @@
 import React from "react";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
 import Link from "next/link";
 import { 
   Zap, 
@@ -90,6 +91,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-[#18181b]">
+      <ScrollingBetaBanner />
       <Header />
       
       <main className="pt-20">

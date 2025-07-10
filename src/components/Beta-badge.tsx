@@ -3,99 +3,71 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // Assumes you have a `cn` utility
 
 interface BetaBadgeProps {
   className?: string;
-  size?: "sm" | "md" | "lg";
 }
 
-const texts = ["BETA", "100% FREE"];
+const texts = ["BETA"];
 
-const BetaBadge: React.FC<BetaBadgeProps> = ({
-  className,
-  size = "md",
-}) => {
+const BetaBadge: React.FC<BetaBadgeProps> = ({ className }) => {
   const [textIndex, setTextIndex] = useState(0);
 
-  // Effect to cycle through the texts every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setTextIndex((prevIndex) => (prevIndex + 1) % texts.length);
-    }, 3000);
-
+      setTextIndex((prev) => (prev + 1) % texts.length);
+    }, 3000); // Cycle every 3 seconds
     return () => clearInterval(interval);
   }, []);
 
-  const sizeClasses = {
-    sm: "px-2 py-1 text-xs",
-    md: "px-2.5 py-1 text-xs",
-    lg: "px-3 py-1.5 text-sm",
-  };
-
-  const iconSizes = {
-    sm: "w-3 h-3",
-    md: "w-3 h-3",
-    lg: "w-3.5 h-3.5",
-  };
-
-  // Fixed width container for text to prevent badge resizing
-  const textContainerWidth = {
-    sm: "w-[4rem]",
-    md: "w-[4.5rem]",
-    lg: "w-[5.5rem]",
-  };
-
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: -10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ 
-        duration: 0.5, 
-        delay: 0.2, 
-        ease: [0.23, 1, 0.32, 1] // Custom easing for smoother animation
-      }}
-      whileHover={{ 
-        scale: 1.02,
-      }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], delay: 0.2 }}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-semibold",
-        "bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb]",
-        "text-white",
+        // --- CORE LAYOUT & SIZING ---
+        // Base size for mobile
+        "inline-flex select-none items-center gap-1.5 rounded-full px-2.5 py-1 mr-2",
+        // Scale up for larger screens (sm and above)
+        "sm:gap-2 sm:px-3 sm:py-1.5",
+
+        // --- STYLING & AESTHETICS ---
+        "font-semibold",
+        // A slightly more vibrant gradient
+        "bg-gradient-to-r from-teal-400 to-sky-500",
+        // A soft, elegant glow
+        "shadow-[0_0_20px_rgba(0,204,177,0.25)]",
         "border border-white/20",
-        "relative overflow-hidden",
-        "cursor-default select-none",
-        sizeClasses[size],
         className
       )}
-      style={{
-        boxShadow: "0 0 10px rgba(0, 204, 177, 0.3)",
-      }}
     >
-      {/* Subtle sparkles animation */}
-      <Sparkles 
+      <Sparkles
         className={cn(
-          "flex-shrink-0 z-10 relative animate-pulse", 
-          iconSizes[size]
-        )} 
+          "flex-shrink-0 text-white/90",
+          // Responsive icon size
+          "h-3 w-3 sm:h-4 sm:w-4"
+        )}
       />
 
-      {/* Container to hold the animated text and maintain a consistent width */}
-      <div className={cn(
-        "relative flex items-center justify-center z-10", 
-        textContainerWidth[size]
-      )}>
-        <AnimatePresence mode="wait">
+      <div className="relative flex items-center justify-center">
+        <AnimatePresence initial={false} mode="wait">
           <motion.span
-            key={textIndex}
-            initial={{ y: -15, opacity: 0 }}
+            key={texts[textIndex]}
+            initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 15, opacity: 0 }}
-            transition={{ 
-              duration: 0.3, 
-              ease: "easeInOut"
+            exit={{ y: 10, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={cn(
+              "block whitespace-nowrap uppercase text-white",
+              // Responsive text size
+              "text-[11px] tracking-wide sm:text-xs sm:tracking-wider"
+            )}
+            // Add a subtle shadow to make white text pop professionally
+            style={{
+              textShadow: "0 1px 2px rgba(0, 0, 0, 0.15)",
             }}
-            className="absolute whitespace-nowrap"
           >
             {texts[textIndex]}
           </motion.span>

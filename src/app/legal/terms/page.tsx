@@ -3,11 +3,15 @@
 import React from "react";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
 import Link from "next/link";
 
 export default function TermsAndConditions() {
   return (
     <div className="min-h-screen bg-[#18181b]">
+      <ScrollingBetaBanner />
+      
+      {/* Fixed header */}
       <Header />
       
       <main className="max-w-4xl mx-auto px-6 py-16 pt-24">

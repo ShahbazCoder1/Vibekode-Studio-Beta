@@ -66,7 +66,9 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300",
+        "fixed left-0 right-0 z-50 w-full transition-all duration-300",
+        // When not scrolled, position below banner (top-10). When scrolled, move to top (top-0)
+        scrolled ? "top-0" : "top-10",
         scrolled
           ? "bg-zinc-900/80 backdrop-blur-md shadow-md border-b border-zinc-800/50"
           : "bg-transparent border-b border-transparent",
@@ -113,7 +115,7 @@ const LogoSection: React.FC<LogoSectionProps> = ({ isMobile }) => {
         >
           VibeKode
         </span>
-        <BetaBadge size={isMobile ? "sm" : "md"} />
+        <BetaBadge />
       </div>
     </div>
   );

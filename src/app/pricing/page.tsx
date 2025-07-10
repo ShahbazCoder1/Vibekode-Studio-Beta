@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
 
 interface PricingTier {
   name: string;
@@ -274,7 +275,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-[#18181b] text-white overflow-x-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-[#18181b] bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-      
+      <ScrollingBetaBanner />
       <Header />
 
       <main className="pt-16">

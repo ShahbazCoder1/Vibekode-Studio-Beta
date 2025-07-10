@@ -482,7 +482,7 @@ const Logo = () => {
         >
           VibeKode
         </motion.span>
-        <BetaBadge size="sm" />
+        <BetaBadge/>
       </div>
     </Link>
   );

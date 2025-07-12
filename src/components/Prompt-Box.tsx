@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
@@ -28,8 +28,6 @@ interface PromptBoxProps {
   placeholder?: string;
   className?: string;
   containerClassName?: string | false;
-  maxHeight?: number;
-  minHeight?: number;
   ideas?: string[];
 }
 
@@ -41,8 +39,6 @@ const PromptBox: React.FC<PromptBoxProps> = ({
   placeholder = "Ask Vibekode to create Something....",
   className = "",
   containerClassName = "flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] w-full max-w-[calc(100vw-2rem)] px-2 sm:px-4",
-  maxHeight = 200,
-  minHeight = 80,
   ideas = defaultIdeas,
 }) => {
   const [prompt, setPrompt] = useState<string>("");
@@ -53,17 +49,6 @@ const PromptBox: React.FC<PromptBoxProps> = ({
   const [isListening, setIsListening] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = `${minHeight}px`;
-    const scrollH = textareaRef.current.scrollHeight;
-    textareaRef.current.style.height = `${Math.min(
-      Math.max(scrollH, minHeight),
-      maxHeight
-    )}px`;
-  }, [prompt, minHeight, maxHeight]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -127,13 +112,10 @@ const PromptBox: React.FC<PromptBoxProps> = ({
           className
         )}
       >
-        <div
-          className="rounded-2xl bg-[rgba(20,20,20,0.85)] backdrop-blur-lg shadow-xl border border-white/10"
-          style={{ minHeight: `${minHeight + 20}px` }}
-        >
-          <form onSubmit={handleSubmit} className="p-3 sm:p-6">
+        <div className="rounded-2xl bg-[rgba(20,20,20,0.85)] backdrop-blur-lg h-48 shadow-xl border border-white/10 overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-3 sm:p-6 h-full flex flex-col">
             {/* Main input area */}
-            <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4 flex-1">
               <textarea
                 ref={textareaRef}
                 value={prompt}
@@ -141,13 +123,13 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={placeholder}
-                rows={1}
-                className="flex-1 bg-transparent resize-none outline-none placeholder:text-zinc-400 text-white text-base sm:text-lg leading-relaxed scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent"
+                rows={3}
+                className="flex-1 bg-transparent resize-none outline-none placeholder:text-zinc-400 text-white text-base sm:text-lg leading-relaxed scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent overflow-y-auto"
               />
             </div>
 
             {/* Controls row */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-shrink-0">
               {/* Left side controls */}
               <div className="flex items-center gap-2 sm:gap-3">
                 {/* Sketch button */}
@@ -157,7 +139,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   className={cn(
                     "px-3 sm:px-4 py-2 rounded-lg border transition-all duration-200 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium",
                     mode === "sketch"
-                      ? "bg-white/10 border-white/20 text-white"
+                      ? "hidden bg-white/10 border-white/20 text-white"
                       : "border-zinc-600 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
                   )}
                 >
@@ -170,7 +152,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   type="button"
                   onClick={toggleVoice}
                   className={cn(
-                    "p-2 rounded-lg border transition-all duration-200 relative overflow-hidden",
+                    "hidden p-2 rounded-lg border transition-all duration-200 relative overflow-hidden",
                     "before:absolute before:inset-x-0 before:bottom-0 before:h-1/2 before:bg-gradient-to-t before:from-cyan-400/20 before:via-teal-400/15 before:to-transparent before:pointer-events-none",
                     mode === "voice" && isListening
                       ? "bg-red-500/20 border-red-400/50 text-red-400"

@@ -21,6 +21,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
+import SmoothScroll from "@/components/ui/SmoothScroll";
 
 interface PricingTier {
   name: string;
@@ -272,6 +273,7 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
+    <SmoothScroll>
     <div className="min-h-screen bg-[#18181b] text-white overflow-x-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-[#18181b] bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
@@ -390,5 +392,6 @@ export default function PricingPage() {
       
       <Footer />
     </div>
+    </SmoothScroll>
   );
 }

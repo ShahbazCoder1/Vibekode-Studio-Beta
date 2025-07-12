@@ -7,9 +7,11 @@ import ScrollDown from "@/components/Scroll-Down";
 import CommunityProject from "@/components/Community-Project";
 import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
 import { Footer } from "@/components/Footer";
+import SmoothScroll from "@/components/ui/SmoothScroll";
 
 export default function Home() {
   return (
+    <SmoothScroll>
     <div>
       <ScrollingBetaBanner/>
       <AuroraBackground>
@@ -29,5 +31,6 @@ export default function Home() {
       </div>
       <Footer />
     </div>
+    </SmoothScroll>
   );
 }

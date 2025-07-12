@@ -4,10 +4,12 @@ import React from "react";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
+import SmoothScroll from "@/components/ui/SmoothScroll";
 import Link from "next/link";
 
 export default function TermsAndConditions() {
   return (
+    <SmoothScroll>
     <div className="min-h-screen bg-[#18181b]">
       <ScrollingBetaBanner />
       
@@ -303,5 +305,6 @@ export default function TermsAndConditions() {
 
       <Footer />
     </div>
+    </SmoothScroll>
   );
 }

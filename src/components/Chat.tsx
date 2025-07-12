@@ -651,7 +651,7 @@ export default function Chat({
                     <button
                       type="button"
                       disabled={isGeneratingResponse}
-                      className="p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                      className="hidden p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
                     >
                       <PencilLine className="w-5 h-5" />
                     </button>
@@ -659,7 +659,7 @@ export default function Chat({
                       type="button"
                       onClick={handleVoiceInput}
                       disabled={isGeneratingResponse}
-                      className="p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                      className="hidden p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
                     >
                       <Mic className="w-5 h-5" />
                     </button>

@@ -20,6 +20,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { motion } from "framer-motion";
+import SmoothScroll from "@/components/ui/SmoothScroll";
 
 export default function AboutPage() {
   const fadeInUp = {
@@ -90,6 +91,7 @@ export default function AboutPage() {
   ];
 
   return (
+    <SmoothScroll>
     <div className="min-h-screen bg-[#18181b]">
       <ScrollingBetaBanner />
       <Header />
@@ -473,5 +475,6 @@ export default function AboutPage() {
 
       <Footer />
     </div>
+    </SmoothScroll>
   );
 }

@@ -4,6 +4,11 @@ const ai = new GoogleGenAI({
   apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
 });
 
+const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+const SITE_URL = "https://vibekode.studio/";
+const SITE_NAME = "VibeKode Studio";
+
+
 // Enhanced request deduplication cache with TTL
 const requestCache = new Map<
   string,
@@ -275,7 +280,7 @@ export async function generateAppArchitecture(
 * Vanilla JavaScript for functionality
 * For icons use "<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">"
 * If any images are required, use the Pixabay API (https://pixabay.com/api/) with the API key '50370718-98cd42cb1427f3bcfa222a614'. The API allows you to fetch various types of media including photos, illustrations, and vector graphics. When implementing the image functionality, make sure to properly handle the API response to retrieve the appropriate image URL and credit the source as required by Pixabay's terms of service.
-* If any API is required, use free APIs that don't require OAuth or API keys as first priority. If no suitable free API is available, use Gemini API (https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key="GEMINI_API_KEY") with the key "AIzaSyCmF1X0i6cIcXSeext5MwuIPiN4-oRahvI" as second priority. Only use dummy data as last resort if neither free APIs nor Gemini API are suitable for the use case.
+* If any API is required, use free APIs that don't require OAuth or API keys as first priority. If no suitable free API is available, use dummy data.
 * [Enter additional technical constraint]
 * [Enter additional technical constraint]
 
@@ -857,19 +862,6 @@ export async function generateCode(
 
         const styleGuidance = await getStyleInspiration(appIdea);
 
-        const config = {
-          thinkingConfig: {
-            thinkingBudget: -1,
-          },
-          temperature: temperature + (attempt - 2) * 0.1, // Slightly increase temperature on retries
-          topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 32768,
-          responseMimeType: "text/plain",
-        };
-
-        const model = "gemini-2.5-flash";
-
         // Enhanced prompt with more specific instructions for complete code
         const promptText = `Create a stunning, production-ready website based on this template: 
       "${architecture}"
@@ -907,20 +899,34 @@ export async function generateCode(
 
         CRITICAL: The response must be a complete, self-contained HTML file that can be saved and opened in a browser immediately.`;
 
-        const contents = [
-          {
-            role: "user",
-            parts: [{ text: promptText }],
+        // OpenRouter API call with DeepSeek R1 model using fetch
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": SITE_URL,
+            "X-Title": SITE_NAME,
+            "Content-Type": "application/json"
           },
-        ];
-
-        const response = await ai.models.generateContent({
-          model,
-          config,
-          contents,
+          body: JSON.stringify({
+            model: "deepseek/deepseek-r1-0528:free",
+            messages: [
+              {
+                role: "user",
+                content: promptText
+              }
+            ],
+            temperature: temperature + (attempt - 2) * 0.1,
+            top_p: 0.95,
+          })
         });
 
-        let code = response?.text?.trim() || "";
+        if (!response.ok) {
+          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+        }
+
+        const completion = await response.json();
+        let code = completion.choices[0]?.message?.content?.trim() || "";
         console.log("\n\nGenerated code:", code);
         console.log(`Generated code length: ${code.length} characters`);
 
@@ -980,19 +986,6 @@ export async function generateImproveCode(
       try {
         console.log(`Code improvement attempt ${attempt}/${maxRetries}`);
 
-        const config = {
-          thinkingConfig: {
-            thinkingBudget: -1,
-          },
-          temperature: temperature + (attempt - 1) * 0.1,
-          topP: 0.92,
-          topK: 30,
-          maxOutputTokens: 32768,
-          responseMimeType: "text/plain",
-        };
-
-        const model = "gemini-2.5-flash";
-
         const promptText = `You are improving an existing web application. Here's the context:
 
 **Application Context:**
@@ -1047,20 +1040,34 @@ Do NOT include explanations or markdown - just the complete HTML file.
 
 CRITICAL: The returned code must be 100% complete and functional with all improvements implemented.`;
 
-        const contents = [
-          {
-            role: "user",
-            parts: [{ text: promptText }],
+        // OpenRouter API call with DeepSeek R1 model using fetch
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": SITE_URL,
+            "X-Title": SITE_NAME,
+            "Content-Type": "application/json"
           },
-        ];
-
-        const response = await ai.models.generateContent({
-          model,
-          config,
-          contents,
+          body: JSON.stringify({
+            model: "deepseek/deepseek-r1-0528:free",
+            messages: [
+              {
+                role: "user",
+                content: promptText
+              }
+            ],
+            temperature: temperature + (attempt - 1) * 0.1,
+            top_p: 0.92,
+          })
         });
 
-        let improvedCode = response?.text?.trim() || "";
+        if (!response.ok) {
+          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+        }
+
+        const completion = await response.json();
+        let improvedCode = completion.choices[0]?.message?.content?.trim() || "";
 
         // Extract and validate the improved code
         improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);

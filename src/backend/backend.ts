@@ -862,6 +862,19 @@ export async function generateCode(
 
         const styleGuidance = await getStyleInspiration(appIdea);
 
+        const config = {
+          thinkingConfig: {
+            thinkingBudget: -1,
+          },
+          temperature: temperature + (attempt - 2) * 0.1, // Slightly increase temperature on retries
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 32768,
+          responseMimeType: "text/plain",
+        };
+
+        const model = "gemini-2.5-flash";
+
         // Enhanced prompt with more specific instructions for complete code
         const promptText = `Create a stunning, production-ready website based on this template: 
       "${architecture}"
@@ -899,34 +912,20 @@ export async function generateCode(
 
         CRITICAL: The response must be a complete, self-contained HTML file that can be saved and opened in a browser immediately.`;
 
-        // OpenRouter API call with DeepSeek R1 model using fetch
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": SITE_URL,
-            "X-Title": SITE_NAME,
-            "Content-Type": "application/json"
+        const contents = [
+          {
+            role: "user",
+            parts: [{ text: promptText }],
           },
-          body: JSON.stringify({
-            model: "deepseek/deepseek-r1-0528:free",
-            messages: [
-              {
-                role: "user",
-                content: promptText
-              }
-            ],
-            temperature: temperature + (attempt - 2) * 0.1,
-            top_p: 0.95,
-          })
+        ];
+
+        const response = await ai.models.generateContent({
+          model,
+          config,
+          contents,
         });
 
-        if (!response.ok) {
-          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-        }
-
-        const completion = await response.json();
-        let code = completion.choices[0]?.message?.content?.trim() || "";
+        let code = response?.text?.trim() || "";
         console.log("\n\nGenerated code:", code);
         console.log(`Generated code length: ${code.length} characters`);
 
@@ -986,6 +985,19 @@ export async function generateImproveCode(
       try {
         console.log(`Code improvement attempt ${attempt}/${maxRetries}`);
 
+        const config = {
+          thinkingConfig: {
+            thinkingBudget: -1,
+          },
+          temperature: temperature + (attempt - 1) * 0.1,
+          topP: 0.92,
+          topK: 30,
+          maxOutputTokens: 32768,
+          responseMimeType: "text/plain",
+        };
+
+        const model = "gemini-2.5-flash";
+
         const promptText = `You are improving an existing web application. Here's the context:
 
 **Application Context:**
@@ -1040,34 +1052,20 @@ Do NOT include explanations or markdown - just the complete HTML file.
 
 CRITICAL: The returned code must be 100% complete and functional with all improvements implemented.`;
 
-        // OpenRouter API call with DeepSeek R1 model using fetch
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": SITE_URL,
-            "X-Title": SITE_NAME,
-            "Content-Type": "application/json"
+        const contents = [
+          {
+            role: "user",
+            parts: [{ text: promptText }],
           },
-          body: JSON.stringify({
-            model: "deepseek/deepseek-r1-0528:free",
-            messages: [
-              {
-                role: "user",
-                content: promptText
-              }
-            ],
-            temperature: temperature + (attempt - 1) * 0.1,
-            top_p: 0.92,
-          })
+        ];
+
+        const response = await ai.models.generateContent({
+          model,
+          config,
+          contents,
         });
 
-        if (!response.ok) {
-          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-        }
-
-        const completion = await response.json();
-        let improvedCode = completion.choices[0]?.message?.content?.trim() || "";
+        let improvedCode = response?.text?.trim() || "";
 
         // Extract and validate the improved code
         improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);

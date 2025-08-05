@@ -4,10 +4,6 @@ const ai = new GoogleGenAI({
   apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
 });
 
-const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
-const SITE_URL = "https://vibekode.studio/";
-const SITE_NAME = "VibeKode Studio";
-
 
 // Enhanced request deduplication cache with TTL
 const requestCache = new Map<

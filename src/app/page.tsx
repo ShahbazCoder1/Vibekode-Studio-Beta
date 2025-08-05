@@ -16,7 +16,7 @@ export default function Home() {
       <ScrollingBetaBanner/>
       <AuroraBackground>
         <Header />
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6.5rem)] md:min-h-[calc(100vh-2rem)] relative pt-16 md:pt-4">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-1rem)] md:min-h-[calc(100vh-2rem)] relative pt-16 md:pt-4">
           <HeroTitle />
           <PromptBox
             placeholder="Ask VibeKode to create something amazing..."

@@ -887,7 +887,7 @@ export async function generateAppArchitecture(
         contents,
       });
 
-      let rawResponse = response?.text?.trim() || "";
+      const rawResponse = response?.text?.trim() || "";
       // console.log("\n\nRaw AI Response:", rawResponse);
 
       // Extract JSON from the response
@@ -1633,7 +1633,7 @@ function extractJSON(text: string): string {
       JSON.parse(potentialJson);
       return potentialJson;
     } catch (e) {
-      // Not valid JSON, continue to next method
+      console.warn("Extracted text is not valid JSON:", e);
     }
   }
 

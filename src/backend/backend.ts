@@ -4,7 +4,6 @@ const ai = new GoogleGenAI({
   apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
 });
 
-
 // Enhanced request deduplication cache with TTL
 const requestCache = new Map<
   string,
@@ -87,33 +86,70 @@ export async function generateAppName(prompt: string): Promise<string> {
         responseMimeType: "text/plain",
       };
 
-      const model = "gemini-2.0-flash-lite";
+      const model = "gemini-flash-lite-latest";
+
+      const structuredPrompt = {
+        instruction: "Generate a brandable app name",
+        context: {
+          user_description: prompt,
+          task_type: "creative_naming",
+        },
+        constraints: {
+          length: { min: 1, max: 2, unit: "words" },
+          characteristics: [
+            "brandable",
+            "unique",
+            "memorable",
+            "professional",
+            "modern",
+          ],
+          domain_availability: "prioritize",
+          exclude_patterns: ["*manager", "*tracker", "*tool", "*app"],
+        },
+        style_guide: {
+          inspiration_types: [
+            { type: "neologism", examples: ["Figma", "Notion", "Stripe"] },
+            {
+              type: "portmanteau",
+              examples: ["Instagram", "LinkedIn", "YouTube"],
+            },
+            {
+              type: "suffix_based",
+              suffixes: [
+                "-ly",
+                "-fy",
+                "-io",
+                "-co",
+                "-ai",
+                "-hub",
+                "-lab",
+                "-verse",
+              ],
+            },
+          ],
+          reference_names: {
+            project_management: ["Asana", "Trello", "Monday"],
+            design: ["Figma", "Canva", "Sketch"],
+            communication: ["Slack", "Discord", "Zoom"],
+          },
+        },
+        output: {
+          format: "plain_text",
+          include: ["name_only"],
+          exclude: ["quotes", "explanation", "alternatives"],
+        },
+      };
+
       const contents: Content[] = [
         {
           role: "user",
           parts: [
             {
-              text: `Create a highly brandable, memorable, and professional app name for: "${prompt}"
-
-Requirements for the app name:
-- Must be brandable and unique (not generic descriptive words)
-- Should be 1-2 words maximum
-- Easy to pronounce and remember
-- Available as a domain name (avoid common words)
-- Professional and modern sounding
-- Could work as a startup/company name
-- Consider using:
-  * Made-up words that sound tech-savvy (like "Figma", "Notion", "Stripe")
-  * Combining relevant word parts (like "Instagram", "LinkedIn", "YouTube")
-  * Using modern suffixes: -ly, -fy, -io, -co, -ai, -hub, -lab, -verse
-  * Avoid generic terms like "manager", "tracker", "tool", "app"
-
-Examples of good brandable names:
-- For project management: "Asana", "Trello", "Monday"
-- For design: "Figma", "Canva", "Sketch"
-- For communication: "Slack", "Discord", "Zoom"
-
-Return just the name without quotes or explanation.`,
+              text: `Using this configuration, generate an app name:\n\n${JSON.stringify(
+                structuredPrompt,
+                null,
+                2
+              )}`,
             },
           ],
         },
@@ -126,7 +162,7 @@ Return just the name without quotes or explanation.`,
       });
 
       let appName = response?.text?.trim() || "";
-      console.log("\n\nGenerated app name:", appName);
+      // console.log("\n\nGenerated app name:", appName);
       // Enhanced cleanup
       appName = appName.replace(/^["']|["']$/g, "");
       appName = appName.split(/[\n\r]/)[0].trim();
@@ -181,39 +217,73 @@ export async function generateMessage(
         responseMimeType: "text/plain",
       };
 
-      const model = "gemini-2.0-flash-lite";
-      const responsePrompt = isImprovement
-        ? `Create a friendly, conversational response to a user who has asked for improvements to their app.
-    The user wants: "${prompt}"
-    
-    The response should:
-    - Acknowledge the specific improvements they've asked for
-    - Be conversational and encouraging
-    - Express enthusiasm about enhancing their project
-    - Mention that you'll work on implementing the requested changes
-    - Keep it concise (2-4 sentences)
-    - Don't use generic phrases like "I understand" or "I'll help you"
-    - Don't mention that you're an AI
-    
-    Just provide the response text without quotation marks.`
-        : `Create a friendly, conversational response to a user who has asked you to build a web application.
-    The user wants: "${prompt}"
-    
-    The response should:
-    - Acknowledge their specific app idea
-    - Be conversational and enthusiastic
-    - Mention that you'll create a fully functional web application based on their request
-    - Include a specific detail about what makes this type of app useful or valuable
-    - Keep it concise (2-4 sentences)
-    - Don't use generic phrases like "I understand" or "I'll help you"
-    - Don't mention that you're an AI
-    
-    Just provide the response text without quotation marks.`;
+      const model = "gemini-flash-lite-latest";
+
+      const structuredResponsePrompt = {
+        instruction: "Generate a conversational response",
+        context: {
+          scenario: isImprovement
+            ? "user_requests_improvements"
+            : "user_requests_new_app",
+          user_input: prompt,
+        },
+        response_parameters: {
+          tone_profile: {
+            warmth: "high",
+            enthusiasm: "high",
+            formality: "low",
+            personality: "encouraging and genuine",
+          },
+          content_structure: isImprovement
+            ? {
+                acknowledge: "specific improvements mentioned by user",
+                express: "enthusiasm about enhancing the project",
+                commit: "to implementing the requested changes",
+              }
+            : {
+                acknowledge: "the specific app idea",
+                express: "enthusiasm about building it",
+                commit: "to creating a fully functional web application",
+                include: "one specific detail about the app's value/usefulness",
+              },
+          constraints: {
+            length: { min_sentences: 2, max_sentences: 4 },
+            banned_phrases: [
+              "I understand",
+              "I'll help you",
+              "As an AI",
+              "I'm an AI",
+              "Let me assist",
+            ],
+            writing_style: {
+              avoid: ["robotic language", "generic templates", "AI mentions"],
+              prefer: [
+                "natural speech",
+                "specific details",
+                "genuine excitement",
+              ],
+            },
+          },
+        },
+        output_specification: {
+          format: "raw_text",
+          no_formatting: ["quotes", "markdown", "preamble"],
+          deliver: "response_only",
+        },
+      };
 
       const contents: Content[] = [
         {
           role: "user",
-          parts: [{ text: responsePrompt }],
+          parts: [
+            {
+              text: `Follow this specification to generate a response:\n\n${JSON.stringify(
+                structuredResponsePrompt,
+                null,
+                2
+              )}\n\nGenerate the response now.`,
+            },
+          ],
         },
       ];
 
@@ -224,7 +294,7 @@ export async function generateMessage(
       });
 
       let message = response?.text?.trim() || "";
-      console.log("\n\nGenerated message:", message);
+      // console.log("\n\nGenerated message:", message);
 
       // Fallback messages if generation fails
       if (!message) {
@@ -243,7 +313,6 @@ export async function generateMessage(
   });
 }
 
-// Significantly enhanced app architecture generation
 export async function generateAppArchitecture(
   appIdea: string,
   appName: string,
@@ -692,20 +761,121 @@ export async function generateAppArchitecture(
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
-        maxOutputTokens: 8192,
-        responseMimeType: "text/plain",
+        maxOutputTokens: 32768,
+        responseMimeType: "application/json",
       };
 
-      const model = "gemini-2.5-flash";
+      const model = "gemini-2.5-pro";
+
+      const createTemplatePromptConfig = (
+        template: string,
+        appIdea: string,
+        appName: string
+      ) => ({
+        target: {
+          template_document: template,
+          application_type: appIdea,
+          application_name: appName,
+        },
+        completion_rules: {
+          project_name: {
+            action: "set_to",
+            value: appName,
+            location: "Project Name section",
+          },
+          placeholder_replacement: {
+            pattern: "all text within [brackets]",
+            action: "replace_with_specific_details",
+            quality: "detailed and contextual",
+          },
+          comment_removal: {
+            pattern: "HTML comments (<!-- -->)",
+            action: "remove_completely",
+          },
+          section_completion: {
+            requirement: "fill_all_sections",
+            depth: "comprehensive",
+            specificity: "tailored_to_app_concept",
+          },
+        },
+        quality_standards: {
+          production_readiness: {
+            level: "production_grade",
+            ui_design: "professional",
+            ux_design: "professional",
+            code_quality: "industry_standard",
+          },
+          technical_decisions: {
+            apis: "select_appropriate_from_provided_list",
+            components: "define_specific_to_app_needs",
+            data_models: "create_relevant_structures",
+            routing: "design_logical_flow",
+          },
+          implementation_detail: {
+            specificity: "actionable",
+            completeness: "ready_for_development",
+            clarity: "unambiguous",
+          },
+        },
+        content_requirements: {
+          user_needs: {
+            count: "3_to_5",
+            relevance: "specific_to_app_concept",
+            clarity: "clear_and_measurable",
+          },
+          pages_views: {
+            count: "all_necessary_views",
+            detail_level: "purpose_components_and_actions",
+            coherence: "logical_user_flow",
+          },
+          components: {
+            count: "all_major_components",
+            specification: "structure_and_functionality",
+            completeness: "ready_for_implementation",
+          },
+          data_models: {
+            requirement: "define_all_necessary_models",
+            detail: "properties_types_and_methods",
+            alignment: "match_app_requirements",
+          },
+          implementation_plan: {
+            steps: "6_phase_approach",
+            detail: "specific_actionable_tasks",
+            sequencing: "logical_build_order",
+          },
+          look_and_feel: {
+            length: "3_to_4_lines",
+            content: [
+              "visual_style_description",
+              "user_experience_approach",
+              "design_principles",
+            ],
+          },
+        },
+        output_format: {
+          type: "completed_json",
+          structure: "preserve_original_json_structure",
+          formatting: "maintain_json_syntax",
+          completeness: "no_placeholders_or_comments_remaining",
+        },
+      });
+
+      const templatePromptConfig = createTemplatePromptConfig(
+        template,
+        appIdea,
+        appName
+      );
+
       const contents = [
         {
           role: "user",
           parts: [
             {
-              text: `"${template}" ,  I want to make a ${appIdea}. 
-    The app name should be "${appName}". Fill the above template with the details for making this ${appIdea} app.
-    Make sure the Project Name is set to "${appName}" in the template.
-    The app will be production ready and with professional UI/UX design.`,
+              text: `Using this configuration, complete the architecture template:\n\n${JSON.stringify(
+                templatePromptConfig,
+                null,
+                2
+              )}`,
             },
           ],
         },
@@ -717,8 +887,11 @@ export async function generateAppArchitecture(
         contents,
       });
 
-      let architecture = response?.text?.trim() || "";
-      console.log("\n\nGenerated architecture:", architecture);
+      let rawResponse = response?.text?.trim() || "";
+      // console.log("\n\nRaw AI Response:", rawResponse);
+
+      // Extract JSON from the response
+      let architecture = extractJSON(rawResponse);
 
       // Fallback architecture if generation fails
       if (!architecture || architecture.length < 1000) {
@@ -751,6 +924,7 @@ export async function generateAppArchitecture(
 This application will be built as a single-file, production-ready web application with professional quality code and user experience.`;
       }
 
+      // console.log("\n\nExtracted architecture:", architecture);
       return architecture;
     } catch (error) {
       console.error("Error in generateAppArchitecture:", error);
@@ -764,72 +938,72 @@ This application will be built as a single-file, production-ready web applicatio
 }
 
 // Enhanced style inspiration with better trend analysis
-export async function getStyleInspiration(appIdea: string): Promise<string> {
-  const cacheKey = createCacheKey("getStyleInspiration", appIdea);
+// export async function getStyleInspiration(appIdea: string): Promise<string> {
+//   const cacheKey = createCacheKey("getStyleInspiration", appIdea);
 
-  return executeWithDeduplication(cacheKey, async () => {
-    try {
-      // Fetch most popular UI design from Unsplash
-      const designImageUrl = await fetchPopularUIDesign(appIdea);
+//   return executeWithDeduplication(cacheKey, async () => {
+//     try {
+//       // Fetch most popular UI design from Unsplash
+//       const designImageUrl = await fetchPopularUIDesign(appIdea);
 
-      // Generate style guide using the design image
-      const tools = [{ googleSearch: {} }];
-      const config = {
-        thinkingConfig: {
-          thinkingBudget: -1,
-        },
-        tools,
-        temperature: 0.8,
-        maxOutputTokens: 4096,
-        responseMimeType: "text/plain",
-      };
-      const model = "gemini-2.5-flash";
+//       // Generate style guide using the design image
+//       const tools = [{ googleSearch: {} }];
+//       const config = {
+//         thinkingConfig: {
+//           thinkingBudget: -1,
+//         },
+//         tools,
+//         temperature: 0.8,
+//         maxOutputTokens: 4096,
+//         responseMimeType: "text/plain",
+//       };
+//       const model = "gemini-2.5-flash";
 
-      const contents = [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Analyze this high-quality UI design image and create detailed style guidance for a modern ${appIdea} website.
+//       const contents = [
+//         {
+//           role: "user",
+//           parts: [
+//             {
+//               text: `Analyze this high-quality UI design image and create detailed style guidance for a modern ${appIdea} website.
 
-Use this image as primary inspiration along with your knowledge of current design trends to create a comprehensive style guide.
+// Use this image as primary inspiration along with your knowledge of current design trends to create a comprehensive style guide.
 
-Include specifics about:
-- Color palette (exact hex codes) extracted from the design and current trends
-- Typography (font families, sizes, weights) that match this aesthetic
-- Component styles (buttons, cards, navigation) inspired by the design
-- Layout principles from the design and modern standards
-- Animation suggestions that would enhance this style
-- Visual motifs and design elements from the image
+// Include specifics about:
+// - Color palette (exact hex codes) extracted from the design and current trends
+// - Typography (font families, sizes, weights) that match this aesthetic
+// - Component styles (buttons, cards, navigation) inspired by the design
+// - Layout principles from the design and modern standards
+// - Animation suggestions that would enhance this style
+// - Visual motifs and design elements from the image
 
-Format as a concise but detailed style guide for an AI code generator.`,
-            },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: await getImageAsBase64(designImageUrl),
-              },
-            },
-          ],
-        },
-      ];
+// Format as a concise but detailed style guide for an AI code generator.`,
+//             },
+//             {
+//               inlineData: {
+//                 mimeType: "image/jpeg",
+//                 data: await getImageAsBase64(designImageUrl),
+//               },
+//             },
+//           ],
+//         },
+//       ];
 
-      const response = await ai.models.generateContent({
-        model,
-        config,
-        contents,
-      });
+//       const response = await ai.models.generateContent({
+//         model,
+//         config,
+//         contents,
+//       });
 
-      return (
-        response?.text?.trim() ||
-        `Modern design system for ${appIdea} with clean typography, accessible colors, and professional styling.`
-      );
-    } catch (error) {
-      console.error("Error in getStyleInspiration:", error);
-      return `Modern, professional design system for ${appIdea} application with clean styling and excellent user experience.`;
-    }
-  });
-}
+//       return (
+//         response?.text?.trim() ||
+//         `Modern design system for ${appIdea} with clean typography, accessible colors, and professional styling.`
+//       );
+//     } catch (error) {
+//       console.error("Error in getStyleInspiration:", error);
+//       return `Modern, professional design system for ${appIdea} application with clean styling and excellent user experience.`;
+//     }
+//   });
+// }
 
 // Significantly enhanced code generation with better error handling and retry logic
 export async function generateCode(
@@ -854,9 +1028,9 @@ export async function generateCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Code generation attempt ${attempt}/${maxRetries}`);
+        // console.log(`Code generation attempt ${attempt}/${maxRetries}`);
 
-        const styleGuidance = await getStyleInspiration(appIdea);
+        // const styleGuidance = await getStyleInspiration(appIdea);
 
         const config = {
           thinkingConfig: {
@@ -869,52 +1043,269 @@ export async function generateCode(
           responseMimeType: "text/plain",
         };
 
-        const model = "gemini-2.5-flash";
+        const model = "gemini-2.5-pro";
 
-        // Enhanced prompt with more specific instructions for complete code
-        const promptText = `Create a stunning, production-ready website based on this template: 
-      "${architecture}"
-      
-      ${styleGuidance}Requirements:
-      - Use HTML5, TailwindCSS, and modern JavaScript
-      - Create a visually striking, professional UI with excellent UX
-      - Implement thoughtful micro-interactions and transitions
-      - Use gradients, shadows, and modern design elements
-      - Ensure responsive design for all devices
-      - Include animations where appropriate
-      - Use semantic HTML and optimize for accessibility
-      - Implement a cohesive color scheme
-      - Organize code cleanly with proper comments
-      - Research latest web design trends and incorporate them
-      - Find inspiration from top-rated websites in this category
-      
-      Return ONLY the complete, working HTML code with embedded CSS and JavaScript.${
-        attempt > 1
-          ? `
-          **RETRY INSTRUCTIONS:**
-          This is retry attempt ${attempt}. The previous attempt(s) failed because:
-          - Code was incomplete or truncated
-          - Missing essential HTML structure
-          - Insufficient functionality implementation
+        const codeGenerationConfig = {
+          role_context: {
+            position: "Senior Full-Stack Developer & UI/UX Designer",
+            expertise: [
+              "modern_web_development",
+              "responsive_design",
+              "accessibility_standards",
+              "performance_optimization",
+              "visual_design",
+              "user_experience",
+            ],
+            experience_level: "expert_10_plus_years",
+          },
 
-          Please ensure this attempt generates a COMPLETE, FULL-LENGTH HTML document with ALL features implemented.
+          input: {
+            architecture_blueprint: architecture,
+            attempt_number: attempt,
+            is_retry: attempt > 1,
+          },
+
+          task: {
+            primary_objective: "generate_complete_production_ready_html_file",
+            scope: "single_file_web_application",
+            deliverable_type: "self_contained_html_document",
+          },
+
+          technical_requirements: {
+            core_technologies: {
+              markup: "HTML5",
+              styling: "TailwindCSS_via_cdn",
+              scripting: "modern_javascript_es2022_plus",
+              icons: "font_awesome_6_7_2",
+            },
+
+            architecture_constraints: {
+              file_structure: "single_html_file",
+              css_approach: "embedded_in_style_tags",
+              javascript_approach: "embedded_in_script_tags",
+              external_dependencies: "cdn_only",
+              build_tools: "none_required",
+            },
+
+            implementation_completeness: [
+              "all_features_from_architecture_fully_implemented",
+              "all_components_completely_coded",
+              "all_pages_views_functional",
+              "all_data_models_implemented",
+              "all_routing_logic_working",
+              "all_state_management_functional",
+              "all_api_integrations_complete",
+              "no_placeholder_functions",
+              "no_todo_comments",
+              "production_ready_code",
+            ],
+          },
+
+          design_requirements: {
+            visual_quality: {
+              level: "stunning_and_professional",
+              inspiration: "top_rated_websites_in_category",
+              trends: "incorporate_latest_2025_web_design_trends",
+              aesthetic: "modern_polished_and_cohesive",
+            },
+
+            design_elements: {
+              color_scheme: {
+                requirement: "cohesive_and_purposeful",
+                approach: "based_on_architecture_design_system",
+                sophistication: "professional_grade",
+              },
+
+              typography: {
+                hierarchy: "clear_and_readable",
+                scale: "harmonious",
+                pairing: "professional",
+              },
+
+              visual_effects: {
+                gradients: "use_modern_gradient_techniques",
+                shadows: "implement_depth_and_elevation",
+                borders: "thoughtful_use_of_borders_and_dividers",
+                spacing: "generous_and_balanced",
+              },
+
+              micro_interactions: {
+                hover_effects: "subtle_and_engaging",
+                transitions: "smooth_and_purposeful",
+                animations: "enhance_ux_without_overwhelming",
+                feedback: "immediate_visual_feedback_for_actions",
+              },
+            },
+
+            responsive_design: {
+              approach: "mobile_first",
+              breakpoints: ["mobile", "tablet", "desktop", "large_desktop"],
+              testing: "ensure_works_perfectly_on_all_devices",
+              touch_optimization: "optimize_for_touch_interactions",
+            },
+
+            user_experience: {
+              navigation: "intuitive_and_seamless",
+              interactions: "thoughtful_and_predictable",
+              loading_states: "implement_where_appropriate",
+              error_handling: "graceful_error_messages",
+              accessibility: "wcag_2_1_aa_compliant",
+            },
+          },
+
+          code_quality_standards: {
+            organization: {
+              structure: "clean_and_logical",
+              sections: "clearly_separated_with_comments",
+              naming: "descriptive_and_consistent",
+            },
+
+            documentation: {
+              comments: "explain_complex_logic_and_sections",
+              code_clarity: "self_documenting_where_possible",
+              inline_docs: "helpful_without_being_excessive",
+            },
+
+            best_practices: {
+              html: [
+                "semantic_html5_elements",
+                "proper_nesting_and_structure",
+                "accessibility_attributes",
+                "seo_friendly_markup",
+              ],
+              css: [
+                "tailwind_utility_classes_properly_used",
+                "custom_css_for_unique_styles",
+                "responsive_utilities",
+                "organized_style_blocks",
+              ],
+              javascript: [
+                "modern_es2022_plus_syntax",
+                "clean_function_organization",
+                "proper_event_handling",
+                "efficient_dom_manipulation",
+                "no_memory_leaks",
+              ],
+            },
+
+            performance: {
+              optimization: "optimize_for_fast_loading",
+              efficiency: "efficient_javascript_execution",
+              assets: "optimize_any_inline_resources",
+            },
+          },
+
+          retry_handling:
+            attempt > 1
+              ? {
+                  attempt_number: attempt,
+                  previous_failures: [
+                    "code_was_incomplete_or_truncated",
+                    "missing_essential_html_structure",
+                    "insufficient_functionality_implementation",
+                  ],
+                  retry_requirements: [
+                    "generate_complete_full_length_html_document",
+                    "implement_all_features_from_architecture",
+                    "ensure_no_truncation_or_cutoff",
+                    "verify_completeness_before_returning",
+                  ],
+                  critical_instruction:
+                    "This is a retry - ensure ABSOLUTE COMPLETENESS",
+                }
+              : null,
+
+          output_specifications: {
+            format: "raw_html_code_only",
+            structure: {
+              start_with: "<!DOCTYPE html>",
+              end_with: "</html>",
+              completeness: "entire_document_from_doctype_to_closing_html_tag",
+            },
+
+            prohibited_content: [
+              "markdown_code_blocks",
+              "explanatory_text",
+              "introductory_sentences",
+              "closing_remarks",
+              "code_fence_markers",
+              "language_identifiers",
+            ],
+
+            required_sections: [
+              "complete_head_with_all_meta_tags_and_links",
+              "complete_body_with_all_structure",
+              "embedded_style_tag_with_custom_css",
+              "embedded_script_tag_with_complete_javascript",
+              "all_html_structure_for_all_views_and_components",
+            ],
+
+            validation_checklist: [
+              "can_be_saved_as_html_file_immediately",
+              "can_be_opened_in_browser_without_modification",
+              "fully_functional_without_additional_files",
+              "all_features_working_as_specified_in_architecture",
+            ],
+          },
+
+          quality_assurance: {
+            self_check_before_output: [
+              "verify_all_architecture_requirements_implemented",
+              "confirm_code_is_complete_not_truncated",
+              "ensure_all_functions_are_fully_defined",
+              "check_all_components_are_rendered",
+              "validate_html_structure_is_complete",
+              "confirm_no_placeholder_or_todo_code",
+            ],
+          },
+        };
+
+        const promptText = `You are a Senior Full-Stack Developer and UI/UX Designer with expert-level skills in modern web development.
+
+TASK: Generate a complete, production-ready, single-file HTML web application based on the following architecture blueprint.
+
+ARCHITECTURE BLUEPRINT:
+${JSON.stringify(architecture, null, 2)}
+
+GENERATION SPECIFICATIONS:
+${JSON.stringify(codeGenerationConfig, null, 2)}
+
+${
+  attempt > 1
+    ? `
+⚠️ RETRY ATTEMPT #${attempt} ⚠️
+Previous attempt(s) FAILED due to:
+- Incomplete or truncated code
+- Missing essential HTML structure  
+- Insufficient functionality implementation
+
+YOU MUST generate a COMPLETE, FULL-LENGTH HTML document with ALL features implemented.
+DO NOT truncate. DO NOT leave placeholders. COMPLETE IMPLEMENTATION ONLY.
 `
-          : ""
-      }
+    : ""
+}
 
-        **OUTPUT FORMAT:**
-        Return ONLY the complete HTML code. Start immediately with "<!DOCTYPE html>" and end with "</html>". 
-        Do NOT include any explanations, markdown formatting, or code blocks - just the raw HTML code.
+CRITICAL OUTPUT REQUIREMENTS:
+1. Start IMMEDIATELY with "<!DOCTYPE html>"
+2. End with "</html>"
+3. Include COMPLETE implementation of ALL features from architecture
+4. NO markdown, NO explanations, NO code blocks - ONLY raw HTML
+5. Self-contained: works immediately when saved as .html file
+6. All CSS embedded in <style> tags
+7. All JavaScript embedded in <script> tags
+8. All CDN links in <head>
+9. Stunning, professional UI with modern design
+10. Fully responsive and accessible
 
-        CRITICAL: The response must be a complete, self-contained HTML file that can be saved and opened in a browser immediately.`;
+Generate the complete HTML code now:`;
 
+        // console.log("\n\nCode generation prompt:", promptText);
         const contents = [
           {
             role: "user",
             parts: [{ text: promptText }],
           },
         ];
-
         const response = await ai.models.generateContent({
           model,
           config,
@@ -922,14 +1313,14 @@ export async function generateCode(
         });
 
         let code = response?.text?.trim() || "";
-        console.log("\n\nGenerated code:", code);
-        console.log(`Generated code length: ${code.length} characters`);
+        // console.log("\n\nGenerated code:", code);
+        // console.log(`Generated code length: ${code.length} characters`);
 
         // Enhanced code extraction and validation
         code = extractAndValidateHTML(code, appName, attempt);
 
         // If we get here, the code is valid
-        console.log(`✅ Code generation successful on attempt ${attempt}`);
+        // console.log(`✅ Code generation successful on attempt ${attempt}`);
         return code;
       } catch (error) {
         console.error(`❌ Code generation attempt ${attempt} failed:`, error);
@@ -937,9 +1328,9 @@ export async function generateCode(
 
         // If this isn't the last attempt, continue to retry
         if (attempt < maxRetries) {
-          console.log(
-            `🔄 Retrying code generation (${attempt + 1}/${maxRetries})...`
-          );
+          // console.log(
+          //   `🔄 Retrying code generation (${attempt + 1}/${maxRetries})...`
+          // );
           // Add a small delay before retry
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
@@ -979,7 +1370,7 @@ export async function generateImproveCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Code improvement attempt ${attempt}/${maxRetries}`);
+        // console.log(`Code improvement attempt ${attempt}/${maxRetries}`);
 
         const config = {
           thinkingConfig: {
@@ -992,61 +1383,171 @@ export async function generateImproveCode(
           responseMimeType: "text/plain",
         };
 
-        const model = "gemini-2.5-flash";
+        const model = "gemini-2.5-pro";
 
-        const promptText = `You are improving an existing web application. Here's the context:
+        // JSON-based structured prompt
+        const structuredPrompt = {
+          system: {
+            role: "Senior Software Engineer",
+            experience:
+              "60 years of professional software development experience",
+            expertise: [
+              "Web application development",
+              "Code improvement and optimization",
+              "Modern web standards",
+              "User experience design",
+            ],
+          },
+          context: {
+            appName: appName,
+            appType: appIdea,
+            currentStatus: "Existing functional application",
+            improvementAttempt: attempt,
+            maxRetries: maxRetries,
+          },
+          inputs: {
+            existingCode: existingCode,
+            improvementRequest: improvementPrompt,
+          },
+          criticalRequirements: [
+            {
+              requirement: "COMPLETE HTML DOCUMENT",
+              description: "Return the entire HTML document, not just changes",
+            },
+            {
+              requirement: "MAINTAIN ALL EXISTING FUNCTIONALITY",
+              description: "Keep everything that currently works",
+            },
+            {
+              requirement: "ADD NEW FEATURES",
+              description: "Implement the requested improvements fully",
+            },
+            {
+              requirement: "NO TRUNCATION",
+              description: "Generate the complete improved application",
+            },
+            {
+              requirement: "PROPER STRUCTURE",
+              description:
+                "Maintain the existing HTML structure and organization",
+            },
+          ],
+          improvementGuidelines: [
+            {
+              guideline: "Maintain Context",
+              description: "Keep all existing functionality that works well",
+            },
+            {
+              guideline: "Enhance, Don't Replace",
+              description: "Build upon the existing foundation",
+            },
+            {
+              guideline: "Complete Implementation",
+              description: "Every improvement must be fully functional",
+            },
+            {
+              guideline: "Consistency",
+              description:
+                "Maintain the app's existing design language and patterns",
+            },
+            {
+              guideline: "User Experience",
+              description:
+                "Focus on making the app more intuitive and pleasant to use",
+            },
+            {
+              guideline: "Performance",
+              description: "Optimize any inefficient code",
+            },
+            {
+              guideline: "Modern Standards",
+              description: "Apply current web development best practices",
+            },
+            {
+              guideline: "Error Handling",
+              description: "Add robust error handling for new features",
+            },
+            {
+              guideline: "Accessibility",
+              description: "Ensure all improvements are accessible",
+            },
+            {
+              guideline: "Mobile Responsiveness",
+              description: "Ensure improvements work on all devices",
+            },
+          ],
+          retryInstructions:
+            attempt > 1
+              ? {
+                  message: `This is retry attempt ${attempt}. The previous attempt failed.`,
+                  requirements: [
+                    "Return the COMPLETE improved HTML document",
+                    "All improvements are fully implemented",
+                    "No code truncation or incomplete sections",
+                    "Maintain all existing functionality",
+                  ],
+                }
+              : null,
+          outputFormat: {
+            requirements: [
+              "Return ONLY the complete, improved HTML code",
+              "Start with '<!DOCTYPE html>' and end with '</html>'",
+              "Do NOT include explanations or markdown - just the complete HTML file",
+            ],
+            critical:
+              "The returned code must be 100% complete and functional with all improvements implemented",
+          },
+        };
+
+        // Convert JSON structure to formatted text prompt
+        const promptText = `You are a ${structuredPrompt.system.role} with ${
+          structuredPrompt.system.experience
+        }, improving an existing web application.
 
 **Application Context:**
-- App Name: ${appName}
-- App Type: ${appIdea}
-- Current Status: Existing functional application
-- Improvement Attempt: ${attempt}/${maxRetries}
+- App Name: ${structuredPrompt.context.appName}
+- App Type: ${structuredPrompt.context.appType}
+- Current Status: ${structuredPrompt.context.currentStatus}
+- Improvement Attempt: ${structuredPrompt.context.improvementAttempt}/${
+          structuredPrompt.context.maxRetries
+        }
 
 **Current Application Code:**
 """
-${existingCode}
+${structuredPrompt.inputs.existingCode}
 """
 
 **Improvement Request:**
-"${improvementPrompt}"
+"${structuredPrompt.inputs.improvementRequest}"
 
 **CRITICAL REQUIREMENTS:**
-1. **COMPLETE HTML DOCUMENT**: Return the entire HTML document, not just changes
-2. **MAINTAIN ALL EXISTING FUNCTIONALITY**: Keep everything that currently works
-3. **ADD NEW FEATURES**: Implement the requested improvements fully
-4. **NO TRUNCATION**: Generate the complete improved application
-5. **PROPER STRUCTURE**: Maintain the existing HTML structure and organization
+${structuredPrompt.criticalRequirements
+  .map((req, idx) => `${idx + 1}. **${req.requirement}**: ${req.description}`)
+  .join("\n")}
 
 **Improvement Guidelines:**
-1. **Maintain Context**: Keep all existing functionality that works well
-2. **Enhance, Don't Replace**: Build upon the existing foundation
-3. **Complete Implementation**: Every improvement must be fully functional
-4. **Consistency**: Maintain the app's existing design language and patterns
-5. **User Experience**: Focus on making the app more intuitive and pleasant to use
-6. **Performance**: Optimize any inefficient code
-7. **Modern Standards**: Apply current web development best practices
-8. **Error Handling**: Add robust error handling for new features
-9. **Accessibility**: Ensure all improvements are accessible
-10. **Mobile Responsiveness**: Ensure improvements work on all devices
+${structuredPrompt.improvementGuidelines
+  .map(
+    (guide, idx) => `${idx + 1}. **${guide.guideline}**: ${guide.description}`
+  )
+  .join("\n")}
 
 ${
-  attempt > 1
+  structuredPrompt.retryInstructions
     ? `
 **RETRY INSTRUCTIONS:**
-This is retry attempt ${attempt}. The previous attempt failed. Please ensure:
-- Return the COMPLETE improved HTML document
-- All improvements are fully implemented
-- No code truncation or incomplete sections
-- Maintain all existing functionality
+${structuredPrompt.retryInstructions.message}
+${structuredPrompt.retryInstructions.requirements
+  .map((req) => `- ${req}`)
+  .join("\n")}
 `
     : ""
 }
 
 **OUTPUT FORMAT:**
-Return ONLY the complete, improved HTML code. Start with "<!DOCTYPE html>" and end with "</html>".
-Do NOT include explanations or markdown - just the complete HTML file.
+${structuredPrompt.outputFormat.requirements.join("\n")}
 
-CRITICAL: The returned code must be 100% complete and functional with all improvements implemented.`;
+CRITICAL: ${structuredPrompt.outputFormat.critical}`;
 
         const contents = [
           {
@@ -1078,16 +1579,16 @@ CRITICAL: The returned code must be 100% complete and functional with all improv
           );
         }
 
-        console.log(`✅ Code improvement successful on attempt ${attempt}`);
+        // console.log(`✅ Code improvement successful on attempt ${attempt}`);
         return improvedCode;
       } catch (error) {
         console.error(`❌ Code improvement attempt ${attempt} failed:`, error);
         lastError = error as Error;
 
         if (attempt < maxRetries) {
-          console.log(
-            `🔄 Retrying code improvement (${attempt + 1}/${maxRetries})...`
-          );
+          // console.log(
+          //   `🔄 Retrying code improvement (${attempt + 1}/${maxRetries})...`
+          // );
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
@@ -1103,53 +1604,90 @@ CRITICAL: The returned code must be 100% complete and functional with all improv
   });
 }
 
-async function fetchPopularUIDesign(appIdea: string): Promise<string> {
-  const UNSPLASH_ACCESS_KEY = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
-
-  if (!UNSPLASH_ACCESS_KEY) {
-    throw new Error("Unsplash access key not found in environment variables");
+function extractJSON(text: string): string {
+  // Method 1: Try to extract JSON from markdown code blocks
+  const markdownJsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (markdownJsonMatch) {
+    return markdownJsonMatch[1].trim();
   }
 
-  // Create search query for UI designs
-  const searchQuery = `${appIdea} ui design interface dashboard website mockup`;
-
-  const response = await fetch(
-    `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-      searchQuery
-    )}&orientation=landscape&order_by=popular&per_page=1`,
-    {
-      headers: {
-        Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-      },
+  // Method 2: Try to extract JSON from generic code blocks
+  const codeBlockMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    const content = codeBlockMatch[1].trim();
+    // Check if it's valid JSON
+    if (content.startsWith("{") || content.startsWith("[")) {
+      return content;
     }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Unsplash API failed: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  const topDesign = data.results?.[0];
+  // Method 3: Find JSON object by looking for the first { and last }
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
 
-  if (!topDesign?.urls) {
-    throw new Error("No design images found");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const potentialJson = text.substring(firstBrace, lastBrace + 1);
+
+    // Validate it's actual JSON
+    try {
+      JSON.parse(potentialJson);
+      return potentialJson;
+    } catch (e) {
+      // Not valid JSON, continue to next method
+    }
   }
 
-  // Use the highest quality image available
-  return topDesign.urls.regular || topDesign.urls.small;
+  // Method 4: Return original text if no JSON found (fallback will handle it)
+  return text;
 }
 
-async function getImageAsBase64(imageUrl: string): Promise<string> {
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  }
+// async function fetchPopularUIDesign(appIdea: string): Promise<string> {
+//   const UNSPLASH_ACCESS_KEY = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
 
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
+//   if (!UNSPLASH_ACCESS_KEY) {
+//     throw new Error("Unsplash access key not found in environment variables");
+//   }
 
-  return base64;
-}
+//   // Create search query for UI designs
+//   const searchQuery = `${appIdea} ui design interface dashboard website mockup`;
+
+//   const response = await fetch(
+//     `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+//       searchQuery
+//     )}&orientation=landscape&order_by=popular&per_page=1`,
+//     {
+//       headers: {
+//         Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+//       },
+//     }
+//   );
+
+//   if (!response.ok) {
+//     throw new Error(`Unsplash API failed: ${response.statusText}`);
+//   }
+
+//   const data = await response.json();
+//   const topDesign = data.results?.[0];
+
+//   if (!topDesign?.urls) {
+//     throw new Error("No design images found");
+//   }
+
+//   // Use the highest quality image available
+//   return topDesign.urls.regular || topDesign.urls.small;
+// }
+
+// async function getImageAsBase64(imageUrl: string): Promise<string> {
+//   const response = await fetch(imageUrl);
+//   if (!response.ok) {
+//     throw new Error(`Failed to fetch image: ${response.statusText}`);
+//   }
+
+//   const arrayBuffer = await response.arrayBuffer();
+//   const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+//   return base64;
+// }
 
 // Helper function to extract and validate HTML code
 function extractAndValidateHTML(

@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import BetaBadge from "@/components/Beta-badge";
+import SignInPage from "@/components/SignInPage";
 
 interface LinkType {
   label: string;
@@ -130,54 +131,7 @@ export default function ProjectPage() {
 
   // Show auth page if user is not authenticated
 if (!user || showAuthModal) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-zinc-900 to-black p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <div className="h-16 w-16 relative">
-            <Image
-              src="/logo.png"
-              alt="VibeKode Logo"
-              width={64}
-              height={64}
-              className="object-contain rounded-full"
-              priority
-            />
-          </div>
-        </div>
-
-        <div className="text-center space-y-6">
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#00ccb1] via-[#7b61ff] to-[#1ca0fb]">
-              Welcome to VibeKode
-            </h1>
-            <p className="text-zinc-400 text-lg">
-              Sign in to access your projects and start building
-            </p>
-          </div>
-
-          {/* Divider with sparkle effect */}
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-zinc-700/50"></div>
-            <span className="flex-shrink mx-3 text-zinc-500">✨</span>
-            <div className="flex-grow border-t border-zinc-700/50"></div>
-          </div>
-
-          <AuthModal
-            mode="signin"
-            triggerText="Sign In to Continue"
-            triggerClassName="w-full px-6 py-4 bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2"
-          />
-        </div>
-
-        {/* Footer text */}
-        <p className="text-zinc-500 text-sm text-center mt-8">
-          New to VibeKode? <span className="text-[#00ccb1] hover:underline cursor-pointer">Create an account</span>
-        </p>
-      </div>
-    </div>
-  );
+    return <SignInPage />;
 }
 
   return (

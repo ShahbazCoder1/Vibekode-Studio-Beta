@@ -27,7 +27,7 @@ const HeroTitle: React.FC<HeroTitleProps> = ({ className = "" }) => {
   ];
 
   return (
-    <div className={`w-full max-w-[calc(100vw-2rem)] mx-auto mt-0 md:mt-10 mb-10 px-4 text-center ${className}`}>
+    <div className={`w-full max-w-[calc(100vw-2rem)] mx-auto mt-0 mb-10 px-4 text-center ${className}`}>
       <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
         <TypewriterEffect
           words={words}

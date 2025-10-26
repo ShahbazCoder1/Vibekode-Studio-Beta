@@ -18,7 +18,6 @@ import Previewer from "@/components/Previewer-web";
 import BottomNav from "@/components/Bottom-nav";
 import Chat from "@/components/Chat";
 import { subscribeToAuthChanges, AppUser, logout, getUserProjects, ProjectDocument, updateProjectName, deleteProject } from "@/lib/firebase";
-import { AuthModal } from "@/components/Auth-model";
 import ProjectModal from "@/components/ProjectModal";
 import SettingsModal from "@/components/SettingsModal";
 import CommunityModal from "@/components/CommunityModal";
@@ -26,6 +25,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import BetaBadge from "@/components/Beta-badge";
+import SignInPage from "@/components/SignInPage";
 
 interface LinkType {
   label: string;
@@ -204,25 +204,7 @@ export default function ChatPage() {
 
   // Show auth modal if user is not authenticated
   if (!user || showAuthModal) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-neutral-900">
-        <div className="text-center space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Welcome to VibeKode Studio
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Please sign in to access your projects
-            </p>
-          </div>
-          <AuthModal
-            mode="signin"
-            triggerText="Sign In to Continue"
-            triggerClassName="px-6 py-3 bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          />
-        </div>
-      </div>
-    );
+    return <SignInPage />;
   }
 
   return (

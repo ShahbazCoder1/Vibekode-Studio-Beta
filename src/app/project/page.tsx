@@ -19,7 +19,6 @@ import PromptBox from "@/components/Prompt-Box";
 import ScrollDown from "@/components/Scroll-Down";
 import CommunityProject from "@/components/Community-Project";
 import { subscribeToAuthChanges, AppUser, logout, getUserProjects, ProjectDocument } from "@/lib/firebase";
-import { AuthModal } from "@/components/Auth-model";
 import SettingsModal from "@/components/SettingsModal";
 import CommunityModal from "@/components/CommunityModal";
 import { useRouter } from "next/navigation";

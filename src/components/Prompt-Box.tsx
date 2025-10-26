@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -12,6 +11,14 @@ import {
   Send,
 } from "lucide-react";
 import { createProject } from "@/lib/firebase";
+
+// Add this after your imports and before the typingIdeas array
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition: new () => SpeechRecognitionInstance;
+  }
+}
 
 // Typing animation ideas
 const typingIdeas = [
@@ -80,7 +87,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
 }) => {
   const [prompt, setPrompt] = useState<string>("");
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [mode, setMode] = useState<ProjectMode>("sketch");
+  const [mode] = useState<ProjectMode>("sketch");
   const [visibility, setVisibility] = useState<ProjectVisibility>("public");
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -125,12 +132,10 @@ const PromptBox: React.FC<PromptBoxProps> = ({
     return () => clearTimeout(timeoutId);
   }, [currentIdeaIndex, isFocused, prompt]);
 
-  // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
+        window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (SpeechRecognition) {
         const recognition =
@@ -164,7 +169,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
         try {
           recognitionRef.current.stop();
         } catch (e) {
-          // Ignore errors on cleanup
+          console.error("Error stopping recognition on unmount:", e);
         }
       }
     };

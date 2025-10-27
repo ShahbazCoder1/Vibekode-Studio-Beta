@@ -20,7 +20,13 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { deployToNetlify } from "@/backend/deploy";
-import { saveDeploymentInfo, getDeploymentInfo, DeploymentInfo, getProject, getLatestGeneratedCode } from "@/lib/firebase";
+import {
+  saveDeploymentInfo,
+  getDeploymentInfo,
+  DeploymentInfo,
+  getProject,
+  getLatestGeneratedCode,
+} from "@/lib/firebase";
 
 // Define the types for our component props
 interface PreviewerProps {
@@ -45,14 +51,19 @@ const devices: Record<Device, DeviceConfig> = {
   fullscreen: { label: "Fullscreen", icon: Maximize },
 };
 
-export default function Previewer({ projectId, hasGeneratedCode = false }: PreviewerProps) {
+export default function Previewer({
+  projectId,
+  hasGeneratedCode = false,
+}: PreviewerProps) {
   const [htmlContent, setHtmlContent] = useState<string>("");
   const [selectedDevice, setSelectedDevice] = useState<Device>("fullscreen");
   const [zoom, setZoom] = useState<number>(0.9);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [deploymentInfo, setDeploymentInfo] = useState<DeploymentInfo | null>(null);
+  const [deploymentInfo, setDeploymentInfo] = useState<DeploymentInfo | null>(
+    null
+  );
   const [showDeploymentModal, setShowDeploymentModal] = useState(false);
   const [deploymentError, setDeploymentError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
@@ -66,10 +77,11 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
     const defaultConsoleHTML = "https://preview.vibekode.studio/";
 
     // Only use preview URL if we have both projectId AND code has been generated
-    const codeToRender = projectId && hasGeneratedCode
-      ? `https://preview.vibekode.studio/preview/${projectId}?token=${process.env.NEXT_PUBLIC_PREVIEW_TOKEN}`
-      : defaultConsoleHTML;
-    
+    const codeToRender =
+      projectId && hasGeneratedCode
+        ? `https://preview.vibekode.studio/preview/${projectId}?token=${process.env.NEXT_PUBLIC_PREVIEW_TOKEN}`
+        : defaultConsoleHTML;
+
     setHtmlContent(codeToRender);
     contentRef.current = codeToRender;
     setIsLoading(true);
@@ -97,12 +109,12 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
   const loadDeploymentInfo = async () => {
     if (!projectId) return;
-    
+
     try {
       const info = await getDeploymentInfo(projectId);
       setDeploymentInfo(info);
     } catch (error) {
-      console.error('Error loading deployment info:', error);
+      console.error("Error loading deployment info:", error);
     }
   };
 
@@ -115,7 +127,7 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
   const checkForNewVersion = async () => {
     if (!projectId || !deploymentInfo) return;
-    
+
     try {
       const latestCode = await getLatestGeneratedCode(projectId);
       if (latestCode && latestCode !== lastDeployedCode) {
@@ -124,7 +136,7 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
         setHasNewVersion(false);
       }
     } catch (error) {
-      console.error('Error checking for new version:', error);
+      console.error("Error checking for new version:", error);
     }
   };
 
@@ -172,21 +184,23 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
       // Get the latest generated code from Firebase
       const generatedCode = await getLatestGeneratedCode(projectId);
-      
+
       if (!generatedCode) {
-        throw new Error('No generated code found. Please generate code first.');
+        throw new Error("No generated code found. Please generate code first.");
       }
 
-      console.log('Found generated code, length:', generatedCode.length);
+      console.log("Found generated code, length:", generatedCode.length);
 
       // Deploy to Netlify (new deployment or update)
       const result = await deployToNetlify(
         generatedCode,
         projectName,
-        deploymentInfo ? {
-          siteId: deploymentInfo.siteId,
-          deployId: deploymentInfo.deployId
-        } : undefined
+        deploymentInfo
+          ? {
+              siteId: deploymentInfo.siteId,
+              deployId: deploymentInfo.deployId,
+            }
+          : undefined
       );
 
       // Save/update deployment info to Firebase
@@ -204,7 +218,7 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
         siteName: result.siteName,
         deployId: result.deployId,
         siteId: result.siteId,
-        deployedAt: new Date() as unknown as DeploymentInfo['deployedAt'],
+        deployedAt: new Date() as unknown as DeploymentInfo["deployedAt"],
       });
 
       // Update last deployed code
@@ -213,10 +227,11 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
       // Show success popup for updates, or automatically show for first publish
       setShowDeploymentModal(true);
-
     } catch (error) {
-      console.error('Deployment error:', error);
-      setDeploymentError(error instanceof Error ? error.message : 'Deployment failed');
+      console.error("Deployment error:", error);
+      setDeploymentError(
+        error instanceof Error ? error.message : "Deployment failed"
+      );
       setShowDeploymentModal(true); // Show modal even on error to display the error
     } finally {
       setIsPublishing(false);
@@ -229,11 +244,12 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
       await navigator.clipboard.writeText(text);
       // Show success feedback (you could add a toast here)
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      console.error("Failed to copy to clipboard:", error);
     }
   };
 
-  const sandboxAttributes =  "allow-downloads allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation allow-top-navigation-to-custom-protocols";
+  const sandboxAttributes =
+    "allow-downloads allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation allow-top-navigation-to-custom-protocols";
 
   return (
     <div className="flex flex-col h-full bg-[#18181b] text-white">
@@ -311,147 +327,146 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
             {/* Enhanced Deployment Popup */}
             {showDeploymentModal && (
-              <div className="absolute top-full right-0 mt-2 w-96 bg-[#252529] border border-[#3a3a3e] rounded-xl p-5 shadow-2xl z-50">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-[#7b61ff] to-[#00ccb1] rounded-lg flex items-center justify-center">
-                      <Globe size={16} className="text-white" />
-                    </div>
+              // Overlay and responsive container for the modal
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                onClick={() => setShowDeploymentModal(false)}
+              >
+                {/* Modal content - made responsive and cleaner */}
+                <div
+                  className="relative w-full max-w-sm sm:max-w-md bg-[#252529] border border-[#3a3a3e] rounded-xl p-5 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header with title and close button */}
+                  <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-white">
-                        {deploymentInfo ? 'Live on Internet' : 'Publishing...'}
+                        {deploymentInfo ? "Live on Internet" : "Publishing..."}
                       </h3>
-                      <p className="text-xs text-gray-400">
-                        {deploymentInfo ? 'Your project is live' : 'Deploying your project...'}
+                      <p className="text-sm text-gray-400">
+                        {deploymentInfo
+                          ? "Your project is live"
+                          : "Deploying your project..."}
                       </p>
                     </div>
+                    <button
+                      onClick={() => setShowDeploymentModal(false)}
+                      className="p-1.5 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-[#3a3a3e]"
+                      aria-label="Close deployment status"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowDeploymentModal(false)}
-                    className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-[#3a3a3e]"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
 
-                {deploymentInfo && (
-                  <>
-                    {/* Success Message */}
-                    <div className="flex items-center gap-2 p-3 bg-green-900/20 border border-green-700/30 rounded-lg mb-4">
-                      <CheckCircle size={16} className="text-green-400" />
-                      <span className="text-sm text-green-300">
-                        Successfully published to the internet!
-                      </span>
-                    </div>
-
-                    {/* URL Section */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Live URL
-                      </label>
-                      <div className="flex items-center gap-2 p-3 bg-[#1e1e22] rounded-lg border border-[#3a3a3e]">
-                        <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
-                          <Globe size={12} className="text-white" />
-                        </div>
-                        <span className="text-sm text-gray-200 flex-1 truncate font-mono">
-                          {deploymentInfo.url.replace('https://', '')}
+                  {/* Content for successful deployment */}
+                  {deploymentInfo && (
+                    <div className="flex flex-col gap-4">
+                      {/* Simplified success message */}
+                      <div className="flex items-center gap-2 p-3 bg-green-900/20 border border-green-700/30 rounded-lg">
+                        <CheckCircle size={16} className="text-green-400" />
+                        <span className="text-sm text-green-300">
+                          Successfully published to the internet!
                         </span>
-                        <button
-                          onClick={() => copyToClipboard(deploymentInfo.url)}
-                          className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-[#3a3a3e] rounded"
-                          title="Copy URL"
-                        >
-                          <Copy size={14} />
-                        </button>
-                        <a
-                          href={deploymentInfo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-[#3a3a3e] rounded"
-                          title="Open in new tab"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
                       </div>
-                    </div>
 
-                    {/* Update Section */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-300">
-                          Updates
+                      {/* Live URL section with combined actions */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Live URL
                         </label>
-                        {hasNewVersion ? (
-                          <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full border border-orange-500/30">
-                            New version available
+                        <div className="flex items-center gap-2 p-3 bg-[#1e1e22] rounded-lg border border-[#3a3a3e]">
+                          <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                            <Globe size={12} className="text-white" />
+                          </div>
+                          <span className="text-sm text-gray-200 flex-1 truncate font-mono">
+                            {deploymentInfo.url.replace("https://", "")}
                           </span>
-                        ) : (
-                          <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
-                            Up to date
-                          </span>
-                        )}
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() =>
+                                copyToClipboard(deploymentInfo.url)
+                              }
+                              className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-[#3a3a3e] rounded"
+                              title="Copy URL"
+                            >
+                              <Copy size={14} />
+                            </button>
+                            <a
+                              href={deploymentInfo.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-[#3a3a3e] rounded"
+                              title="Visit Site"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-400 mb-3">
-                        {hasNewVersion 
-                          ? "You have made changes to your code. Click update to publish the latest version."
-                          : "Your live site is showing the latest version of your code."
-                        }
-                      </p>
-                      
-                      <button
-                        onClick={handleUpdateDeployment}
-                        disabled={!hasNewVersion || isUpdating}
-                        className={clsx(
-                          "w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
-                          hasNewVersion
-                            ? "bg-gradient-to-r from-[#7b61ff] to-[#00ccb1] hover:from-[#6a52e5] hover:to-[#00b3a0] text-white"
-                            : "bg-gray-700 text-gray-400 cursor-not-allowed"
-                        )}
-                      >
-                        {isUpdating ? (
-                          <>
-                            <Loader2 size={16} className="animate-spin inline mr-2" />
-                            Updating...
-                          </>
-                        ) : (
-                          `Update Live Site${hasNewVersion ? '' : ' (No changes)'}`
-                        )}
-                      </button>
-                    </div>
 
-                    {/* Quick Actions */}
-                    <div className="flex gap-2">
-                      <a
-                        href={deploymentInfo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-[#3a3a3e] hover:bg-[#4a4a4e] text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors text-center"
-                      >
-                        Visit Site
-                      </a>
-                      <button
-                        onClick={() => copyToClipboard(deploymentInfo.url)}
-                        className="flex-1 bg-[#3a3a4e] hover:bg-[#4a4a4e] text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Copy Link
-                      </button>
-                    </div>
-                  </>
-                )}
+                      {/* Update section with consolidated status */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-300">
+                            Updates
+                          </label>
+                          {hasNewVersion ? (
+                            <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full border border-orange-500/30">
+                              New version available
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
+                              Up to date
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mb-3">
+                          {hasNewVersion
+                            ? "You have made changes to your code. Click update to publish the latest version."
+                            : "Your live site is showing the latest version of your code."}
+                        </p>
 
-                {deploymentError && (
-                  <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <X size={16} className="text-red-400" />
-                      <span className="text-sm font-medium text-red-300">Deployment Failed</span>
+                        <button
+                          onClick={handleUpdateDeployment}
+                          disabled={!hasNewVersion || isUpdating}
+                          className={clsx(
+                            "w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
+                            hasNewVersion
+                              ? "bg-gradient-to-r from-[#7b61ff] to-[#00ccb1] hover:from-[#6a52e5] hover:to-[#00b3a0] text-white"
+                              : "bg-gray-700 text-gray-400 cursor-not-allowed"
+                          )}
+                        >
+                          {isUpdating ? (
+                            <>
+                              <Loader2
+                                size={16}
+                                className="animate-spin inline mr-2"
+                              />
+                              Updating...
+                            </>
+                          ) : (
+                            `Update Live Site${
+                              hasNewVersion ? "" : " (No changes)"
+                            }`
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-red-400">{deploymentError}</p>
-                  </div>
-                )}
+                  )}
 
-                {/* Arrow pointing up to the button */}
-                <div className="absolute -top-2 right-6 w-4 h-4 bg-[#252529] border-l border-t border-[#3a3a3e] transform rotate-45"></div>
+                  {/* Deployment Error message */}
+                  {deploymentError && (
+                    <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-lg mt-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <X size={16} className="text-red-400" />
+                        <span className="text-sm font-medium text-red-300">
+                          Deployment Failed
+                        </span>
+                      </div>
+                      <p className="text-xs text-red-400">{deploymentError}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -505,19 +520,56 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
           }}
         >
           {/* Dynamically render the correct preview component */}
-          {selectedDevice === "mobile" && <MobilePreview isLoading={isLoading} htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />}
-          {selectedDevice === "tablet" && <TabletPreview isLoading={isLoading} htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />}
-          {selectedDevice === "laptop" && <LaptopPreview isLoading={isLoading} htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />}
-          {selectedDevice === "desktop" && <DesktopPreview isLoading={isLoading} htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />}
-          {selectedDevice === "fullscreen" && <FullscreenPreview isLoading={isLoading} htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />}
+          {selectedDevice === "mobile" && (
+            <MobilePreview
+              isLoading={isLoading}
+              htmlContent={htmlContent}
+              sandboxAttributes={sandboxAttributes}
+            />
+          )}
+          {selectedDevice === "tablet" && (
+            <TabletPreview
+              isLoading={isLoading}
+              htmlContent={htmlContent}
+              sandboxAttributes={sandboxAttributes}
+            />
+          )}
+          {selectedDevice === "laptop" && (
+            <LaptopPreview
+              isLoading={isLoading}
+              htmlContent={htmlContent}
+              sandboxAttributes={sandboxAttributes}
+            />
+          )}
+          {selectedDevice === "desktop" && (
+            <DesktopPreview
+              isLoading={isLoading}
+              htmlContent={htmlContent}
+              sandboxAttributes={sandboxAttributes}
+            />
+          )}
+          {selectedDevice === "fullscreen" && (
+            <FullscreenPreview
+              isLoading={isLoading}
+              htmlContent={htmlContent}
+              sandboxAttributes={sandboxAttributes}
+            />
+          )}
         </div>
       </main>
 
       {/* Global Styles */}
       <style jsx global>{`
-        ::-webkit-scrollbar { display: none !important; }
-        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-        iframe { overflow: auto !important; }
+        ::-webkit-scrollbar {
+          display: none !important;
+        }
+        * {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        iframe {
+          overflow: auto !important;
+        }
       `}</style>
     </div>
   );
@@ -525,21 +577,25 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
 
 // Sub-components for cleaner rendering
 interface PreviewComponentProps {
-    isLoading: boolean;
-    htmlContent: string;
-    sandboxAttributes: string;
+  isLoading: boolean;
+  htmlContent: string;
+  sandboxAttributes: string;
 }
 
 const IframeLoader = () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
-        <Loader2 className="w-8 h-8 text-[#00ccb1] animate-spin" />
-    </div>
+  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
+    <Loader2 className="w-8 h-8 text-[#00ccb1] animate-spin" />
+  </div>
 );
 
-const PreviewFrame = ({ htmlContent, sandboxAttributes }: Omit<PreviewComponentProps, 'isLoading'>) => {
+const PreviewFrame = ({
+  htmlContent,
+  sandboxAttributes,
+}: Omit<PreviewComponentProps, "isLoading">) => {
   // Check if htmlContent is a URL
-  const isUrl = htmlContent.startsWith('http://') || htmlContent.startsWith('https://');
-  
+  const isUrl =
+    htmlContent.startsWith("http://") || htmlContent.startsWith("https://");
+
   return isUrl ? (
     <iframe
       title="HTML Preview"
@@ -559,54 +615,89 @@ const PreviewFrame = ({ htmlContent, sandboxAttributes }: Omit<PreviewComponentP
   );
 };
 
-const MobilePreview = ({ isLoading, htmlContent, sandboxAttributes }: PreviewComponentProps) => (
-    <div className="relative mx-auto border-[#2a2a2e] border-[8px] rounded-[2rem] h-[640px] w-[320px] shadow-xl overflow-hidden bg-black flex-shrink-0">
-        <div className="absolute top-0 inset-x-0 h-5 w-32 mx-auto bg-[#2a2a2e] rounded-b-xl z-10" />
-        {isLoading && <IframeLoader />}
-        <PreviewFrame htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />
-    </div>
+const MobilePreview = ({
+  isLoading,
+  htmlContent,
+  sandboxAttributes,
+}: PreviewComponentProps) => (
+  <div className="relative mx-auto border-[#2a2a2e] border-[8px] rounded-[2rem] h-[640px] w-[320px] shadow-xl overflow-hidden bg-black flex-shrink-0">
+    <div className="absolute top-0 inset-x-0 h-5 w-32 mx-auto bg-[#2a2a2e] rounded-b-xl z-10" />
+    {isLoading && <IframeLoader />}
+    <PreviewFrame
+      htmlContent={htmlContent}
+      sandboxAttributes={sandboxAttributes}
+    />
+  </div>
 );
 
-const TabletPreview = ({ isLoading, htmlContent, sandboxAttributes }: PreviewComponentProps) => (
-    <div className="relative mx-auto border-[#2a2a2e] border-[10px] rounded-[1.2rem] h-[700px] w-[500px] shadow-xl overflow-hidden bg-black flex-shrink-0">
-        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 h-2 w-2 bg-[#444] rounded-full z-10" />
-        {isLoading && <IframeLoader />}
-        <PreviewFrame htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />
-    </div>
+const TabletPreview = ({
+  isLoading,
+  htmlContent,
+  sandboxAttributes,
+}: PreviewComponentProps) => (
+  <div className="relative mx-auto border-[#2a2a2e] border-[10px] rounded-[1.2rem] h-[700px] w-[500px] shadow-xl overflow-hidden bg-black flex-shrink-0">
+    <div className="absolute top-3 left-1/2 transform -translate-x-1/2 h-2 w-2 bg-[#444] rounded-full z-10" />
+    {isLoading && <IframeLoader />}
+    <PreviewFrame
+      htmlContent={htmlContent}
+      sandboxAttributes={sandboxAttributes}
+    />
+  </div>
 );
 
-const LaptopPreview = ({ isLoading, htmlContent, sandboxAttributes }: PreviewComponentProps) => (
-    <div className="relative mx-auto shadow-xl flex-shrink-0">
-        <div className="relative border-[#2a2a2e] border-[12px] rounded-t-xl h-[450px] w-[800px] bg-black overflow-hidden">
-            <div className="absolute top-1.5 left-1/2 transform -translate-x-1/2 h-2 w-2 bg-[#444] rounded-full z-10" />
-            {isLoading && <IframeLoader />}
-            <PreviewFrame htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />
-        </div>
-        <div className="relative bg-gradient-to-b from-[#2a2a2e] to-[#1e1e22] rounded-b-lg h-[30px] w-[800px]">
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/3 h-[10px] bg-[#444] rounded-sm opacity-30" />
-        </div>
+const LaptopPreview = ({
+  isLoading,
+  htmlContent,
+  sandboxAttributes,
+}: PreviewComponentProps) => (
+  <div className="relative mx-auto shadow-xl flex-shrink-0">
+    <div className="relative border-[#2a2a2e] border-[12px] rounded-t-xl h-[450px] w-[800px] bg-black overflow-hidden">
+      <div className="absolute top-1.5 left-1/2 transform -translate-x-1/2 h-2 w-2 bg-[#444] rounded-full z-10" />
+      {isLoading && <IframeLoader />}
+      <PreviewFrame
+        htmlContent={htmlContent}
+        sandboxAttributes={sandboxAttributes}
+      />
     </div>
+    <div className="relative bg-gradient-to-b from-[#2a2a2e] to-[#1e1e22] rounded-b-lg h-[30px] w-[800px]">
+      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/3 h-[10px] bg-[#444] rounded-sm opacity-30" />
+    </div>
+  </div>
 );
 
-const DesktopPreview = ({ isLoading, htmlContent, sandboxAttributes }: PreviewComponentProps) => (
-    <div className="relative mx-auto bg-[#2a2a2e] p-2 sm:p-3 rounded-xl shadow-xl w-full max-w-[1000px] flex-shrink-0">
-        <div className="bg-[#1e1e22] flex items-center gap-2 px-3 py-1.5 rounded-t-lg">
-            <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#febc2e]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#28c840]"></div>
-            </div>
-        </div>
-        <div className="h-[500px] bg-black rounded-b-lg overflow-hidden relative">
-            {isLoading && <IframeLoader />}
-            <PreviewFrame htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />
-        </div>
+const DesktopPreview = ({
+  isLoading,
+  htmlContent,
+  sandboxAttributes,
+}: PreviewComponentProps) => (
+  <div className="relative mx-auto bg-[#2a2a2e] p-2 sm:p-3 rounded-xl shadow-xl w-full max-w-[1000px] flex-shrink-0">
+    <div className="bg-[#1e1e22] flex items-center gap-2 px-3 py-1.5 rounded-t-lg">
+      <div className="flex gap-1.5">
+        <div className="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+        <div className="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+        <div className="w-3 h-3 rounded-full bg-[#28c840]"></div>
+      </div>
     </div>
+    <div className="h-[500px] bg-black rounded-b-lg overflow-hidden relative">
+      {isLoading && <IframeLoader />}
+      <PreviewFrame
+        htmlContent={htmlContent}
+        sandboxAttributes={sandboxAttributes}
+      />
+    </div>
+  </div>
 );
 
-const FullscreenPreview = ({ isLoading, htmlContent, sandboxAttributes }: PreviewComponentProps) => (
-    <div className="w-full h-full relative bg-black rounded-lg border border-[#2a2a2e] overflow-hidden">
-        {isLoading && <IframeLoader />}
-        <PreviewFrame htmlContent={htmlContent} sandboxAttributes={sandboxAttributes} />
-    </div>
+const FullscreenPreview = ({
+  isLoading,
+  htmlContent,
+  sandboxAttributes,
+}: PreviewComponentProps) => (
+  <div className="w-full h-full relative bg-black rounded-lg border border-[#2a2a2e] overflow-hidden">
+    {isLoading && <IframeLoader />}
+    <PreviewFrame
+      htmlContent={htmlContent}
+      sandboxAttributes={sandboxAttributes}
+    />
+  </div>
 );

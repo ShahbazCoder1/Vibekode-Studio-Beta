@@ -233,8 +233,7 @@ export default function Previewer({ projectId, hasGeneratedCode = false }: Previ
     }
   };
 
-  const sandboxAttributes =
-    "allow-scripts allow-same-origin allow-forms allow-modals";
+  const sandboxAttributes =  "allow-downloads allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation allow-top-navigation-to-custom-protocols";
 
   return (
     <div className="flex flex-col h-full bg-[#18181b] text-white">

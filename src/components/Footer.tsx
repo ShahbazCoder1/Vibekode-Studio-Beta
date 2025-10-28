@@ -3,7 +3,7 @@
 import React, { FC } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Twitter, Github, Instagram } from "lucide-react";
+import { Twitter, Github, Instagram, ArrowRight } from "lucide-react";
 
 interface LinkItem {
   label: string;
@@ -11,38 +11,31 @@ interface LinkItem {
 }
 
 interface FooterSection {
+  id: string;
   title: string;
   links: LinkItem[];
 }
 
-// --- Data (no changes here) ---
 const footerLinks: FooterSection[] = [
   {
+    id: "product-links",
     title: "Product",
     links: [
       { label: "Home", href: "/" },
       { label: "Pricing", href: "/pricing" },
       { label: "Community Showcase", href: "/#community-showcase" },
-      { label: "Start Building", href: "/project" },
     ],
   },
   {
+    id: "company-links",
     title: "Company",
     links: [
-      { label: "About VibeKode", href: "/about" },
-      { label: "Contact Us", href: "mailto:hello.vibekode@gmail.com" },
-      { label: "Beta Program", href: "/pricing" },
-      { label: "Feedback", href: "mailto:hello.vibekode@gmail.com" },
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "mailto:hello.vibekode@gmail.com" },
     ],
   },
   {
-    title: "Resources",
-    links: [
-      { label: "Support", href: "mailto:hello.vibekode@gmail.com" },
-      { label: "Feature Requests", href: "mailto:hello.vibekode@gmail.com" },
-    ],
-  },
-  {
+    id: "legal-links",
     title: "Legal",
     links: [
       { label: "Privacy Policy", href: "/legal/privacy" },
@@ -50,7 +43,6 @@ const footerLinks: FooterSection[] = [
     ],
   },
 ];
-
 
 export const Footer: FC = () => {
   const organizationStructuredData = {
@@ -77,93 +69,107 @@ export const Footer: FC = () => {
 
   return (
     <>
-      {/* Organization Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
       />
       
-      <footer className="w-full bg-gradient-to-br from-gray-900 to-black dark:from-gray-900 dark:to-black border-t border-gray-800 dark:border-gray-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {footerLinks.map((section) => (
-            <div key={section.title}>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-100 dark:text-gray-100 mb-4">
-                {section.title}
-              </h3>
-              <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-indigo-400 dark:text-gray-400 dark:hover:text-indigo-400 transition duration-150"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-gray-800 dark:border-gray-800">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden">
+      <footer className="w-full bg-black dark:bg-black border-t border-gray-800">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <div className="lg:flex lg:items-start lg:justify-between lg:gap-8">
+            <div className="max-w-md space-y-6">
+              <Link href="/" className="flex items-center space-x-3 transition-transform hover:scale-105" aria-label="VibeKode Home">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shadow-lg">
                   <Image
                     src="/logo.png"
-                    alt="Logo"
-                    width={32}
-                    height={32}
-                    className="object-cover"
+                    alt="VibeKode Logo"
+                    width={40}
+                    height={40}
+                    className="object-cover transition-transform duration-300 hover:scale-110"
                   />
                 </div>
-                <span className="text-xl font-bold text-white">
+                <span className="text-3xl font-bold tracking-tight text-white">
                   VibeKode
                 </span>
-              </div>
+              </Link>
+              <p className="text-gray-400 text-sm">
+                Unlock your creativity with the AI app builder. Turn your ideas into functional web applications with simple text prompts.
+              </p>
+              <Link
+                href="/project"
+                className="group inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-[#00ccb1] via-[#7b61ff] to-[#1ca0fb] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 transform active:scale-95 ease-out"
+              >
+                Start Building Now
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
             </div>
 
-            <div className="mt-4 md:mt-0">
-              <div className="flex space-x-6">
-                {/* Twitter Icon */}
-                <a
-                  href="#"
-                  className="text-gray-500 hover:text-gray-300 dark:hover:text-gray-300"
-                >
-                  <span className="sr-only">Twitter</span>
-                  <Twitter className="h-5 w-5" />
-                </a>
-                {/* GitHub Icon */}
-                <a
-                  href="#"
-                  className="text-gray-500 hover:text-gray-300 dark:hover:text-gray-300"
-                >
-                  <span className="sr-only">GitHub</span>
-                  <Github className="h-5 w-5" />
-                </a>
-                {/* Instagram Icon */}
-                <a
-                  href="#"
-                  className="text-gray-500 hover:text-gray-300 dark:hover:text-gray-300"
-                >
-                  <span className="sr-only">Instagram</span>
-                  <Instagram className="h-5 w-5" />
-                </a>
-              </div>
+            <div className="mt-12 grid grid-cols-2 gap-8 lg:mt-0 lg:grid-cols-3 xl:grid-cols-4">
+              {footerLinks.map((section) => (
+                <nav key={section.title} aria-labelledby={section.id}>
+                  <h3 id={section.id} className="text-sm font-semibold uppercase tracking-wider text-gray-100 mb-4">
+                    {section.title}
+                  </h3>
+                  <ul className="space-y-3">
+                    {section.links.map((link) => (
+                      <li key={link.label}>
+                        <Link
+                          href={link.href}
+                          className="text-sm text-gray-400 hover:text-indigo-400 transition duration-200"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              ))}
+              <section className="lg:col-start-4" aria-labelledby="social-links">
+                <h3 id="social-links" className="text-sm font-semibold uppercase tracking-wider text-gray-100 mb-4">
+                  Stay Connected
+                </h3>
+                <address className="flex space-x-4 not-italic">
+                  <a
+                    href="https://twitter.com/vibekode"
+                    className="text-gray-500 hover:text-white transition duration-200"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Follow VibeKode on Twitter"
+                  >
+                    <Twitter className="h-6 w-6" />
+                  </a>
+                  <a
+                    href="https://github.com/vibekode"
+                    className="text-gray-500 hover:text-white transition duration-200"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Follow VibeKode on Github"
+                  >
+                    <Github className="h-6 w-6" />
+                  </a>
+                  <a
+                    href="https://instagram.com/vibekode"
+                    className="text-gray-500 hover:text-white transition duration-200"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Follow VibeKode on Instagram"
+                  >
+                    <Instagram className="h-6 w-6" />
+                  </a>
+                </address>
+              </section>
             </div>
           </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-xs text-gray-400 dark:text-gray-400">
-              © {new Date().getFullYear()} VibeKode. All rights reserved.
-            </p>
+          <div className="mt-12 pt-8 border-t border-gray-800">
+            <div className="text-center md:flex md:items-center md:justify-center">
+              <p className="text-xs text-gray-500">
+                &copy; {new Date().getFullYear()} VibeKode. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </footer>
+      </footer>
     </>
   );
 };

@@ -1,51 +1,108 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Lenis from 'lenis';
 
-interface ScrollDownProps {
+// Hook to detect Lenis availability and use its scroll function
+const useLenisScroll = () => {
+  const [lenis, setLenis] = useState<Lenis | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const lenisInstance = (window as unknown as { lenis?: Lenis }).lenis;
+      if (lenisInstance) {
+        setLenis(lenisInstance);
+      }
+    }
+  }, []);
+
+  const lenisScroll = useCallback(
+    (target: HTMLElement | number | "next", options: { duration?: number }) => {
+      if (lenis) {
+        lenis.scrollTo(target, {
+          duration: options.duration ?? 1.2,
+          lerp: 0.075,
+        });
+      }
+    },
+    [lenis]
+  );
+
+  return { lenis, lenisScroll };
+};
+
+export interface ScrollDownProps {
   className?: string;
-  onClick?: () => void;
   targetId?: string;
   text?: string;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  scrollDistance?: number;
 }
 
 const ScrollDown: React.FC<ScrollDownProps> = ({
   className,
-  onClick,
   targetId,
   text = "Scroll to explore",
+  onClick,
+  scrollDistance,
 }) => {
-  const handleClick = (): void => {
+  const { lenis, lenisScroll } = useLenisScroll();
+  const [isPulsing, setIsPulsing] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
     if (onClick) {
-      onClick();
+      onClick(event);
+      return;
+    }
+
+    if (lenis) {
+      if (targetId) {
+        const element = document.getElementById(targetId);
+        if (element) lenisScroll(element, {});
+      } else if (scrollDistance) {
+        lenisScroll(scrollDistance, {});
+      } else {
+        lenisScroll("next", {});
+      }
     } else if (targetId) {
       const element = document.getElementById(targetId);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+      if (element) element.scrollIntoView({ behavior: "smooth" });
     } else {
-      // Default scroll down behavior
-      window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+      window.scrollBy({
+        top: scrollDistance ?? window.innerHeight,
+        behavior: "smooth",
+      });
     }
+
+    setIsPulsing(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setIsPulsing(false), 1000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <div
       className={cn(
-        "absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2",
+        "absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2",
         "flex flex-col items-center gap-1 sm:gap-2",
         className
       )}
     >
-      {/* Text with fade animation */}
+      {/* Text with fade-in animation */}
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 3, duration: 0.8 }}
-        className="text-white/50 text-xs font-medium tracking-wide"
+        transition={{ delay: 3, duration: 0.8, ease: "easeInOut" }}
+        className="text-white/50 text-xs font-medium tracking-wide pointer-events-none"
       >
         {text}
       </motion.p>
@@ -55,32 +112,28 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
         onClick={handleClick}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 3.5, duration: 0.8 }}
+        transition={{ delay: 3.5, duration: 0.8, ease: "easeInOut" }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        aria-label={text}
         className={cn(
           "group relative",
-          "w-8 h-12 sm:w-10 sm:h-14",
-          "border border-white/15 rounded-full",
-          "bg-black/20 backdrop-blur-sm",
-          "hover:border-white/25 hover:bg-black/30",
+          "w-9 h-14 sm:w-10 sm:h-16",
+          "border-2 border-white/20 rounded-full",
+          "bg-black/10 backdrop-blur-sm",
+          "hover:border-white/40 hover:bg-black/20",
           "transition-all duration-300",
-          "focus:outline-none focus:ring-1 focus:ring-white/20"
+          "focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent",
+          isPulsing && "animate-pulse"
         )}
       >
         {/* Animated dot inside the scroll indicator */}
         <motion.div
-          animate={{
-            y: [0, 6, 0],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           className={cn(
-            "absolute top-2 left-1/2 transform -translate-x-1/2",
-            "w-0.5 h-2 sm:w-1 sm:h-3",
+            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+            "w-1 h-3.5 sm:w-1.5 sm:h-4",
             "bg-gradient-to-b from-[#00ccb1] to-[#1ca0fb]",
             "rounded-full",
             "group-hover:from-[#7b61ff] group-hover:to-[#00ccb1]",
@@ -90,21 +143,19 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
 
         {/* Animated chevron icon */}
         <motion.div
-          animate={{
-            y: [0, 3, 0],
-          }}
+          animate={{ y: [0, 3, 0] }}
           transition={{
-            duration: 2,
+            duration: 2.2,
             repeat: Infinity,
             ease: "easeInOut",
             delay: 0.5,
           }}
-          className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2"
         >
           <ChevronDown
             className={cn(
-              "w-3 h-3 sm:w-4 sm:h-4",
-              "text-white/50 group-hover:text-white/70",
+              "w-4 h-4 sm:w-5 sm:h-5",
+              "text-white/60 group-hover:text-white/80",
               "transition-colors duration-300"
             )}
           />
@@ -113,7 +164,7 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
         {/* Hover effect background */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1, opacity: 0.05 }}
+          whileHover={{ scale: 1, opacity: 0.08 }}
           transition={{ duration: 0.2 }}
           className={cn(
             "absolute inset-0 rounded-full",
@@ -125,18 +176,14 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
       {/* Pulsing ring animation */}
       <motion.div
         animate={{
-          scale: [1, 1.1, 1],
+          scale: [1, 1.2, 1],
           opacity: [0.2, 0, 0.2],
         }}
-        transition={{
-          duration: 2.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         className={cn(
           "absolute top-5 sm:top-6",
-          "w-8 h-12 sm:w-10 sm:h-14",
-          "border border-white/10 rounded-full",
+          "w-9 h-14 sm:w-10 sm:h-16",
+          "border-2 border-white/10 rounded-full",
           "pointer-events-none"
         )}
       />
@@ -145,4 +192,3 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
 };
 
 export default ScrollDown;
-export type { ScrollDownProps };

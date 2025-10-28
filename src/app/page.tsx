@@ -12,25 +12,26 @@ import SmoothScroll from "@/components/ui/SmoothScroll";
 export default function Home() {
   return (
     <SmoothScroll>
-    <div>
-      <ScrollingBetaBanner/>
-      <AuroraBackground>
-        <Header />
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-1rem)] md:min-h-[calc(100vh-2rem)] relative pt-16 md:pt-4">
-          <HeroTitle />
-          <PromptBox
-            placeholder="Ask VibeKode to create something amazing..."
-            containerClassName="flex items-center justify-center w-full max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] px-2 sm:px-4"
-          />
-          <ScrollDown text="Scroll to explore more" />
-        </div>
-      </AuroraBackground>
+      <div>
+        <ScrollingBetaBanner />
+        <AuroraBackground>
+          <div className="relative z-10 flex h-[calc(100vh-3rem)] md:h-[calc(100vh-2rem)] flex-col items-center justify-start pt-10 md:pt-4 pb-28 md:pb-3">
+            <Header />
+            <div className="flex w-full flex-grow flex-col items-center justify-center">
+              <HeroTitle />
+              <PromptBox
+                containerClassName="flex items-center justify-center w-full max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] px-2 sm:px-4"
+              />
+            </div>
+            <ScrollDown text="Scroll to explore more" />
+          </div>
+        </AuroraBackground>
 
-      <div id="community-showcase" className="bg-[#18181b]">
-        <CommunityProject />
+        <div id="community-showcase" className="bg-[#18181b]">
+          <CommunityProject />
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
     </SmoothScroll>
   );
 }

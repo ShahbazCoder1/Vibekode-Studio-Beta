@@ -67,7 +67,7 @@ const pricingTiers: PricingTier[] = [
       "50 AI generations per month",
       "Basic templates library",
       "Standard preview modes",
-      "Project export (HTML/CSS/JS)",
+      "Project export",
       "Community forum access",
       "Email support",
     ],
@@ -227,7 +227,9 @@ const PricingCard = ({ tier, index }: { tier: PricingTier, index: number }) => (
     </div>
     
     <Link href={tier.ctaLink} className="mt-10 block">
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         className={cn(
           "w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2",
           tier.ctaVariant === "primary" && "bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] hover:from-[#7b61ff] hover:to-[#00ccb1] text-white shadow-lg shadow-[#00ccb1]/20",
@@ -238,7 +240,7 @@ const PricingCard = ({ tier, index }: { tier: PricingTier, index: number }) => (
       >
         {tier.cta}
         {tier.popular && <ArrowRight className="w-4 h-4" />}
-      </button>
+      </motion.button>
     </Link>
   </motion.div>
 );
@@ -246,12 +248,12 @@ const PricingCard = ({ tier, index }: { tier: PricingTier, index: number }) => (
 const AccordionItem = ({ faq, isOpen, onClick }: { faq: { question: string, answer: string }, isOpen: boolean, onClick: () => void }) => (
   <div className="border-b border-[#333338] py-6">
     <button onClick={onClick} className="flex w-full items-center justify-between text-left">
-      <span className="text-lg font-medium text-white">{faq.question}</span>
+      <span className={cn("text-lg font-medium", isOpen ? "text-[#00ccb1]" : "text-white")}>{faq.question}</span>
       <motion.div
         animate={{ rotate: isOpen ? 180 : 0 }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <ChevronDown className="h-5 w-5 text-zinc-400" />
+        <ChevronDown className={cn("h-5 w-5", isOpen ? "text-[#00ccb1]" : "text-zinc-400")} />
       </motion.div>
     </button>
     <AnimatePresence>
@@ -274,124 +276,128 @@ export default function PricingPage() {
 
   return (
     <SmoothScroll>
-    <div className="min-h-screen bg-[#18181b] text-white overflow-x-hidden">
-      {/* Background Grid */}
-      <div className="absolute inset-0 -z-10 h-full w-full bg-[#18181b] bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-      <ScrollingBetaBanner />
-      <Header />
+      <div className="min-h-screen bg-[#18181b] text-white overflow-x-hidden">
+        {/* Background Grid */}
+        <div className="absolute inset-0 -z-10 h-full w-full bg-[#18181b] bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        <ScrollingBetaBanner />
+        <Header />
 
-      <main className="pt-16">
-        {/* Hero Section */}
-        <section className="py-24 sm:py-32">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-x-2 rounded-full bg-[#252529] px-4 py-1.5 text-sm font-medium text-[#00ccb1] ring-1 ring-inset ring-[#333338]">
-                <Sparkles className="h-4 w-4" />
-                Free Beta Access Available Now
+        <main className="pt-16">
+          {/* Hero Section */}
+          <section className="py-24 sm:py-32">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+              >
+                <div className="inline-flex items-center gap-x-2 rounded-full bg-[#252529] px-4 py-1.5 text-sm font-medium text-[#00ccb1] ring-1 ring-inset ring-[#333338]">
+                  <Sparkles className="h-4 w-4" />
+                  Free Beta Access Available Now
+                </div>
+                <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+                  The <GradientText>Perfect Plan</GradientText> for Your Project
+                </h1>
+                <p className="mt-6 text-lg leading-8 text-zinc-300 max-w-3xl mx-auto">
+                  Start building with unlimited AI power during our free beta. Explore our upcoming plans designed for every scale, from solo developers to enterprise teams.
+                </p>
+                <div className="mt-10 flex items-center justify-center gap-x-6">
+                  <Link href="/project">
+                    <motion.button
+                      whileHover={{ scale: 1.05, boxShadow: "0px 10px 30px rgba(0, 204, 177, 0.25)" }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg"
+                    >
+                      Start Building Free
+                    </motion.button>
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+
+          {/* Pricing Cards */}
+          <section id="pricing" className="pb-24 sm:pb-32">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                {pricingTiers.map((tier, index) => (
+                  <PricingCard key={tier.name} tier={tier} index={index} />
+                ))}
               </div>
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
-                The <GradientText>Perfect Plan</GradientText> for Your Project
-              </h1>
-              <p className="mt-6 text-lg leading-8 text-zinc-300 max-w-3xl mx-auto">
-                Start building with unlimited AI power during our free beta. Explore our upcoming plans designed for every scale, from solo developers to enterprise teams.
-              </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link href="/project">
-                  <button className="bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] hover:from-[#7b61ff] hover:to-[#00ccb1] text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-[#00ccb1]/20 hover:scale-105">
-                    Start Building Free
-                  </button>
-                </Link>
+            </div>
+          </section>
+
+          {/* Features Section */}
+          <section id="features" className="py-24 sm:py-32 border-t border-[#333338]">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <SectionTitle>
+                  Why Choose <GradientText>VibeKode</GradientText>
+                </SectionTitle>
+                <SectionSubtitle>
+                  Experience the future of web development with a platform built for speed, quality, and scalability.
+                </SectionSubtitle>
+              </motion.div>
+
+              <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.15 }}
+                    viewport={{ once: true }}
+                    className="rounded-xl bg-[#252529]/50 p-6 text-center ring-1 ring-[#333338] transition-all hover:ring-[#00ccb1]/50 hover:-translate-y-1"
+                  >
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[#333338] text-[#00ccb1]">
+                      {feature.icon}
+                    </div>
+                    <h3 className="mt-5 text-lg font-semibold text-white">{feature.title}</h3>
+                    <p className="mt-2 text-sm text-zinc-400">{feature.description}</p>
+                  </motion.div>
+                ))}
               </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Pricing Cards */}
-        <section id="pricing" className="pb-24 sm:pb-32">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-              {pricingTiers.map((tier, index) => (
-                <PricingCard key={tier.name} tier={tier} index={index} />
-              ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-24 sm:py-32 border-t border-[#333338]">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <SectionTitle>
-                Why Choose <GradientText>VibeKode</GradientText>
-              </SectionTitle>
-              <SectionSubtitle>
-                Experience the future of web development with a platform built for speed, quality, and scalability.
-              </SectionSubtitle>
-            </motion.div>
+          {/* FAQ Section */}
+          <section id="faq" className="py-24 sm:py-32 border-t border-[#333338]">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <SectionTitle>
+                  Frequently Asked <GradientText>Questions</GradientText>
+                </SectionTitle>
+                <SectionSubtitle>
+                  Have questions? We have answers. If you can not find what you are looking for, feel free to contact us.
+                </SectionSubtitle>
+              </motion.div>
 
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="rounded-xl bg-[#252529]/50 p-6 text-center ring-1 ring-[#333338] transition-all hover:ring-[#00ccb1]/50"
-                >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[#333338] text-[#00ccb1]">
-                    {feature.icon}
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold text-white">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-zinc-400">{feature.description}</p>
-                </motion.div>
-              ))}
+              <div className="mt-16 max-w-3xl mx-auto">
+                {faqs.map((faq, index) => (
+                  <AccordionItem 
+                    key={index} 
+                    faq={faq} 
+                    isOpen={openFaq === index} 
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)} 
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section id="faq" className="py-24 sm:py-32 border-t border-[#333338]">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <SectionTitle>
-                Frequently Asked <GradientText>Questions</GradientText>
-              </SectionTitle>
-              <SectionSubtitle>
-                Have questions? We have answers. If you can not find what you are looking for, feel free to contact us.
-              </SectionSubtitle>
-            </motion.div>
-
-            <div className="mt-16 max-w-3xl mx-auto">
-              {faqs.map((faq, index) => (
-                <AccordionItem 
-                  key={index} 
-                  faq={faq} 
-                  isOpen={openFaq === index} 
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)} 
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-      
-      <Footer />
-    </div>
+          </section>
+        </main>
+        
+        <Footer />
+      </div>
     </SmoothScroll>
   );
 }

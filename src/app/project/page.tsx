@@ -365,7 +365,6 @@ const MainContent = () => {
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] md:min-h-[calc(100vh)] relative">
             <HeroTitle />
             <PromptBox
-              placeholder="Ask VibeKode to create something amazing..."
               containerClassName="flex items-center justify-center w-full max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] px-2 sm:px-4"
             />
             <ScrollDown text="Scroll to explore more" />

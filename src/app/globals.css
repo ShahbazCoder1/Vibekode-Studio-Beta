@@ -96,3 +96,13 @@ body {
     animation: slideDown 0.3s ease-out;
   }
 }
+
+@keyframes infinite-scroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.animate-infinite-scroll {
+  /* Adjust duration for speed. Higher value = slower scroll. */
+  animation: infinite-scroll 60s linear infinite;
+}

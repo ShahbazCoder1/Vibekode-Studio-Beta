@@ -3,7 +3,7 @@
 import React from "react";
 import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
+import PersistentBetaBanner from "@/components/ScrollingBetaBanner";
 import Link from "next/link";
 import { 
   Zap, 
@@ -93,7 +93,7 @@ export default function AboutPage() {
   return (
     <SmoothScroll>
     <div className="min-h-screen bg-[#18181b]">
-      <ScrollingBetaBanner />
+      <PersistentBetaBanner />
       <Header />
       
       <main className="pt-20">

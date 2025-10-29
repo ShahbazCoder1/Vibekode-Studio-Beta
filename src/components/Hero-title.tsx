@@ -33,7 +33,7 @@ const containerVariants = {
     opacity: 1,
     transition: {
       delayChildren: 0.1,
-      staggerChildren: 0.05, // Staggers the animation of each word
+      staggerChildren: 0.05, 
     },
   },
 };
@@ -76,7 +76,8 @@ const HeroTitle: React.FC<HeroTitleProps> = ({ className = "", cursorClassName }
             <motion.span
               key={wi}
               variants={wordVariants}
-              className="inline-block mr-2"
+              // This is the line that was changed from `mr-2` to `mr-4`
+              className="inline-block mr-4"
             >
               {word.text.split("").map((char, ci) => (
                 <motion.span
@@ -134,4 +135,3 @@ const HeroTitle: React.FC<HeroTitleProps> = ({ className = "", cursorClassName }
 };
 
 export default HeroTitle;
-

@@ -5,7 +5,7 @@ import HeroTitle from "@/components/Hero-title";
 import PromptBox from "@/components/Prompt-Box";
 import ScrollDown from "@/components/Scroll-Down";
 import CommunityProject from "@/components/Community-Project";
-import ScrollingBetaBanner from "@/components/ScrollingBetaBanner";
+import PersistentBetaBanner   from "@/components/ScrollingBetaBanner";
 import { Footer } from "@/components/Footer";
 import SmoothScroll from "@/components/ui/SmoothScroll";
 
@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <SmoothScroll>
       <div>
-        <ScrollingBetaBanner />
+        <PersistentBetaBanner  />
         <AuroraBackground>
           <div className="relative z-10 flex h-[calc(100vh-3rem)] md:h-[calc(100vh-2rem)] flex-col items-center justify-start pt-10 md:pt-4 pb-28 md:pb-3">
             <Header />

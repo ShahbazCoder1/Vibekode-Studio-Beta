@@ -77,7 +77,7 @@ const HeroTitle: React.FC<HeroTitleProps> = ({ className = "", cursorClassName }
               key={wi}
               variants={wordVariants}
               // This is the line that was changed from `mr-2` to `mr-4`
-              className="inline-block mr-4"
+              className="inline-block mr-2 md:mr-4"
             >
               {word.text.split("").map((char, ci) => (
                 <motion.span

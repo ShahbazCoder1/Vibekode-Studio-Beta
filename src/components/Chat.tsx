@@ -9,9 +9,10 @@ import {
   Bot,
   PencilLine,
   Check,
-  Eye,
+  Loader2,
+  ChevronDown,
+  Square,
 } from "lucide-react";
-import { ProgressTracker, Task } from "@/components/ui/Progress-tracker";
 import { cn } from "@/lib/utils";
 import {
   generateAppName,
@@ -28,8 +29,17 @@ import {
   chatExists,
   type ChatMessage,
 } from "@/lib/firebase";
+import { Toaster, toast } from "sonner";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
-// --- Interfaces and Helpers ---
+// --- Interfaces ---
+interface Task {
+  id: string;
+  label: string;
+}
+
 interface Message {
   id: string;
   type: "user" | "bot";
@@ -39,7 +49,7 @@ interface Message {
   progressTasks?: Task[];
   progressVersion?: number;
   completedTasks?: Set<string>;
-  firebaseId?: string; // Track Firebase document ID
+  firebaseId?: string;
 }
 
 interface ChatProps {
@@ -49,19 +59,80 @@ interface ChatProps {
   onCodeGenerated?: (code: string) => void;
 }
 
-const getCompletedTasks = (tasks?: Task[], completed?: Set<string>) => {
-  if (!tasks || !completed) return 0;
-  return completed.size;
+// --- Custom Progress Tracker Component ---
+interface ProgressTrackerProps {
+  tasks: Task[];
+  completedTasks: Set<string>;
+  isAnimating: boolean;
+}
+
+const ProgressTrackerComponent = ({
+  tasks,
+  completedTasks,
+  isAnimating,
+}: ProgressTrackerProps) => {
+  return (
+    <div className="space-y-3">
+      {tasks.map((task) => {
+        const isCompleted = completedTasks.has(task.id);
+        const isActive = !isCompleted && isAnimating;
+        const isPending = !isCompleted && !isActive;
+
+        return (
+          <div key={task.id} className="flex items-center gap-3 group">
+            {/* Status Icon */}
+            <div
+              className={cn(
+                "relative w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500",
+                isCompleted &&
+                  "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30",
+                isActive &&
+                  "bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30",
+                isPending && "bg-zinc-800 border border-zinc-700"
+              )}
+            >
+              {isCompleted && (
+                <Check className="w-3.5 h-3.5 text-white animate-in zoom-in duration-300" />
+              )}
+              {isActive && (
+                <div className="absolute inset-0 rounded-full">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 animate-pulse" />
+                  <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 text-white animate-spin" />
+                </div>
+              )}
+              {isPending && (
+                <div className="w-2 h-2 rounded-full bg-zinc-600" />
+              )}
+            </div>
+
+            {/* Task Label */}
+            <div className="flex-1">
+              <p
+                className={cn(
+                  "text-sm font-medium transition-all duration-300",
+                  isCompleted && "text-emerald-400",
+                  isActive && "text-blue-400 font-semibold",
+                  isPending && "text-zinc-500"
+                )}
+              >
+                {task.label}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
-// --- Component ---
+// --- Main Component ---
 export default function Chat({
   projectId,
   onRename,
   onDelete,
   onCodeGenerated,
 }: ChatProps) {
-  // --- State and Refs ---
+  // State
   const [appName, setAppName] = useState("Loading...");
   const [appIdea, setAppIdea] = useState<string>("");
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
@@ -76,18 +147,28 @@ export default function Chat({
   const [latestProgressTrackerId, setLatestProgressTrackerId] =
     useState<string>("");
   const [isLoadingProject, setIsLoadingProject] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // Refs
   const hasInitialized = useRef(false);
   const messageIdCounter = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messageContainerRef = useRef<HTMLDivElement>(null);
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
 
-  // Helper function to generate unique message IDs
+  // Helper Functions
   const generateUniqueId = (prefix: string) => {
     messageIdCounter.current += 1;
     return `${prefix}-${Date.now()}-${messageIdCounter.current}`;
   };
 
-  // Convert Firebase ChatMessage to local Message format
   const convertFirebaseMessage = (chatMessage: ChatMessage): Message => {
     const isBot = chatMessage.type === "bot";
     const message: Message = {
@@ -122,7 +203,58 @@ export default function Chat({
     return message;
   };
 
-  // --- Effects ---
+  const handleTrackerCompletion = (messageId: string) => {
+    setCompletedTrackers((prev) => new Set(prev).add(messageId));
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+    });
+  };
+
+  // Initialize Speech Recognition
+  // Update inputText when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInputText((prev) => {
+        const newText = prev + transcript;
+        resetTranscript(); // Clear transcript after adding to input
+        return newText;
+      });
+    }
+  }, [transcript, resetTranscript]);
+
+  // Sync listening state
+  useEffect(() => {
+    setIsListening(listening);
+  }, [listening]);
+
+  // Toggle voice input
+  const toggleVoiceInput = () => {
+    if (!browserSupportsSpeechRecognition) {
+      toast.error("Voice input not supported", {
+        description: "Your browser doesn't support speech recognition",
+      });
+      return;
+    }
+
+    if (listening) {
+      SpeechRecognition.stopListening();
+      setIsListening(false);
+      toast.info("Listening stopped");
+    } else {
+      SpeechRecognition.startListening({
+        continuous: true,
+        language: "en-US",
+      });
+      setIsListening(true);
+      toast.success("Listening started", {
+        description: "Speak now...",
+        duration: 2000,
+      });
+    }
+  };
 
   // Load project data and chat history
   useEffect(() => {
@@ -131,28 +263,24 @@ export default function Chat({
 
       try {
         setIsLoadingProject(true);
-        //console.log("Loading project and chat history for:", projectId);
 
-        // Load project data
         const project = await getProject(projectId);
         if (!project) {
           console.error("Project not found");
+          toast.error("Project not found");
           return;
         }
 
         setAppName(project.name);
         setAppIdea(project.prompt);
 
-        // Check if chat history exists
         const hasChatHistory = await chatExists(projectId);
 
         if (hasChatHistory) {
-          // Load existing chat history
           const chatHistory = await getChatHistory(projectId);
           const convertedMessages = chatHistory.map(convertFirebaseMessage);
           setMessages(convertedMessages);
 
-          // Find the latest code from chat history
           const latestBotMessage = chatHistory
             .filter((msg) => msg.type === "bot" && msg.appCode)
             .sort((a, b) => b.version - a.version)[0];
@@ -162,18 +290,21 @@ export default function Chat({
             onCodeGenerated?.(latestBotMessage.appCode);
           }
 
-          // Mark all trackers as completed since they're from history
           const botMessageIds = convertedMessages
             .filter((msg) => msg.type === "bot" && msg.hasProgressTracker)
             .map((msg) => msg.id);
           setCompletedTrackers(new Set(botMessageIds));
+
+          toast.success("Project loaded successfully");
         } else {
-          // Initialize chat with the project's initial prompt
           hasInitialized.current = false;
           initializeChat(project.prompt);
         }
       } catch (error) {
         console.error("Error loading project and chat:", error);
+        toast.error("Failed to load project", {
+          description: "Please try refreshing the page",
+        });
       } finally {
         setIsLoadingProject(false);
       }
@@ -182,12 +313,26 @@ export default function Chat({
     loadProjectAndChat();
   }, [projectId]);
 
-  // Auto-scroll to the latest message
+  // Auto-scroll and scroll button visibility
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToBottom();
   }, [messages]);
 
-  // Auto-resize the textarea
+  useEffect(() => {
+    const container = messageContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -195,19 +340,14 @@ export default function Chat({
     }
   }, [inputText]);
 
-  // --- Core Logic ---
-
-  // Marks a progress tracker as "finished" to stop its animations
-  const handleTrackerCompletion = (messageId: string) => {
-    setCompletedTrackers((prev) => new Set(prev).add(messageId));
-  };
-
-  // Handles the very first user prompt to generate the initial app
+  // Initialize chat
   const initializeChat = async (prompt: string) => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     setIsGeneratingResponse(true);
+    toast.info("Starting app generation...");
+
     const userMessage: Message = {
       id: generateUniqueId("user"),
       type: "user",
@@ -215,23 +355,19 @@ export default function Chat({
       timestamp: new Date(),
     };
     setMessages([userMessage]);
-    //console.log("\n\nInitializing chat with prompt:", prompt);
 
     try {
-      // Save user message to Firebase
       await saveChatMessage(projectId, {
         version: 1,
         type: "user",
         content: prompt,
       });
 
-      // Generate app name and bot response
       const [generatedAppName, botResponse] = await Promise.all([
         generateAppName(prompt),
         generateMessage(prompt, appName, false),
       ]);
 
-      // Update project name in Firebase
       await updateProjectName(projectId, generatedAppName);
       setAppName(generatedAppName);
 
@@ -256,8 +392,7 @@ export default function Chat({
       };
       setMessages((prev) => [...prev, botMessage]);
 
-      // --- Initial Generation Pipeline ---
-      // Step 1: Analyzing Requirements
+      // Step 1
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId
@@ -266,7 +401,7 @@ export default function Chat({
         )
       );
 
-      // Step 2: Generate app architecture
+      // Step 2
       const appArchitecture = await generateAppArchitecture(
         prompt,
         generatedAppName
@@ -279,7 +414,7 @@ export default function Chat({
         )
       );
 
-      // Step 3: Generate code
+      // Step 3
       const appCode = await generateCode(prompt, appName, appArchitecture);
       setCurrentCode(appCode);
       onCodeGenerated?.(appCode);
@@ -291,7 +426,7 @@ export default function Chat({
         )
       );
 
-      // Step 4: Finalize
+      // Step 4
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId
@@ -300,7 +435,6 @@ export default function Chat({
         )
       );
 
-      // Save bot message to Firebase with architecture and code
       const botFirebaseId = await saveChatMessage(projectId, {
         version: 1,
         type: "bot",
@@ -309,7 +443,6 @@ export default function Chat({
         appCode,
       });
 
-      // Update local message with Firebase ID
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId ? { ...m, firebaseId: botFirebaseId } : m
@@ -317,6 +450,10 @@ export default function Chat({
       );
 
       handleTrackerCompletion(botMessageId);
+      toast.success("Code generated successfully!", {
+        description: "Your app is ready to preview",
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error during initial generation:", error);
       const errorMessage: Message = {
@@ -326,14 +463,24 @@ export default function Chat({
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      toast.error("Generation failed", {
+        description: "Please try again or contact support",
+      });
     } finally {
       setIsGeneratingResponse(false);
     }
   };
 
-  // Handles all subsequent "follow-up" messages to improve the code
+  // Handle follow-up messages
   const handleSendMessage = async () => {
     if (!inputText.trim() || isGeneratingResponse) return;
+
+    // Stop listening if active
+    // Stop listening if active
+    if (listening) {
+      SpeechRecognition.stopListening();
+      setIsListening(false);
+    }
 
     const userMessage: Message = {
       id: generateUniqueId("user"),
@@ -347,26 +494,23 @@ export default function Chat({
 
     setMessages((prev) => [...prev, userMessage]);
     setIsGeneratingResponse(true);
+    toast.info("Processing your request...");
 
     try {
-      // Determine the next version number
       const lastVersion = messages.reduce(
         (max, msg) => Math.max(max, msg.progressVersion || 0),
         0
       );
       const newVersion = lastVersion + 1;
 
-      // Save user message to Firebase
       await saveChatMessage(projectId, {
         version: newVersion,
         type: "user",
         content: currentInput,
       });
 
-      // Generate conversational response
       const botResponse = await generateMessage(currentInput, appName, true);
 
-      // Define the tasks for the improvement process
       const tasks: Task[] = [
         { id: "1", label: "Analyzing Requirements" },
         { id: "2", label: "Writing the code" },
@@ -387,8 +531,7 @@ export default function Chat({
       };
       setMessages((prev) => [...prev, botMessage]);
 
-      // --- Improvement Pipeline ---
-      // Step 1: Analyzing Requirements
+      // Step 1
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId
@@ -397,8 +540,13 @@ export default function Chat({
         )
       );
 
-      // Step 2: Generate improved code
-      const improvedCode = await generateImproveCode(currentCode, currentInput, appName, appIdea);
+      // Step 2
+      const improvedCode = await generateImproveCode(
+        currentCode,
+        currentInput,
+        appName,
+        appIdea
+      );
       setCurrentCode(improvedCode);
       onCodeGenerated?.(improvedCode);
       setMessages((prev) =>
@@ -409,7 +557,7 @@ export default function Chat({
         )
       );
 
-      // Step 3: Finalize
+      // Step 3
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId
@@ -418,7 +566,6 @@ export default function Chat({
         )
       );
 
-      // Save bot message to Firebase with improved code
       const botFirebaseId = await saveChatMessage(projectId, {
         version: newVersion,
         type: "bot",
@@ -426,7 +573,6 @@ export default function Chat({
         appCode: improvedCode,
       });
 
-      // Update local message with Firebase ID
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMessageId ? { ...m, firebaseId: botFirebaseId } : m
@@ -434,6 +580,10 @@ export default function Chat({
       );
 
       handleTrackerCompletion(botMessageId);
+      toast.success("Code updated successfully!", {
+        description: "Changes applied to your app",
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error generating improvement:", error);
       const errorMessage: Message = {
@@ -444,12 +594,15 @@ export default function Chat({
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      toast.error("Update failed", {
+        description: "Please try again or rephrase your request",
+      });
     } finally {
       setIsGeneratingResponse(false);
     }
   };
 
-  // --- Event Handlers ---
+  // Event Handlers
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -462,12 +615,11 @@ export default function Chat({
     handleSendMessage();
   };
 
-  const handleVoiceInput = () => console.log("Voice input activated");
-
-  // Show loading state
+  // Loading State
   if (isLoadingProject) {
     return (
       <div className="flex flex-col h-screen bg-[#18181b] text-white font-sans">
+        <Toaster position="bottom-right" theme="dark" richColors />
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
@@ -478,205 +630,324 @@ export default function Chat({
     );
   }
 
-  // --- JSX ---
+  // Main Render
   return (
-    <div className="flex flex-col h-full bg-[#18181b] text-white font-sans">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between h-14 px-4 py-3 bg-[#18181b] border-b border-[#252529]">
-        <h1 className="text-lg font-bold text-white">{appName}</h1>
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#18181b] via-[#1a1a1f] to-[#18181b] text-white">
+      <Toaster position="bottom-right" theme="dark" richColors />
+
+      {/* Header */}
+      <div className="flex items-center justify-between h-16 px-6 bg-[#18181b]/80 backdrop-blur-xl border-b border-zinc-800/50 shadow-lg">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            {appName}
+          </h1>
+        </div>
         <div className="relative">
           <button
             onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-            className="p-2 hover:bg-[#252529] rounded-full"
+            className="p-2 hover:bg-zinc-800/50 rounded-lg transition-all duration-200 hover:scale-105"
           >
-            <MoreVertical className="w-5 h-5" />
+            <MoreVertical className="w-5 h-5 text-gray-400" />
           </button>
           {showOverflowMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#18181b] border border-[#252529] rounded-lg shadow-lg z-10">
-              <button
-                onClick={() => {
-                  onRename?.();
-                  setShowOverflowMenu(false);
-                }}
-                className="w-full px-4 py-2 text-left hover:bg-[#252529] transition-colors"
-              >
-                Rename
-              </button>
-              <button
-                onClick={() => {
-                  onDelete?.();
-                  setShowOverflowMenu(false);
-                }}
-                className="w-full px-4 py-2 text-left text-red-400 hover:bg-[#252529] transition-colors"
-              >
-                Delete
-              </button>
-            </div>
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowOverflowMenu(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[#1c1c20] border border-zinc-800 rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  onClick={() => {
+                    onRename?.();
+                    setShowOverflowMenu(false);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800/50 transition-colors flex items-center gap-3"
+                >
+                  <PencilLine className="w-4 h-4 text-gray-400" />
+                  Rename Project
+                </button>
+                <div className="h-px bg-zinc-800" />
+                <button
+                  onClick={() => {
+                    onDelete?.();
+                    setShowOverflowMenu(false);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Delete Project
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Message Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-        {messages.map((message) => (
+      {/* Messages */}
+      <div
+        ref={messageContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent"
+      >
+        {messages.map((message, index) => (
           <div
             key={message.id}
-            className={`flex items-start space-x-3 ${
+            className={cn(
+              "flex items-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500",
               message.type === "user" ? "justify-end" : "justify-start"
-            }`}
+            )}
+            style={{ animationDelay: `${index * 50}ms` }}
           >
             {message.type === "bot" && (
-              <div className="w-8 h-8 bg-[#252529] rounded-full flex items-center justify-center flex-shrink-0">
-                <Bot className="w-5 h-5 text-gray-400" />
+              <div className="w-10 h-10 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                <Bot className="w-5 h-5 text-white" />
               </div>
             )}
+
             <div
-              className={`flex flex-col max-w-[85%] ${
+              className={cn(
+                "flex flex-col max-w-[85%] md:max-w-[70%]",
                 message.type === "user" ? "items-end" : "items-start"
-              }`}
+              )}
             >
               <div
-                className={`px-4 py-2 rounded-xl ${
+                className={cn(
+                  "px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl",
                   message.type === "user"
-                    ? "bg-gradient-to-r from-[#7b61ff] to-[#00ccb1]"
-                    : "bg-[#252529]"
-                }`}
+                    ? "bg-gradient-to-r from-[#5b21b6] to-[#1e40af] text-white"
+                    : "bg-[#1c1c20] border border-zinc-800/50 text-gray-100"
+                )}
               >
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
               </div>
+
               {message.hasProgressTracker && message.progressTasks && (
-                <div className="mt-2 w-full max-w-md bg-[#1c1c20] border border-[#252529] rounded-xl p-4 space-y-4">
+                <div className="mt-3 w-full max-w-md bg-[#1c1c20] border border-zinc-800/50 rounded-2xl p-5 shadow-xl space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-emerald-400" />
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <Check className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold">
+                        <p className="font-bold text-white">
                           Version {message.progressVersion}
                         </p>
                         {message.id === latestProgressTrackerId ? (
-                          <p className="text-xs font-semibold text-[#00ccb1] tracking-wider">
-                            CURRENT
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <p className="text-xs font-semibold text-emerald-400 tracking-wider">
+                              CURRENT
+                            </p>
+                          </div>
                         ) : (
-                          <p className="text-xs font-semibold text-gray-500 tracking-wider">
-                            Version {message.progressVersion}
+                          <p className="text-xs font-medium text-gray-500 tracking-wide mt-0.5">
+                            Completed
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-400 bg-[#252529] rounded-full px-2.5 py-1">
-                      {getCompletedTasks(
-                        message.progressTasks,
-                        message.completedTasks
-                      )}
-                      /{message.progressTasks.length}
+                    <div className="text-sm font-semibold text-gray-300 bg-zinc-800/50 rounded-full px-3 py-1.5 border border-zinc-700/50">
+                      {message.completedTasks?.size || 0}/
+                      {message.progressTasks.length}
                     </div>
                   </div>
-                  <ProgressTracker
-                    initialTasks={message.progressTasks}
+
+                  <ProgressTrackerComponent
+                    tasks={message.progressTasks}
                     completedTasks={message.completedTasks || new Set()}
-                    isLatest={!completedTrackers.has(message.id)}
+                    isAnimating={!completedTrackers.has(message.id)}
                   />
                 </div>
               )}
+
               {completedTrackers.has(message.id) && (
-                <div className="mt-2 flex items-center gap-3 w-full max-w-md bg-[#252529] text-gray-200 rounded-xl px-4 py-3 border border-[#2a2a2e]">
-                  <Eye className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  <p className="flex-1 text-sm">
-                    Preview updated. You can now see the result.
+                <div className="mt-3 flex items-center gap-3 w-full max-w-md bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 backdrop-blur-sm rounded-2xl px-5 py-4 border border-zinc-700/50 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <p className="flex-1 text-sm font-medium text-gray-200">
+                    Preview updated successfully
                   </p>
-                  <button className="text-sm font-semibold bg-gradient-to-r from-[#7b61ff] to-[#00ccb1] hover:from-[#6a52e5] hover:to-[#00b3a0] px-3 py-1 rounded-md transition-all text-white">
-                    Go to Preview
+                  <button className="text-sm font-semibold bg-gradient-to-r from-[#5b21b6] to-[#1e40af] hover:from-[#5b21b6] hover:to-[#1e40af]  px-4 py-2 rounded-lg transition-all duration-200 text-white shadow-lg hover:shadow-xl hover:scale-105">
+                    View
                   </button>
                 </div>
               )}
             </div>
+
             {message.type === "user" && (
-              <div className="w-8 h-8 bg-[#252529] rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5" />
+              <div className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg border border-zinc-700/50">
+                <User className="w-5 h-5 text-gray-300" />
               </div>
             )}
           </div>
         ))}
+
         {isGeneratingResponse &&
           !messages[messages.length - 1]?.hasProgressTracker && (
-            <div className="flex items-start space-x-3 justify-start">
-              <div className="w-8 h-8 bg-[#252529] rounded-full flex items-center justify-center flex-shrink-0">
-                <Bot className="w-5 h-5 text-gray-400" />
+            <div className="flex items-start gap-3 justify-start animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                <Bot className="w-5 h-5 text-white" />
               </div>
-              <div className="bg-[#252529] px-4 py-3 rounded-xl">
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  Thinking
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+              <div className="bg-[#1c1c20] border border-zinc-800/50 px-5 py-4 rounded-2xl shadow-xl">
+                <div className="flex items-center gap-2 text-sm text-gray-300 font-medium">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                  Thinking...
                 </div>
               </div>
             </div>
           )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom Input Bar */}
-      <div className="bg-[#18181b] border-t border-[#252529] px-4 py-3">
+      {/* Scroll to Bottom Button */}
+      {showScrollButton && (
+        <button
+          onClick={() => scrollToBottom()}
+          className="absolute bottom-28 right-8 w-10 h-10 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center shadow-xl border border-zinc-700 transition-all duration-200 hover:scale-110 animate-in fade-in slide-in-from-bottom-2 z-10"
+        >
+          <ChevronDown className="w-5 h-5 text-gray-300" />
+        </button>
+      )}
+
+      {/* Input Area */}
+      <div className="bg-[#18181b]/80 backdrop-blur-xl border-t border-zinc-800/50 px-4 py-4">
         <div className="w-full max-w-4xl mx-auto">
           <div
             className={cn(
-              "rounded-2xl p-[1px] transition-all duration-300",
+              "rounded-2xl p-[2px] transition-all duration-300",
               isFocused
-                ? "bg-gradient-to-r from-[#00ccb1] via-[#7b61ff] to-[#1ca0fb]"
-                : "bg-[#252529]"
+                ? "bg-gradient-to-r from-blue-500 via-purple-600 to-emerald-500 shadow-lg shadow-blue-500/20"
+                : "bg-zinc-800/50"
             )}
           >
             <div className="rounded-2xl bg-[#18181b]">
-              <form onSubmit={handleSubmit} className="p-2 sm:p-3">
-                <div className="flex items-start gap-2 sm:gap-4">
+              <form onSubmit={handleSubmit} className="p-4">
+                <div className="flex items-start gap-2">
                   <textarea
                     ref={textareaRef}
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(e) => {
+                      setInputText(e.target.value);
+                      const textarea = textareaRef.current;
+                      if (textarea) {
+                        textarea.style.height = "auto";
+                        const lineHeight = 24;
+                        const maxHeight = lineHeight * 5;
+                        const newHeight = Math.min(
+                          textarea.scrollHeight,
+                          maxHeight
+                        );
+                        textarea.style.height = `${newHeight}px`;
+                      }
+                    }}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask VibeKode for follow up improvement"
+                    onKeyDown={handleKeyPress}
+                    placeholder="Ask for improvements or changes..."
                     rows={1}
                     disabled={isGeneratingResponse}
-                    className="flex-1 bg-transparent resize-none outline-none placeholder:text-gray-400 text-white text-base leading-relaxed max-h-48 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent disabled:opacity-50"
+                    className="flex-1 bg-transparent resize-none outline-none placeholder:text-gray-500 text-white text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent disabled:opacity-50 disabled:cursor-not-allowed overflow-y-auto"
+                    style={{ minHeight: "24px", maxHeight: "120px" }}
                   />
+                  <button
+                    type="submit"
+                    disabled={!inputText.trim() || isGeneratingResponse}
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0",
+                      inputText.trim() && !isGeneratingResponse
+                        ? "bg-gradient-to-r from-[#5b21b6] to-[#1e40af] hover:from-[#5b21b6] hover:to-[#1e40af] shadow-lg shadow-blue-500/30 hover:scale-105 hover:shadow-xl"
+                        : "bg-zinc-800/50 cursor-not-allowed"
+                    )}
+                  >
+                    {isGeneratingResponse ? (
+                      <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                    ) : (
+                      <Send
+                        className={cn(
+                          "w-5 h-5 transition-colors",
+                          inputText.trim() ? "text-white" : "text-gray-600"
+                        )}
+                      />
+                    )}
+                  </button>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-2">
+
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-800/50">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       disabled={isGeneratingResponse}
-                      className="hidden p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                      className="p-2 text-gray-500 hover:text-gray-300 hover:bg-zinc-800/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Attach file (Coming soon)"
                     >
-                      <PencilLine className="w-5 h-5" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                        />
+                      </svg>
                     </button>
                     <button
                       type="button"
-                      onClick={handleVoiceInput}
+                      onClick={toggleVoiceInput}
                       disabled={isGeneratingResponse}
-                      className="hidden p-2 text-gray-400 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                      className={cn(
+                        "p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        isListening
+                          ? "text-red-500 bg-red-500/10 hover:bg-red-500/20 animate-pulse"
+                          : "text-gray-500 hover:text-gray-300 hover:bg-zinc-800/50"
+                      )}
+                      title={isListening ? "Stop listening" : "Voice input"}
                     >
-                      <Mic className="w-5 h-5" />
+                      {isListening ? (
+                        <Square className="w-5 h-5 fill-current" />
+                      ) : (
+                        <Mic className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
-                  <div>
-                    <button
-                      type="submit"
-                      disabled={!inputText.trim() || isGeneratingResponse}
-                      className="p-2 text-gray-400 hover:text-white disabled:text-gray-600 disabled:cursor-not-allowed rounded-md transition-colors"
-                    >
-                      <Send className="w-5 h-5" />
-                    </button>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium">
+                      {inputText.length > 0 && (
+                        <span className="animate-in fade-in duration-200">
+                          {inputText.length} characters
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
               </form>
             </div>
           </div>
+
+          {/* Helpful Hint */}
+          {messages.length === 0 && !isGeneratingResponse && (
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500 animate-in fade-in duration-500">
+                💡 Tip: Be specific with your requests for best results
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

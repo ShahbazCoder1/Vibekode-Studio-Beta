@@ -761,7 +761,7 @@ export async function generateAppArchitecture(
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
-        maxOutputTokens: 32768,
+        maxOutputTokens: 65536,
         responseMimeType: "application/json",
       };
 
@@ -1039,7 +1039,7 @@ export async function generateCode(
           temperature: temperature + (attempt - 2) * 0.1, // Slightly increase temperature on retries
           topP: 0.95,
           topK: 40,
-          maxOutputTokens: 32768,
+          maxOutputTokens: 65536,
           responseMimeType: "text/plain",
         };
 
@@ -1379,7 +1379,7 @@ export async function generateImproveCode(
           temperature: temperature + (attempt - 1) * 0.1,
           topP: 0.92,
           topK: 30,
-          maxOutputTokens: 32768,
+          maxOutputTokens: 65536,
           responseMimeType: "text/plain",
         };
 

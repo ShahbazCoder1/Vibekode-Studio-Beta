@@ -163,7 +163,7 @@ export function SidebarContent({ user, projects, projectsLoading, links, onLogou
         <motion.button
           onClick={() => router.push('/project')}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          className={cn('flex h-10 items-center gap-3.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium text-white transition-all', 'bg-gradient-to-br from-[#7b61ff] to-[#00ccb1] hover:from-[#8a74ff] hover:to-[#14e0c5] shadow-[0_0_20px_rgba(123,97,255,0.4)]', !isExpanded && 'w-12 justify-center')}
+          className={cn('flex h-10 items-center gap-3.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium text-white transition-all', 'bg-gradient-to-r from-[#5b21b6] to-[#1e40af] hover:from-[#5b21b6] hover:to-[#1e40af] shadow-[0_0_20px_rgba(123,97,255,0.4)]', !isExpanded && 'w-12 justify-center')}
         >
           <PlusCircle className="h-5 w-5 flex-shrink-0" />
           <AnimatePresence>{isExpanded && <motion.span variants={contentVariants}>New Project</motion.span>}</AnimatePresence>

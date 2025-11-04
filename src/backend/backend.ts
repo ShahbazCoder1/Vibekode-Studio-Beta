@@ -79,7 +79,7 @@ export async function generateAppName(prompt: string): Promise<string> {
   return executeWithDeduplication(cacheKey, async () => {
     try {
       const config: AIConfig = {
-        temperature: 0.7,
+        temperature: 1.0,
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 50,
@@ -327,615 +327,91 @@ export async function generateAppArchitecture(
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-      const template = `# Single-File Web App Architecture Plan Template
+      const template = `# Single-File Web App Architecture Plan
 
-## Project Name: [Enter your project name]
+## Project Name: [Enter project name]
 
 ## Core User Needs:
-<!-- List the primary user needs the application will address (add as many as needed) -->
-1. [Enter primary user need]
-2. [Enter primary user need]
-3. [Enter primary user need]
-- Add additional user needs as necessary
+1. [Enter user need]
+2. [Enter user need]
+3. [Enter user need]
 
 ## Technical Constraints:
-<!-- List any technical constraints for this project -->
-* Single HTML file architecture
+* Single HTML file (no frameworks)
 * Tailwind CSS for styling
-* Vanilla JavaScript for functionality
-* For icons use "<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">"
-* If any images are required, use the Pixabay API (https://pixabay.com/api/) with the API key '50370718-98cd42cb1427f3bcfa222a614'. The API allows you to fetch various types of media including photos, illustrations, and vector graphics. When implementing the image functionality, make sure to properly handle the API response to retrieve the appropriate image URL and credit the source as required by Pixabay's terms of service.
-* If any API is required, use free APIs that don't require OAuth or API keys as first priority. If no suitable free API is available, use dummy data.
-* [Enter additional technical constraint]
-* [Enter additional technical constraint]
+* Vanilla JS for logic
+* Font Awesome for icons
+* Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
+* The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
+* Prefer free, no-auth APIs
 
-## File Structure:
+## Structure:
+### HTML
+- Sections and meta setup
+### CSS
+- Tailwind + minimal custom classes
+### JS
+- State handling, DOM updates, API calls
 
-### HTML Structure
-<!-- Describe the overall HTML structure of your single-file application -->
-* Document Structure:
-  * [Specify HTML5 document structure]
-  * [List required meta tags]
-  * [Specify SEO requirements]
+## Pages / Views:
+1. [Page name] – [Purpose]
+2. [Page name] – [Purpose]
 
-* Component Organization:
-  * [Describe how components will be organized]
-  * [List major HTML sections]
-
-### CSS Structure
-<!-- Describe how CSS will be organized within the single file -->
-* [Specify Tailwind CSS configuration approach]
-* [List custom CSS requirements]
-* [Describe responsive design strategy]
-* [Specify theme variables]
-
-### JavaScript Organization
-<!-- Describe how JavaScript will be structured within the single file -->
-* State Management:
-  * [Describe state management approach]
-  * [List key state objects]
-
-* Routing System:
-  * [Describe routing implementation]
-  * [List main routes]
-
-* Component Functions:
-  * [List main component functions]
-  * [Describe initialization approach]
-
-* Data Services:
-  * [Describe API service approach]
-  * [List data services]
-
-* Local Storage:
-  * [Describe storage strategy]
-  * [List items to be stored]
-
-## Page/View Structure:
-<!-- List all views/pages the application will contain -->
-1. [Enter page/view name]:
-   * Purpose: [Describe purpose]
-   * Components: [List components]
-   * Actions: [List user actions]
-
-2. [Enter page/view name]:
-   * Purpose: [Describe purpose]
-   * Components: [List components]
-   * Actions: [List user actions]
-
-3. [Enter page/view name]:
-   * Purpose: [Describe purpose]
-   * Components: [List components]
-   * Actions: [List user actions]
-
-## Component Architecture:
-<!-- Detail key components for the application -->
-1. [Enter component name]:
-   * Structure:
-     * [Describe HTML structure]
-     * [List sub-components]
-   * Functionality:
-     * [List behaviors]
-     * [Describe state interactions]
-
-2. [Enter component name]:
-   * Structure:
-     * [Describe HTML structure]
-     * [List sub-components]
-   * Functionality:
-     * [List behaviors]
-     * [Describe state interactions]
-
-3. [Enter component name]:
-   * Structure:
-     * [Describe HTML structure]
-     * [List sub-components]
-   * Functionality:
-     * [List behaviors]
-     * [Describe state interactions]
+## Components:
+1. [Component name] – structure, behavior
+2. [Component name] – structure, behavior
 
 ## Data Models:
-<!-- Define data structures for the application -->
-1. [Enter model name]:
-   * Properties:
-     * [Property name]: [Data type] - [Description]
-     * [Property name]: [Data type] - [Description]
-   * Methods:
-     * [Method name] - [Description]
+1. [Model name]: [fields and purpose]
 
-2. [Enter model name]:
-   * Properties:
-     * [Property name]: [Data type] - [Description]
-     * [Property name]: [Data type] - [Description]
-   * Methods:
-     * [Method name] - [Description]
+## Implementation Steps:
+1. Setup base HTML/CSS
+2. Build core JS logic
+3. Add routing (if any)
+4. Integrate APIs
+5. Optimize and test
+6. Use pics which are relatable don't pic random
 
-## Implementation Plan:
+## Look & Feel:
+[Describe intended style and UX]`;
 
-### Step 1: Setup Base Structure
-<!-- Define tasks for initial setup -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-### Step 2: Core Components
-<!-- Define tasks for building core components -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-### Step 3: Routing & Navigation
-<!-- Define tasks for implementing navigation -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-### Step 4: Data Management
-<!-- Define tasks for data handling -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-### Step 5: UI Refinement
-<!-- Define tasks for UI improvement -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-### Step 6: Testing & Optimization
-<!-- Define testing strategy -->
-* [Enter specific task]
-* [Enter specific task]
-* [Enter specific task]
-
-## Performance Considerations:
-<!-- Describe performance optimization strategies -->
-* [Enter performance consideration]
-* [Enter performance consideration]
-* [Enter performance consideration]
-
-## Browser Compatibility:
-<!-- List target browsers and compatibility strategies -->
-* Target Browsers:
-  * [Enter browser and version]
-  * [Enter browser and version]
-* Compatibility Strategy:
-  * [Enter compatibility approach]
-  * [Enter compatibility approach]
-
-## Security Considerations:
-<!-- List security measures -->
-* [Enter security consideration]
-* [Enter security consideration]
-* [Enter security consideration]
-
-## Additional Notes:
-<!-- Any other important information -->
-* [Enter additional information]
-* [Enter additional information]
-
-## Suggested Free APIs:
-<!-- Select APIs from this list that might be relevant to your application. These APIs do not require OAuth or API keys. -->
-
-### Animals
-* Cat Facts
-* Cataas
-* Dog API
-* Dogs
-* Foxes
-* HTTPCat
-* HTTP Dogs
-* Meow Facts
-* RandomBigCat
-* RandomDog
-* RandomFox
-
-### Anime
-* AnimeNewsNetwork
-* AOT quotes
-* Jikan
-* Mangadex
-* Nekosia API
-
-### Art & Design
-* Metropolitan Museum of Art
-
-### Books
-* British National Bibliography
-* Harry Potter API
-* Open Library
-* Penguin Publishing
-* Rig Veda
-* Vedic Society
-
-### Business
-* Domainsdb.info
-* Favicon.im
-* markerapi
-* Valid Email
-
-### Calendar
-* Byabbe
-* Church Calendar
-* Czech Namedays Calendar
-* Hebrew Calendar
-* Non-working Days
-* Nager.Date
-* Namedays Calendar
-* Russian Calendar
-* TimeZones iCal Library
-
-### Development
-* 0ms DNS Accelerator
-* 0ms Get IP
-* 0ms Mirrors
-* 24 Pull Requests
-* APIs.guru
-* CDNJS
-* Corsfix
-* ExtendsClass
-* FontDownloader
-* Form2Channel
-* Genderize.io
-* HTTP2.Pro
-* Image-Charts
-* IPify
-* jsDelivr
-* JSON 2 JSONP
-* Public APIs
-* QR code
-* QuickChart
-* ReqRes
-* SHOUTCLOUD
-* XML to JSON
-* Image to Link
-
-### Dictionaries
-* Wordnik
-
-### Documents & Productivity
-* File.io
-* Vector Express
-
-### Food & Drink
-* Open Brewery DB
-* Open Food Facts
-* PunkAPI
-* TacoFancy
-* TheCocktailDB
-* TheMealDB
-
-### Games & Comics
-* AmiiboAPI
-* Chuck Norris Database
-* Blue Archive
-* Comic Vine
-* Deck of Cards
-* Dungeons and Dragons
-* Final Fantasy XIV
-* Jokes One
-* JokeAPI
-* Jokes
-* Jservice
-* Magic The Gathering
-* Open Trivia
-* Pokéapi
-* Pokémon TCG
-* Puns
-* Random Facts
-* Rick and Morty
-* Scryfall
-* xkcd
-
-### Geocoding
-* administrative-divisons-db
-* Country
-* GeoJS
-* IP Location
-* Indian Cities
-* IP 2 Country
-* OpenStreetMap
-* REST Countries
-* Zippopotam
-
-### Government
-* BCLaws
-* Census.gov
-* Data USA
-* Federal Register
-* Food Standards Agency
-* Open Government (various countries)
-
-### Music
-* Freesound
-* Genrenator
-* iTunes Search
-* Lyrics.ovh
-* MusicBrainz
-* TheAudioDB
-
-### News
-* Chronicling America
-
-### Open Data
-* Archive.org
-* Fruits
-* Quandl
-* Universities List
-* Wikipedia
-
-### Personality
-* Advice Slip
-* chucknorris.io
-* Forismatic
-* icanhazdadjoke
-* kanye.rest
-* Meme
-* Programming Quotes
-* Quote Garden
-* Quotes on Design
-* Riddles API
-* tronalddump.io
-
-### Photography
-* Lorem Picsum
-* PlaceKitten
-
-### Science & Math
-* NASA
-* Newton
-* Numbers (Facts about numbers)
-* Open Notify
-* SpaceX
-* Sunrise and Sunset
-* USGS Earthquake Hazards Program
-* World Bank
-
-### Social
-* HackerNews
-* Open Collective
-* Reddit
-
-### Sports & Fitness
-* balldontlie
-* City Bikes
-* Football-Data.org
-* NBA Stats
-* NHL Records and Stats
-
-### Test Data
-* Bacon Ipsum
-* Beeceptor's CRUD APIs
-* Dicebear Avatars
-* JSONPlaceholder
-* Loripsum
-* RandomUser
-* RoboHash
-* This Person Does not Exist
-* UI Names
-* UUID Generator
-* Yes No
-
-### Transportation
-* Open Charge Map
-* REFUGE Restrooms
-* Various city transit APIs
-
-### Video
-* An API of Ice And Fire
-* Bob's Burgers API
-* Breaking Bad Quotes
-* Czech Television
-* Owen Wilson Wow
-* Ron Swanson Quotes
-* Shrek Quotes
-* South Park Quotes
-* TVMaze
-
-### Weather
-* 7Timer!
-* Meteorologisk Institutt
-* ODWeather
-* Open-Meteo
-* National Weather Service API
-
----
-
-## Instructions for Technical Team:
-1. Fill in all sections marked with [brackets]
-2. Remove the comment instructions (lines starting with <!--)
-3. Add additional sections as needed for your specific project
-4. Be specific with implementation details
-5. Include timeline estimates for each step
-
-## Look and Feel:
-<!-- Provide a brief 3-4 line description of the application's intended aesthetic and user experience -->
-[Describe the overall visual style (e.g., minimalist, bold, playful, corporate)]
-[Describe the intended user experience (e.g., intuitive, streamlined, immersive)]
-[Describe any specific design principles or patterns to follow]`;
-
+      const model = "gemini-2.5-pro";
       const config = {
-        thinkingConfig: {
-          thinkingBudget: -1,
-        },
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
-        maxOutputTokens: 65536,
-        responseMimeType: "application/json",
+        maxOutputTokens: 32768,
       };
 
-      const model = "gemini-2.5-pro";
+      const prompt = `
+You are an expert web architect.
+Fill the following architecture template *completely and professionally* 
+for the app described below.
 
-      const createTemplatePromptConfig = (
-        template: string,
-        appIdea: string,
-        appName: string
-      ) => ({
-        target: {
-          template_document: template,
-          application_type: appIdea,
-          application_name: appName,
-        },
-        completion_rules: {
-          project_name: {
-            action: "set_to",
-            value: appName,
-            location: "Project Name section",
-          },
-          placeholder_replacement: {
-            pattern: "all text within [brackets]",
-            action: "replace_with_specific_details",
-            quality: "detailed and contextual",
-          },
-          comment_removal: {
-            pattern: "HTML comments (<!-- -->)",
-            action: "remove_completely",
-          },
-          section_completion: {
-            requirement: "fill_all_sections",
-            depth: "comprehensive",
-            specificity: "tailored_to_app_concept",
-          },
-        },
-        quality_standards: {
-          production_readiness: {
-            level: "production_grade",
-            ui_design: "professional",
-            ux_design: "professional",
-            code_quality: "industry_standard",
-          },
-          technical_decisions: {
-            apis: "select_appropriate_from_provided_list",
-            components: "define_specific_to_app_needs",
-            data_models: "create_relevant_structures",
-            routing: "design_logical_flow",
-          },
-          implementation_detail: {
-            specificity: "actionable",
-            completeness: "ready_for_development",
-            clarity: "unambiguous",
-          },
-        },
-        content_requirements: {
-          user_needs: {
-            count: "3_to_5",
-            relevance: "specific_to_app_concept",
-            clarity: "clear_and_measurable",
-          },
-          pages_views: {
-            count: "all_necessary_views",
-            detail_level: "purpose_components_and_actions",
-            coherence: "logical_user_flow",
-          },
-          components: {
-            count: "all_major_components",
-            specification: "structure_and_functionality",
-            completeness: "ready_for_implementation",
-          },
-          data_models: {
-            requirement: "define_all_necessary_models",
-            detail: "properties_types_and_methods",
-            alignment: "match_app_requirements",
-          },
-          implementation_plan: {
-            steps: "6_phase_approach",
-            detail: "specific_actionable_tasks",
-            sequencing: "logical_build_order",
-          },
-          look_and_feel: {
-            length: "3_to_4_lines",
-            content: [
-              "visual_style_description",
-              "user_experience_approach",
-              "design_principles",
-            ],
-          },
-        },
-        output_format: {
-          type: "completed_json",
-          structure: "preserve_original_json_structure",
-          formatting: "maintain_json_syntax",
-          completeness: "no_placeholders_or_comments_remaining",
-        },
-      });
+App Name: ${appName}
+App Idea: ${appIdea}
+${additionalRequirements ? `Extra: ${additionalRequirements}` : ""}
 
-      const templatePromptConfig = createTemplatePromptConfig(
-        template,
-        appIdea,
-        appName
-      );
-
-      const contents = [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Using this configuration, complete the architecture template:\n\n${JSON.stringify(
-                templatePromptConfig,
-                null,
-                2
-              )}`,
-            },
-          ],
-        },
-      ];
+Output must be detailed, structured, and formatted in Markdown, with all placeholders replaced.`;
 
       const response = await ai.models.generateContent({
         model,
         config,
-        contents,
+        contents: [{ role: "user", parts: [{ text: `${prompt}\n\n${template}` }] }],
       });
 
-      const rawResponse = response?.text?.trim() || "";
-      // console.log("\n\nRaw AI Response:", rawResponse);
-
-      // Extract JSON from the response
-      let architecture = extractJSON(rawResponse);
-
-      // Fallback architecture if generation fails
-      if (!architecture || architecture.length < 1000) {
-        architecture = `# ${appName} - ${appIdea} Application Architecture
-
-## Project Overview
-**Project Name:** ${appName}
-**Application Type:** ${appIdea}
-
-## Core Features:
-1. User-friendly interface for ${appIdea}
-2. Responsive design for all devices
-3. Modern, professional styling
-4. Local data storage
-5. Real-time interactions
-
-## Technical Stack:
-- HTML5, CSS3 (Tailwind CSS)
-- Vanilla JavaScript (ES6+)
-- Font Awesome icons
-- Local Storage for data persistence
-
-## Implementation Focus:
-- Clean, semantic HTML structure
-- Responsive, mobile-first design
-- Accessible interface design
-- Performance optimization
-- Cross-browser compatibility
-
-This application will be built as a single-file, production-ready web application with professional quality code and user experience.`;
-      }
-
-      // console.log("\n\nExtracted architecture:", architecture);
-      return architecture;
-    } catch (error) {
-      console.error("Error in generateAppArchitecture:", error);
+      const raw = response?.text?.trim() || "";
+      return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
+    } catch (err) {
       throw new Error(
-        `Failed to generate app architecture: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Architecture generation failed: ${
+          err instanceof Error ? err.message : "Unknown error"
         }`
       );
     }
   });
 }
+
 
 // Enhanced style inspiration with better trend analysis
 // export async function getStyleInspiration(appIdea: string): Promise<string> {
@@ -1006,13 +482,14 @@ This application will be built as a single-file, production-ready web applicatio
 // }
 
 // Significantly enhanced code generation with better error handling and retry logic
+
 export async function generateCode(
   appIdea: string,
   appName: string,
   architecture: string,
-  additionalRequirements: string = "",
-  temperature: number = 0.9,
-  maxRetries: number = 3
+  additionalRequirements = "",
+  temperature = 1.0,
+  maxRetries = 11
 ): Promise<string> {
   const cacheKey = createCacheKey(
     "generateCode",
@@ -1028,15 +505,9 @@ export async function generateCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // console.log(`Code generation attempt ${attempt}/${maxRetries}`);
-
-        // const styleGuidance = await getStyleInspiration(appIdea);
-
         const config = {
-          thinkingConfig: {
-            thinkingBudget: -1,
-          },
-          temperature: temperature + (attempt - 2) * 0.1, // Slightly increase temperature on retries
+          thinkingConfig: { thinkingBudget: -1 },
+          temperature: temperature + (attempt - 2) * 0.1,
           topP: 0.95,
           topK: 40,
           maxOutputTokens: 65536,
@@ -1046,31 +517,11 @@ export async function generateCode(
         const model = "gemini-2.5-pro";
 
         const codeGenerationConfig = {
-          role_context: {
-            position: "Senior Full-Stack Developer & UI/UX Designer",
-            expertise: [
-              "modern_web_development",
-              "responsive_design",
-              "accessibility_standards",
-              "performance_optimization",
-              "visual_design",
-              "user_experience",
-            ],
-            experience_level: "expert_10_plus_years",
-          },
-
-          input: {
-            architecture_blueprint: architecture,
-            attempt_number: attempt,
-            is_retry: attempt > 1,
-          },
-
+          input: { architecture_blueprint: architecture, attempt_number: attempt, is_retry: attempt > 1 },
           task: {
             primary_objective: "generate_complete_production_ready_html_file",
             scope: "single_file_web_application",
-            deliverable_type: "self_contained_html_document",
           },
-
           technical_requirements: {
             core_technologies: {
               markup: "HTML5",
@@ -1078,7 +529,6 @@ export async function generateCode(
               scripting: "modern_javascript_es2022_plus",
               icons: "font_awesome_6_7_2",
             },
-
             architecture_constraints: {
               file_structure: "single_html_file",
               css_approach: "embedded_in_style_tags",
@@ -1086,275 +536,138 @@ export async function generateCode(
               external_dependencies: "cdn_only",
               build_tools: "none_required",
             },
-
-            implementation_completeness: [
-              "all_features_from_architecture_fully_implemented",
-              "all_components_completely_coded",
-              "all_pages_views_functional",
-              "all_data_models_implemented",
-              "all_routing_logic_working",
-              "all_state_management_functional",
-              "all_api_integrations_complete",
-              "no_placeholder_functions",
-              "no_todo_comments",
-              "production_ready_code",
-            ],
           },
-
-          design_requirements: {
-            visual_quality: {
-              level: "stunning_and_professional",
-              inspiration: "top_rated_websites_in_category",
-              trends: "incorporate_latest_2025_web_design_trends",
-              aesthetic: "modern_polished_and_cohesive",
-            },
-
-            design_elements: {
-              color_scheme: {
-                requirement: "cohesive_and_purposeful",
-                approach: "based_on_architecture_design_system",
-                sophistication: "professional_grade",
-              },
-
-              typography: {
-                hierarchy: "clear_and_readable",
-                scale: "harmonious",
-                pairing: "professional",
-              },
-
-              visual_effects: {
-                gradients: "use_modern_gradient_techniques",
-                shadows: "implement_depth_and_elevation",
-                borders: "thoughtful_use_of_borders_and_dividers",
-                spacing: "generous_and_balanced",
-              },
-
-              micro_interactions: {
-                hover_effects: "subtle_and_engaging",
-                transitions: "smooth_and_purposeful",
-                animations: "enhance_ux_without_overwhelming",
-                feedback: "immediate_visual_feedback_for_actions",
-              },
-            },
-
-            responsive_design: {
-              approach: "mobile_first",
-              breakpoints: ["mobile", "tablet", "desktop", "large_desktop"],
-              testing: "ensure_works_perfectly_on_all_devices",
-              touch_optimization: "optimize_for_touch_interactions",
-            },
-
-            user_experience: {
-              navigation: "intuitive_and_seamless",
-              interactions: "thoughtful_and_predictable",
-              loading_states: "implement_where_appropriate",
-              error_handling: "graceful_error_messages",
-              accessibility: "wcag_2_1_aa_compliant",
-            },
-          },
-
-          code_quality_standards: {
-            organization: {
-              structure: "clean_and_logical",
-              sections: "clearly_separated_with_comments",
-              naming: "descriptive_and_consistent",
-            },
-
-            documentation: {
-              comments: "explain_complex_logic_and_sections",
-              code_clarity: "self_documenting_where_possible",
-              inline_docs: "helpful_without_being_excessive",
-            },
-
-            best_practices: {
-              html: [
-                "semantic_html5_elements",
-                "proper_nesting_and_structure",
-                "accessibility_attributes",
-                "seo_friendly_markup",
-              ],
-              css: [
-                "tailwind_utility_classes_properly_used",
-                "custom_css_for_unique_styles",
-                "responsive_utilities",
-                "organized_style_blocks",
-              ],
-              javascript: [
-                "modern_es2022_plus_syntax",
-                "clean_function_organization",
-                "proper_event_handling",
-                "efficient_dom_manipulation",
-                "no_memory_leaks",
-              ],
-            },
-
-            performance: {
-              optimization: "optimize_for_fast_loading",
-              efficiency: "efficient_javascript_execution",
-              assets: "optimize_any_inline_resources",
-            },
-          },
-
           retry_handling:
             attempt > 1
               ? {
                   attempt_number: attempt,
-                  previous_failures: [
-                    "code_was_incomplete_or_truncated",
-                    "missing_essential_html_structure",
-                    "insufficient_functionality_implementation",
-                  ],
                   retry_requirements: [
-                    "generate_complete_full_length_html_document",
-                    "implement_all_features_from_architecture",
-                    "ensure_no_truncation_or_cutoff",
-                    "verify_completeness_before_returning",
+                    "generate_complete_html_document",
+                    "implement_all_features",
+                    "ensure_no_truncation",
                   ],
-                  critical_instruction:
-                    "This is a retry - ensure ABSOLUTE COMPLETENESS",
                 }
               : null,
-
           output_specifications: {
             format: "raw_html_code_only",
-            structure: {
-              start_with: "<!DOCTYPE html>",
-              end_with: "</html>",
-              completeness: "entire_document_from_doctype_to_closing_html_tag",
-            },
-
-            prohibited_content: [
-              "markdown_code_blocks",
-              "explanatory_text",
-              "introductory_sentences",
-              "closing_remarks",
-              "code_fence_markers",
-              "language_identifiers",
-            ],
-
-            required_sections: [
-              "complete_head_with_all_meta_tags_and_links",
-              "complete_body_with_all_structure",
-              "embedded_style_tag_with_custom_css",
-              "embedded_script_tag_with_complete_javascript",
-              "all_html_structure_for_all_views_and_components",
-            ],
-
-            validation_checklist: [
-              "can_be_saved_as_html_file_immediately",
-              "can_be_opened_in_browser_without_modification",
-              "fully_functional_without_additional_files",
-              "all_features_working_as_specified_in_architecture",
-            ],
-          },
-
-          quality_assurance: {
-            self_check_before_output: [
-              "verify_all_architecture_requirements_implemented",
-              "confirm_code_is_complete_not_truncated",
-              "ensure_all_functions_are_fully_defined",
-              "check_all_components_are_rendered",
-              "validate_html_structure_is_complete",
-              "confirm_no_placeholder_or_todo_code",
-            ],
+            structure: { start_with: "<!DOCTYPE html>", end_with: "</html>" },
           },
         };
+        const promptText = `
+You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
+You maintain perfect memory of the conversation, scraped content, and previously generated code.
 
-        const promptText = `You are a Senior Full-Stack Developer and UI/UX Designer with expert-level skills in modern web development.
+🎯 PRIMARY OBJECTIVE  
+Generate a **complete, production-ready, single-file HTML web app** that opens directly in any modern browser with zero dependencies.
 
-TASK: Generate a complete, production-ready, single-file HTML web application based on the following architecture blueprint.
+APP IDEA  
+"${appIdea}"
 
-ARCHITECTURE BLUEPRINT:
-${JSON.stringify(architecture, null, 2)}
+ARCHITECTURE BLUEPRINT  
+${architecture}
 
-GENERATION SPECIFICATIONS:
-${JSON.stringify(codeGenerationConfig, null, 2)}
+🔁 RETRY CONTEXT  
+Attempt ${attempt}/${maxRetries}  
+${attempt > 1 ? 'Previous output was truncated or incomplete—emit the **entire** HTML file this time.' : ''}
 
-${
-  attempt > 1
-    ? `
-⚠️ RETRY ATTEMPT #${attempt} ⚠️
-Previous attempt(s) FAILED due to:
-- Incomplete or truncated code
-- Missing essential HTML structure  
-- Insufficient functionality implementation
+---
 
-YOU MUST generate a COMPLETE, FULL-LENGTH HTML document with ALL features implemented.
-DO NOT truncate. DO NOT leave placeholders. COMPLETE IMPLEMENTATION ONLY.
-`
-    : ""
-}
+⚙️ TECHNICAL REQUIREMENTS  
+- Markup: HTML5  
+- Styling: TailwindCSS (latest CDN)  
+- Icons: Font Awesome 6.7.2 (CDN)  
+- Scripting: Modern vanilla JavaScript (ES2022+)  
+- Build tools: NONE — must be standalone single HTML file  
 
-CRITICAL OUTPUT REQUIREMENTS:
-1. Start IMMEDIATELY with "<!DOCTYPE html>"
-2. End with "</html>"
-3. Include COMPLETE implementation of ALL features from architecture
-4. NO markdown, NO explanations, NO code blocks - ONLY raw HTML
-5. Self-contained: works immediately when saved as .html file
-6. All CSS embedded in <style> tags
-7. All JavaScript embedded in <script> tags
-8. All CDN links in <head>
-9. Stunning, professional UI with modern design
-10. Fully responsive and accessible
+📐 STRUCTURE RULES  
+1. File must start with <!DOCTYPE html> and end with </html>  
+2. All CSS inside <style> tags  
+3. All JS inside <script> tags  
+4. Only CDN links allowed — no imports, no bundlers  
+5. Entire app works when double-clicked in the browser  
 
-Generate the complete HTML code now:`;
+---
 
-        // console.log("\n\nCode generation prompt:", promptText);
-        const contents = [
-          {
-            role: "user",
-            parts: [{ text: promptText }],
-          },
-        ];
+🚨 CRITICAL CODING RULES — VIOLATE = FAILURE  
+1. **DO EXACTLY WHAT IS ASKED — NOTHING MORE, NOTHING LESS**  
+   - Do not add features not implied by the architecture  
+   - Do not “improve” unrelated parts  
+2. **TAILWIND CLASSES ONLY**  
+   - ✅ CORRECT: bg-white text-black bg-blue-500  
+   - ❌ WRONG: bg-background text-foreground border-border  
+3. **NO CUSTOM CSS EXCEPT INSIDE <style>**  
+   - Never use inline style="" or style={{}}  
+   - No CSS-in-JS, no <style jsx>, no external .css files  
+4. **NO EMOJIS ANYWHERE** — code or UI text  
+5. **ESCAPE APOSTROPHES & QUOTES**  
+   - Use straight quotes only (' ")  
+   - Apostrophe: "you're" or you\'re — never curly quotes  
+6. **KEEP SEMANTIC HTML & ACCESSIBILITY**  
+   - Proper headings, aria-labels, keyboard-navigable controls  
+7. **RESPONSIVE & MOBILE-FIRST**  
+   - Use sm:, md:, lg:, xl: prefixes  
+   - Never hardcode px widths — use Tailwind spacing scale  
+8. **KEEP JS MODERN BUT BROWSER-SAFE**  
+   - ES2022+ syntax is fine (const, arrow, optional chaining)  
+   - No TypeScript, no JSX, no imports  
+
+---
+
+🧩 COMPONENT INTELLIGENCE (apply to page sections)  
+- Navigation / Header: top bar with logo + links  
+- Hero: main landing area above the fold  
+- Features / Services / Products: mid-page value props  
+- Footer: links, copyright, social icons  
+- All sections live inside the **same single HTML file**
+
+---
+
+🎨 DESIGN & UX GUIDELINES  
+- Clean, modern, high contrast  
+- Consistent spacing (use Tailwind scale: p-4, p-6, p-8…)  
+- Smooth transitions: transition-all duration-200  
+- Hover states: hover:scale-105 hover:shadow-lg  
+- Dark mode support optional unless requested  
+- Full-width sections by default; constrain content only when readability demands (max-w-4xl mx-auto)  
+
+---
+
+📤 OUTPUT FORMAT  
+- Return **ONLY** the complete HTML document  
+- No markdown fences, no commentary, no apologies  
+- File must be copy-paste-ready and runnable instantly
+
+CRITICAL: Generate the **entire** file in one response—never truncate or use placeholders.
+`;
+
+
         const response = await ai.models.generateContent({
           model,
           config,
-          contents,
+          contents: [{ role: "user", parts: [{ text: promptText }] }],
         });
 
         let code = response?.text?.trim() || "";
-        // console.log("\n\nGenerated code:", code);
-        // console.log(`Generated code length: ${code.length} characters`);
-
-        // Enhanced code extraction and validation
         code = extractAndValidateHTML(code, appName, attempt);
-
-        // If we get here, the code is valid
-        // console.log(`✅ Code generation successful on attempt ${attempt}`);
         return code;
       } catch (error) {
-        console.error(`❌ Code generation attempt ${attempt} failed:`, error);
         lastError = error as Error;
-
-        // If this isn't the last attempt, continue to retry
-        if (attempt < maxRetries) {
-          // console.log(
-          //   `🔄 Retrying code generation (${attempt + 1}/${maxRetries})...`
-          // );
-          // Add a small delay before retry
-          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-          continue;
-        }
+        if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
 
-    // If all retries failed, throw the last error
-    throw new Error(
-      `Failed to generate complete application code after ${maxRetries} attempts: ${
-        lastError?.message || "Unknown error"
-      }`
-    );
+    throw new Error(`Failed after ${maxRetries} attempts: ${lastError?.message || "Unknown error"}`);
   });
 }
-
 // Enhanced code improvement with retry logic
+
 export async function generateImproveCode(
   existingCode: string,
   improvementPrompt: string,
   appName: string,
   appIdea: string,
-  temperature: number = 0.9,
-  maxRetries: number = 2
+  temperature: number = 1.2,
+  maxRetries: number = 11
 ): Promise<string> {
   const cacheKey = createCacheKey(
     "generateImproveCode",
@@ -1370,8 +683,6 @@ export async function generateImproveCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // console.log(`Code improvement attempt ${attempt}/${maxRetries}`);
-
         const config = {
           thinkingConfig: {
             thinkingBudget: -1,
@@ -1385,18 +696,11 @@ export async function generateImproveCode(
 
         const model = "gemini-2.5-pro";
 
-        // JSON-based structured prompt
         const structuredPrompt = {
           system: {
             role: "Senior Software Engineer",
             experience:
               "60 years of professional software development experience",
-            expertise: [
-              "Web application development",
-              "Code improvement and optimization",
-              "Modern web standards",
-              "User experience design",
-            ],
           },
           context: {
             appName: appName,
@@ -1413,10 +717,6 @@ export async function generateImproveCode(
             {
               requirement: "COMPLETE HTML DOCUMENT",
               description: "Return the entire HTML document, not just changes",
-            },
-            {
-              requirement: "MAINTAIN ALL EXISTING FUNCTIONALITY",
-              description: "Keep everything that currently works",
             },
             {
               requirement: "ADD NEW FEATURES",
@@ -1483,71 +783,62 @@ export async function generateImproveCode(
                   requirements: [
                     "Return the COMPLETE improved HTML document",
                     "All improvements are fully implemented",
-                    "No code truncation or incomplete sections",
                     "Maintain all existing functionality",
                   ],
                 }
               : null,
           outputFormat: {
-            requirements: [
-              "Return ONLY the complete, improved HTML code",
-              "Start with '<!DOCTYPE html>' and end with '</html>'",
-              "Do NOT include explanations or markdown - just the complete HTML file",
-            ],
             critical:
               "The returned code must be 100% complete and functional with all improvements implemented",
           },
         };
 
-        // Convert JSON structure to formatted text prompt
-        const promptText = `You are a ${structuredPrompt.system.role} with ${
-          structuredPrompt.system.experience
-        }, improving an existing web application.
+        const promptText = `
+You are an expert senior software engineer performing a surgical, context-aware code modification. Your primary directive is PRECISION and PRESERVATION.
 
-**Application Context:**
-- App Name: ${structuredPrompt.context.appName}
-- App Type: ${structuredPrompt.context.appType}
-- Current Status: ${structuredPrompt.context.currentStatus}
-- Improvement Attempt: ${structuredPrompt.context.improvementAttempt}/${
-          structuredPrompt.context.maxRetries
-        }
+---
 
-**Current Application Code:**
-"""
-${structuredPrompt.inputs.existingCode}
-"""
-
-**Improvement Request:**
+## USER REQUEST
 "${structuredPrompt.inputs.improvementRequest}"
 
-**CRITICAL REQUIREMENTS:**
-${structuredPrompt.criticalRequirements
-  .map((req, idx) => `${idx + 1}. **${req.requirement}**: ${req.description}`)
-  .join("\n")}
+---
 
-**Improvement Guidelines:**
-${structuredPrompt.improvementGuidelines
+## EXISTING CODE
+\`\`\`html
+${structuredPrompt.inputs.existingCode}
+\`\`\`
+
+---
+
+## CRITICAL REQUIREMENTS
+${structuredPrompt.criticalRequirements
   .map(
-    (guide, idx) => `${idx + 1}. **${guide.guideline}**: ${guide.description}`
+    (r, i) => `${i + 1}. ${r.requirement} — ${r.description}`
   )
   .join("\n")}
 
-${
-  structuredPrompt.retryInstructions
-    ? `
-**RETRY INSTRUCTIONS:**
-${structuredPrompt.retryInstructions.message}
-${structuredPrompt.retryInstructions.requirements
-  .map((req) => `- ${req}`)
+---
+
+## IMPROVEMENT GUIDELINES
+${structuredPrompt.improvementGuidelines
+  .map(
+    (g, i) => `${i + 1}. ${g.guideline} — ${g.description}`
+  )
   .join("\n")}
-`
-    : ""
-}
 
-**OUTPUT FORMAT:**
-${structuredPrompt.outputFormat.requirements.join("\n")}
+---
 
-CRITICAL: ${structuredPrompt.outputFormat.critical}`;
+## OUTPUT RULES
+- Make the smallest possible, **surgical** edits that satisfy the request.
+- **Preserve** all existing logic, structure, and styling.
+- The output must be a **complete, runnable HTML document**.
+- Do **not** include explanations, markdown, or comments.
+- Start with \`<!DOCTYPE html>\` and end with \`</html>\`.
+
+---
+
+Follow the above carefully. Output only the full improved code file (no explanations).
+`;
 
         const contents = [
           {
@@ -1563,39 +854,30 @@ CRITICAL: ${structuredPrompt.outputFormat.critical}`;
         });
 
         let improvedCode = response?.text?.trim() || "";
-
-        // Extract and validate the improved code
         improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
 
-        // Ensure improvements were actually made (code should be different)
         if (improvedCode === existingCode) {
           throw new Error("No improvements were made to the code");
         }
 
-        // Additional validation for improvements
         if (improvedCode.length < existingCode.length * 0.8) {
           throw new Error(
             "Improved code appears to be significantly shorter than original - possible truncation"
           );
         }
 
-        // console.log(`✅ Code improvement successful on attempt ${attempt}`);
         return improvedCode;
       } catch (error) {
         console.error(`❌ Code improvement attempt ${attempt} failed:`, error);
         lastError = error as Error;
 
         if (attempt < maxRetries) {
-          // console.log(
-          //   `🔄 Retrying code improvement (${attempt + 1}/${maxRetries})...`
-          // );
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
       }
     }
 
-    // If all retries failed, throw the last error
     throw new Error(
       `Failed to improve application code after ${maxRetries} attempts: ${
         lastError?.message || "Unknown error"
@@ -1603,7 +885,6 @@ CRITICAL: ${structuredPrompt.outputFormat.critical}`;
     );
   });
 }
-
 function extractJSON(text: string): string {
   // Method 1: Try to extract JSON from markdown code blocks
   const markdownJsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);

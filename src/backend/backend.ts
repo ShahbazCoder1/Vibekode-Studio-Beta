@@ -516,43 +516,6 @@ export async function generateCode(
 
         const model = "gemini-2.5-pro";
 
-        const codeGenerationConfig = {
-          input: { architecture_blueprint: architecture, attempt_number: attempt, is_retry: attempt > 1 },
-          task: {
-            primary_objective: "generate_complete_production_ready_html_file",
-            scope: "single_file_web_application",
-          },
-          technical_requirements: {
-            core_technologies: {
-              markup: "HTML5",
-              styling: "TailwindCSS_via_cdn",
-              scripting: "modern_javascript_es2022_plus",
-              icons: "font_awesome_6_7_2",
-            },
-            architecture_constraints: {
-              file_structure: "single_html_file",
-              css_approach: "embedded_in_style_tags",
-              javascript_approach: "embedded_in_script_tags",
-              external_dependencies: "cdn_only",
-              build_tools: "none_required",
-            },
-          },
-          retry_handling:
-            attempt > 1
-              ? {
-                  attempt_number: attempt,
-                  retry_requirements: [
-                    "generate_complete_html_document",
-                    "implement_all_features",
-                    "ensure_no_truncation",
-                  ],
-                }
-              : null,
-          output_specifications: {
-            format: "raw_html_code_only",
-            structure: { start_with: "<!DOCTYPE html>", end_with: "</html>" },
-          },
-        };
         const promptText = `
 You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
 You maintain perfect memory of the conversation, scraped content, and previously generated code.
@@ -885,42 +848,42 @@ Follow the above carefully. Output only the full improved code file (no explanat
     );
   });
 }
-function extractJSON(text: string): string {
-  // Method 1: Try to extract JSON from markdown code blocks
-  const markdownJsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-  if (markdownJsonMatch) {
-    return markdownJsonMatch[1].trim();
-  }
+// function extractJSON(text: string): string {
+//   // Method 1: Try to extract JSON from markdown code blocks
+//   const markdownJsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+//   if (markdownJsonMatch) {
+//     return markdownJsonMatch[1].trim();
+//   }
 
-  // Method 2: Try to extract JSON from generic code blocks
-  const codeBlockMatch = text.match(/```\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch) {
-    const content = codeBlockMatch[1].trim();
-    // Check if it's valid JSON
-    if (content.startsWith("{") || content.startsWith("[")) {
-      return content;
-    }
-  }
+//   // Method 2: Try to extract JSON from generic code blocks
+//   const codeBlockMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+//   if (codeBlockMatch) {
+//     const content = codeBlockMatch[1].trim();
+//     // Check if it's valid JSON
+//     if (content.startsWith("{") || content.startsWith("[")) {
+//       return content;
+//     }
+//   }
 
-  // Method 3: Find JSON object by looking for the first { and last }
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
+//   // Method 3: Find JSON object by looking for the first { and last }
+//   const firstBrace = text.indexOf("{");
+//   const lastBrace = text.lastIndexOf("}");
 
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    const potentialJson = text.substring(firstBrace, lastBrace + 1);
+//   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+//     const potentialJson = text.substring(firstBrace, lastBrace + 1);
 
-    // Validate it's actual JSON
-    try {
-      JSON.parse(potentialJson);
-      return potentialJson;
-    } catch (e) {
-      console.warn("Extracted text is not valid JSON:", e);
-    }
-  }
+//     // Validate it's actual JSON
+//     try {
+//       JSON.parse(potentialJson);
+//       return potentialJson;
+//     } catch (e) {
+//       console.warn("Extracted text is not valid JSON:", e);
+//     }
+//   }
 
-  // Method 4: Return original text if no JSON found (fallback will handle it)
-  return text;
-}
+//   // Method 4: Return original text if no JSON found (fallback will handle it)
+//   return text;
+// }
 
 // async function fetchPopularUIDesign(appIdea: string): Promise<string> {
 //   const UNSPLASH_ACCESS_KEY = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;

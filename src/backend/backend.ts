@@ -327,53 +327,224 @@ export async function generateAppArchitecture(
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-      const template = `# Single-File Web App Architecture Plan
+      const template = `# Single-File Web App Architecture Plan Template
 
-## Project Name: [Enter project name]
+## Project Name: [Enter your project name]
 
 ## Core User Needs:
-1. [Enter user need]
-2. [Enter user need]
-3. [Enter user need]
+<!-- List the primary user needs the application will address (add as many as needed) -->
+1. [Enter primary user need]
+2. [Enter primary user need]
+3. [Enter primary user need]
+- Add additional user needs as necessary
 
 ## Technical Constraints:
-* Single HTML file (no frameworks)
+<!-- List any technical constraints for this project -->
+* Single HTML file architecture
 * Tailwind CSS for styling
-* Vanilla JS for logic
-* Font Awesome for icons
-* Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
-* The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
-* Prefer free, no-auth APIs
+* Vanilla JavaScript for functionality
+* If any images are absolutely necessary, use the Pixabay API (https://pixabay.com/api/) with the API key: "50370718-98cd42cb1427f3bcfa222a614". Only fetch images for important or visually relevant sections — not for every element or background. Make sure to handle the API response correctly to get the image URL, and always credit Pixabay as required by their terms of service. Avoid unnecessary or random image use.
+* If any API is required, use free APIs that don't require OAuth or API keys as first priority. If no suitable free API is available, use dummy data.
+* [Enter additional technical constraint]
+* [Enter additional technical constraint]
 
-## Structure:
-### HTML
-- Sections and meta setup
-### CSS
-- Tailwind + minimal custom classes
-### JS
-- State handling, DOM updates, API calls
+## File Structure:
 
-## Pages / Views:
-1. [Page name] – [Purpose]
-2. [Page name] – [Purpose]
+### HTML Structure
+<!-- Describe the overall HTML structure of your single-file application -->
+* Document Structure:
+  * [Specify HTML5 document structure]
+  * [List required meta tags]
+  * [Specify SEO requirements]
 
-## Components:
-1. [Component name] – structure, behavior
-2. [Component name] – structure, behavior
+* Component Organization:
+  * [Describe how components will be organized]
+  * [List major HTML sections]
+
+### CSS Structure
+<!-- Describe how CSS will be organized within the single file -->
+* [Specify Tailwind CSS configuration approach]
+* [List custom CSS requirements]
+* [Describe responsive design strategy]
+* [Specify theme variables]
+
+### JavaScript Organization
+<!-- Describe how JavaScript will be structured within the single file -->
+* State Management:
+  * [Describe state management approach]
+  * [List key state objects]
+
+* Routing System:
+  * [Describe routing implementation]
+  * [List main routes]
+
+* Component Functions:
+  * [List main component functions]
+  * [Describe initialization approach]
+
+* Data Services:
+  * [Describe API service approach]
+  * [List data services]
+
+* Local Storage:
+  * [Describe storage strategy]
+  * [List items to be stored]
+
+## Page/View Structure:
+<!-- List all views/pages the application will contain -->
+1. [Enter page/view name]:
+   * Purpose: [Describe purpose]
+   * Components: [List components]
+   * Actions: [List user actions]
+
+2. [Enter page/view name]:
+   * Purpose: [Describe purpose]
+   * Components: [List components]
+   * Actions: [List user actions]
+
+3. [Enter page/view name]:
+   * Purpose: [Describe purpose]
+   * Components: [List components]
+   * Actions: [List user actions]
+
+## Component Architecture:
+<!-- Detail key components for the application -->
+1. [Enter component name]:
+   * Structure:
+     * [Describe HTML structure]
+     * [List sub-components]
+   * Functionality:
+     * [List behaviors]
+     * [Describe state interactions]
+
+2. [Enter component name]:
+   * Structure:
+     * [Describe HTML structure]
+     * [List sub-components]
+   * Functionality:
+     * [List behaviors]
+     * [Describe state interactions]
+
+3. [Enter component name]:
+   * Structure:
+     * [Describe HTML structure]
+     * [List sub-components]
+   * Functionality:
+     * [List behaviors]
+     * [Describe state interactions]
 
 ## Data Models:
-1. [Model name]: [fields and purpose]
+<!-- Define data structures for the application -->
+1. [Enter model name]:
+   * Properties:
+     * [Property name]: [Data type] - [Description]
+     * [Property name]: [Data type] - [Description]
+   * Methods:
+     * [Method name] - [Description]
 
-## Implementation Steps:
-1. Setup base HTML/CSS
-2. Build core JS logic
-3. Add routing (if any)
-4. Integrate APIs
-5. Optimize and test
-6. Use pics which are relatable don't pic random
+2. [Enter model name]:
+   * Properties:
+     * [Property name]: [Data type] - [Description]
+     * [Property name]: [Data type] - [Description]
+   * Methods:
+     * [Method name] - [Description]
 
-## Look & Feel:
-[Describe intended style and UX]`;
+## Implementation Plan:
+
+### Step 1: Setup Base Structure
+<!-- Define tasks for initial setup -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+### Step 2: Core Components
+<!-- Define tasks for building core components -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+### Step 3: Routing & Navigation
+<!-- Define tasks for implementing navigation -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+### Step 4: Data Management
+<!-- Define tasks for data handling -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+### Step 5: UI Refinement
+<!-- Define tasks for UI improvement -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+### Step 6: Testing & Optimization
+<!-- Define testing strategy -->
+* [Enter specific task]
+* [Enter specific task]
+* [Enter specific task]
+
+## Performance Considerations:
+<!-- Describe performance optimization strategies -->
+* [Enter performance consideration]
+* [Enter performance consideration]
+* [Enter performance consideration]
+
+## Browser Compatibility:
+<!-- List target browsers and compatibility strategies -->
+* Target Browsers:
+  * [Enter browser and version]
+  * [Enter browser and version]
+* Compatibility Strategy:
+  * [Enter compatibility approach]
+  * [Enter compatibility approach]
+
+## Security Considerations:
+<!-- List security measures -->
+* [Enter security consideration]
+* [Enter security consideration]
+* [Enter security consideration]
+
+## Additional Notes:
+<!-- Any other important information -->
+* [Enter additional information]
+* [Enter additional information]
+---
+
+## Instructions for Technical Team:
+1. Fill in all sections marked with [brackets]
+2. Remove the comment instructions (lines starting with <!--)
+3. Add additional sections as needed for your specific project
+4. Be specific with implementation details
+5. Include timeline estimates for each step
+
+CRITICAL RULES - YOUR MOST IMPORTANT INSTRUCTIONS:
+1. **DO EXACTLY WHAT IS ASKED - NOTHING MORE, NOTHING LESS**
+   - Don't add features not requested
+   - Don't fix unrelated issues
+   - Don't improve things not mentioned
+2. **USE STANDARD TAILWIND CLASSES ONLY**:
+   - ✅ CORRECT: bg-white, text-black, bg-blue-500, bg-gray-100, text-gray-900
+   - ❌ WRONG: bg-background, text-foreground, bg-primary, bg-muted, text-secondary
+   - Use ONLY classes from the official Tailwind CSS documentation
+3. **DO NOT CREATE SVGs FROM SCRATCH**:
+   - NEVER generate custom SVG code unless explicitly asked
+   - Use existing icon libraries (lucide-react, heroicons, etc.)
+   - Or use placeholder elements/text if icons are not critical
+   - Only create custom SVGs when user specifically requests "create an SVG" or "draw an SVG"
+
+## Look and Feel:
+
+<!-- Provide a brief 3–4 line description of the application's intended aesthetic and user experience. -->  
+
+When describing the **look and feel**, start by selecting one of the following visual styles that best fits your project’s theme:
+**Glassmorphism** (frosted glass effect), **Neumorphism** (soft 3D shadows), **Brutalism** (bold and raw), **Minimalist** (clean and simple), **Dark Mode** (dark theme design), **Gradient Rich** (vibrant gradients), **3D Depth** (dimensional layers), or **Retro Wave** (80s inspired).
+
+Then, explain the intended **user experience** — for example, whether it should feel **intuitive, streamlined, immersive, playful, or professional**. Finally, mention any **specific design principles or UI patterns** to follow, such as consistent spacing, smooth transitions, or accessible color contrasts.
+`;
 
       const model = "gemini-2.5-pro";
       const config = {
@@ -401,6 +572,7 @@ Output must be detailed, structured, and formatted in Markdown, with all placeho
       });
 
       const raw = response?.text?.trim() || "";
+      console.log("\n\nGenerated architecture:", raw);
       return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
     } catch (err) {
       throw new Error(
@@ -518,7 +690,7 @@ export async function generateCode(
 
         const promptText = `
 You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
-You maintain perfect memory of the conversation, scraped content, and previously generated code.
+You maintain context across messages and remember scraped websites, generated components, and applied code.
 
 🎯 PRIMARY OBJECTIVE  
 Generate a **complete, production-ready, single-file HTML web app** that opens directly in any modern browser with zero dependencies.
@@ -538,7 +710,6 @@ ${attempt > 1 ? 'Previous output was truncated or incomplete—emit the **entire
 ⚙️ TECHNICAL REQUIREMENTS  
 - Markup: HTML5  
 - Styling: TailwindCSS (latest CDN)  
-- Icons: Font Awesome 6.7.2 (CDN)  
 - Scripting: Modern vanilla JavaScript (ES2022+)  
 - Build tools: NONE — must be standalone single HTML file  
 
@@ -548,31 +719,6 @@ ${attempt > 1 ? 'Previous output was truncated or incomplete—emit the **entire
 3. All JS inside <script> tags  
 4. Only CDN links allowed — no imports, no bundlers  
 5. Entire app works when double-clicked in the browser  
-
----
-
-🚨 CRITICAL CODING RULES — VIOLATE = FAILURE  
-1. **DO EXACTLY WHAT IS ASKED — NOTHING MORE, NOTHING LESS**  
-   - Do not add features not implied by the architecture  
-   - Do not “improve” unrelated parts  
-2. **TAILWIND CLASSES ONLY**  
-   - ✅ CORRECT: bg-white text-black bg-blue-500  
-   - ❌ WRONG: bg-background text-foreground border-border  
-3. **NO CUSTOM CSS EXCEPT INSIDE <style>**  
-   - Never use inline style="" or style={{}}  
-   - No CSS-in-JS, no <style jsx>, no external .css files  
-4. **NO EMOJIS ANYWHERE** — code or UI text  
-5. **ESCAPE APOSTROPHES & QUOTES**  
-   - Use straight quotes only (' ")  
-   - Apostrophe: "you're" or you\'re — never curly quotes  
-6. **KEEP SEMANTIC HTML & ACCESSIBILITY**  
-   - Proper headings, aria-labels, keyboard-navigable controls  
-7. **RESPONSIVE & MOBILE-FIRST**  
-   - Use sm:, md:, lg:, xl: prefixes  
-   - Never hardcode px widths — use Tailwind spacing scale  
-8. **KEEP JS MODERN BUT BROWSER-SAFE**  
-   - ES2022+ syntax is fine (const, arrow, optional chaining)  
-   - No TypeScript, no JSX, no imports  
 
 ---
 

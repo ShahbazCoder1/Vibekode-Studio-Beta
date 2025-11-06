@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect } from "react";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import Header from "@/components/Header";

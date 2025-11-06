@@ -1,6 +1,36 @@
-import { ai, AIConfig, Content } from "./ai";
+import { getAi, AIConfig, Content } from "./ai";
+import { getApiKey, rotateApiKey } from "./apiKey";
 import { createCacheKey, executeWithDeduplication } from "./cache";
 import { extractAndValidateHTML } from "./utils";
+
+async function withApiKeyRotation<T>(
+  action: (ai: any) => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const apiKey = await getApiKey();
+      const ai = getAi(apiKey);
+      return await action(ai);
+    } catch (error: any) {
+      lastError = error;
+      if (
+        error.message.includes("API key not valid") ||
+        error.message.includes("API key expired")
+      ) {
+        await rotateApiKey();
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error(
+    `Action failed after ${maxRetries} attempts: ${
+      lastError?.message || "Unknown error"
+    }`
+  );
+}
 
 // Enhanced app name generation with better branding
 export async function generateAppName(prompt: string): Promise<string> {
@@ -85,11 +115,13 @@ export async function generateAppName(prompt: string): Promise<string> {
         },
       ];
 
-      const response = await ai.models.generateContent({
-        model,
-        config,
-        contents,
-      });
+      const response = await withApiKeyRotation((ai) =>
+        ai.models.generateContent({
+          model,
+          config,
+          contents,
+        })
+      );
 
       let appName = response?.text?.trim() || "";
       // console.log("\n\nGenerated app name:", appName);
@@ -217,11 +249,13 @@ export async function generateMessage(
         },
       ];
 
-      const response = await ai.models.generateContent({
-        model,
-        config,
-        contents,
-      });
+      const response = await withApiKeyRotation((ai) =>
+        ai.models.generateContent({
+          model,
+          config,
+          contents,
+        })
+      );
 
       let message = response?.text?.trim() || "";
       // console.log("\n\nGenerated message:", message);
@@ -324,11 +358,15 @@ ${additionalRequirements ? `Extra: ${additionalRequirements}` : ""}
 
 Output must be detailed, structured, and formatted in Markdown, with all placeholders replaced.`;
 
-      const response = await ai.models.generateContent({
-        model,
-        config,
-        contents: [{ role: "user", parts: [{ text: `${prompt}\n\n${template}` }] }],
-      });
+      const response = await withApiKeyRotation((ai) =>
+        ai.models.generateContent({
+          model,
+          config,
+          contents: [
+            { role: "user", parts: [{ text: `${prompt}\n\n${template}` }] },
+          ],
+        })
+      );
 
       const raw = response?.text?.trim() || "";
       return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
@@ -463,11 +501,13 @@ CRITICAL: Generate the **entire** file in one response—never truncate or use p
 `;
 
 
-        const response = await ai.models.generateContent({
-          model,
-          config,
-          contents: [{ role: "user", parts: [{ text: promptText }] }],
-        });
+        const response = await withApiKeyRotation((ai) =>
+          ai.models.generateContent({
+            model,
+            config,
+            contents: [{ role: "user", parts: [{ text: promptText }] }],
+          })
+        );
 
         let code = response?.text?.trim() || "";
         code = extractAndValidateHTML(code, appName, attempt);
@@ -669,11 +709,13 @@ Follow the above carefully. Output only the full improved code file (no explanat
           },
         ];
 
-        const response = await ai.models.generateContent({
-          model,
-          config,
-          contents,
-        });
+        const response = await withApiKeyRotation((ai) =>
+          ai.models.generateContent({
+            model,
+            config,
+            contents,
+          })
+        );
 
         let improvedCode = response?.text?.trim() || "";
         improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);

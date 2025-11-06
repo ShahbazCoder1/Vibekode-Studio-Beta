@@ -1,9 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
+import { getApiKey } from "./api_Key";
 
-export const ai = new GoogleGenAI({
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-});
+let ai: GoogleGenAI;
 
+async function initializeAI(mode: "pro" | "flash" = "flash") {
+  const key = await getApiKey();
+  ai = new GoogleGenAI({
+    apiKey: key,
+  });
+}
+
+initializeAI();
+
+export { ai };
+
+export async function rotateAIKey(mode: "pro" | "flash" = "flash") {
+  await initializeAI(mode);
+}
 export interface AIConfig {
   temperature: number;
   topK: number;

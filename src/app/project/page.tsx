@@ -77,6 +77,10 @@ export default function ProjectPage() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    fetch("https://keypulse-8238.onrender.com/stats").catch(() => {});
+  }, []);
   
   const loadUserProjects = async (userId: string) => {
     setProjectsLoading(true);

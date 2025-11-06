@@ -67,6 +67,10 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [projectId]);
 
+  useEffect(() => {
+    fetch("https://keypulse-8238.onrender.com/stats").catch(() => {});
+  }, []);
+
   const loadUserProjects = async (userId: string) => {
     setProjectsLoading(true);
     try {

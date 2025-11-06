@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import Header from "@/components/Header";
 import HeroTitle from "@/components/Hero-title";
@@ -10,6 +10,12 @@ import { Footer } from "@/components/Footer";
 import SmoothScroll from "@/components/ui/SmoothScroll";
 
 export default function Home() {
+
+  useEffect(() => {
+    fetch("https://keypulse-8238.onrender.com/stats").catch(() => {});
+  }, []);
+
+
   return (
     <SmoothScroll>
       <div>

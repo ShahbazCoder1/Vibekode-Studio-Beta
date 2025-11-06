@@ -6,15 +6,16 @@ async function withApiKeyRotation<T>(
   action: () => Promise<T>,
   maxRetries = 3
 ): Promise<T> {
-  let lastError: Error | null = null;
+  let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await action();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
       if (
-        error.message.includes("API key not valid") ||
-        error.message.includes("API key expired")
+        error instanceof Error &&
+        (error.message.includes("API key not valid") ||
+          error.message.includes("API key expired"))
       ) {
         await rotateAIKey();
       } else {
@@ -22,12 +23,14 @@ async function withApiKeyRotation<T>(
       }
     }
   }
-  throw new Error(
-    `Action failed after ${maxRetries} attempts: ${
-      lastError?.message || "Unknown error"
-    }`
-  );
+  const message =
+    lastError instanceof Error
+      ? lastError.message
+      : "Unknown error";
+
+  throw new Error(`Action failed after ${maxRetries} attempts: ${message}`);
 }
+
 
 // Enhanced app name generation with better branding
 export async function generateAppName(prompt: string): Promise<string> {

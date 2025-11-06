@@ -5,6 +5,7 @@ let ai: GoogleGenAI;
 
 async function initializeAI(mode: "pro" | "flash" = "flash") {
   const key = await getApiKey();
+  console.log(`Using API key for mode: ${mode}`);
   ai = new GoogleGenAI({
     apiKey: key,
   });

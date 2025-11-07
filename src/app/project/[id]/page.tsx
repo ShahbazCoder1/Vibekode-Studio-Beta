@@ -68,7 +68,7 @@ export default function ChatPage() {
   }, [projectId]);
 
   useEffect(() => {
-    fetch("https://keypulse-8238.onrender.com/stats").catch(() => {});
+    fetch("https://keypulselive.onrender.com/stats").catch(() => {});
   }, []);
 
   const loadUserProjects = async (userId: string) => {

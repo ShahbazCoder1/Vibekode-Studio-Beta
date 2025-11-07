@@ -10,7 +10,7 @@ export async function getApiKey(): Promise<string> {
 export async function rotateApiKey(): Promise<void> {
   try {
     const response = await fetch(
-      "https://keypulse-8238.onrender.com/next"
+      "https://keypulselive.onrender.com/next"
     );
     if (!response.ok) {
       throw new Error("Failed to fetch API key");

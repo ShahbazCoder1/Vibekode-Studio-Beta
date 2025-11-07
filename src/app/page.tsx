@@ -14,7 +14,7 @@ import SmoothScroll from "@/components/ui/SmoothScroll";
 export default function Home() {
 
   useEffect(() => {
-    fetch("https://keypulse-8238.onrender.com/stats").catch(() => {});
+    fetch("https://keypulselive.onrender.com/stats").catch(() => {});
   }, []);
 
 

@@ -1,4 +1,4 @@
-let apiKey = "";
+let apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 
 export async function getApiKey(): Promise<string> {
   if (!apiKey) {

@@ -23,6 +23,7 @@ async function withApiKeyRotation<T>(
       }
     }
   }
+  
   const message =
     lastError instanceof Error
       ? lastError.message

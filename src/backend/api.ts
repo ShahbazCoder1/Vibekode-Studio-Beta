@@ -340,8 +340,11 @@ export async function generateAppArchitecture(
 ## Look & Feel:
 [Describe intended style and UX]`;
 
-      const model = "gemini-2.5-pro";
+      const model = "gemini-3-pro-preview";
       const config = {
+        thinkingConfig: {
+      thinkingLevel: 'HIGH',
+    },
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
@@ -404,7 +407,7 @@ export async function generateCode(
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const config = {
-          thinkingConfig: { thinkingBudget: -1 },
+          thinkingConfig: { thinkingLevel: 'HIGH', },
           temperature: temperature + (attempt - 2) * 0.1,
           topP: 0.95,
           topK: 40,
@@ -412,7 +415,7 @@ export async function generateCode(
           responseMimeType: "text/plain",
         };
 
-        const model = "gemini-2.5-pro";
+        const model = "gemini-3-pro-preview";
 
         const promptText = `
 You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
@@ -548,7 +551,7 @@ export async function generateImproveCode(
       try {
         const config = {
           thinkingConfig: {
-            thinkingBudget: -1,
+            thinkingLevel: 'HIGH',
           },
           temperature: temperature + (attempt - 1) * 0.1,
           topP: 0.92,
@@ -557,7 +560,7 @@ export async function generateImproveCode(
           responseMimeType: "text/plain",
         };
 
-        const model = "gemini-2.5-pro";
+        const model = "gemini-3-pro-preview";
 
         const structuredPrompt = {
           system: {

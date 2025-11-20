@@ -1,6 +1,7 @@
 import { ai, AIConfig, Content, rotateAIKey } from "./ai";
 import { createCacheKey, executeWithDeduplication } from "./cache";
 import { extractAndValidateHTML } from "./utils";
+import { ThinkingLevel } from "@google/genai";
 
 async function withApiKeyRotation<T>(
   action: () => Promise<T>,
@@ -23,15 +24,12 @@ async function withApiKeyRotation<T>(
       }
     }
   }
-  
+
   const message =
-    lastError instanceof Error
-      ? lastError.message
-      : "Unknown error";
+    lastError instanceof Error ? lastError.message : "Unknown error";
 
   throw new Error(`Action failed after ${maxRetries} attempts: ${message}`);
 }
-
 
 // Enhanced app name generation with better branding
 export async function generateAppName(prompt: string): Promise<string> {
@@ -343,8 +341,8 @@ export async function generateAppArchitecture(
       const model = "gemini-3-pro-preview";
       const config = {
         thinkingConfig: {
-      thinkingLevel: 'HIGH',
-    },
+          thinkingLevel: ThinkingLevel.HIGH,
+        },
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
@@ -373,7 +371,9 @@ Output must be detailed, structured, and formatted in Markdown, with all placeho
       );
 
       const raw = response?.text?.trim() || "";
-      return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
+      return raw.length > 500
+        ? raw
+        : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
     } catch (err) {
       throw new Error(
         `Architecture generation failed: ${
@@ -407,7 +407,7 @@ export async function generateCode(
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const config = {
-          thinkingConfig: { thinkingLevel: 'HIGH', },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
           temperature: temperature + (attempt - 2) * 0.1,
           topP: 0.95,
           topK: 40,
@@ -432,7 +432,11 @@ ${architecture}
 
 🔁 RETRY CONTEXT
 Attempt ${attempt}/${maxRetries}
-${attempt > 1 ? 'Previous output was truncated or incomplete—emit the **entire** HTML file this time.' : ''}
+${
+  attempt > 1
+    ? "Previous output was truncated or incomplete—emit the **entire** HTML file this time."
+    : ""
+}
 
 ---
 
@@ -504,7 +508,6 @@ ${attempt > 1 ? 'Previous output was truncated or incomplete—emit the **entire
 CRITICAL: Generate the **entire** file in one response—never truncate or use placeholders.
 `;
 
-
         const response = await withApiKeyRotation(() =>
           ai.models.generateContent({
             model,
@@ -518,11 +521,16 @@ CRITICAL: Generate the **entire** file in one response—never truncate or use p
         return code;
       } catch (error) {
         lastError = error as Error;
-        if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 1000 * attempt));
+        if (attempt < maxRetries)
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
 
-    throw new Error(`Failed after ${maxRetries} attempts: ${lastError?.message || "Unknown error"}`);
+    throw new Error(
+      `Failed after ${maxRetries} attempts: ${
+        lastError?.message || "Unknown error"
+      }`
+    );
   });
 }
 // Enhanced code improvement with retry logic
@@ -545,121 +553,121 @@ export async function generateImproveCode(
   );
 
   return executeWithDeduplication(cacheKey, async () => {*/
-    let lastError: Error | null = null;
+  let lastError: Error | null = null;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const config = {
-          thinkingConfig: {
-            thinkingLevel: 'HIGH',
-          },
-          temperature: temperature + (attempt - 1) * 0.1,
-          topP: 0.92,
-          topK: 30,
-          maxOutputTokens: 65536,
-          responseMimeType: "text/plain",
-        };
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const config = {
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.HIGH,
+        },
+        temperature: temperature + (attempt - 1) * 0.1,
+        topP: 0.92,
+        topK: 30,
+        maxOutputTokens: 65536,
+        responseMimeType: "text/plain",
+      };
 
-        const model = "gemini-3-pro-preview";
+      const model = "gemini-3-pro-preview";
 
-        const structuredPrompt = {
-          system: {
-            role: "Senior Software Engineer",
-            experience:
-              "60 years of professional software development experience",
+      const structuredPrompt = {
+        system: {
+          role: "Senior Software Engineer",
+          experience:
+            "60 years of professional software development experience",
+        },
+        context: {
+          appName: appName,
+          appType: appIdea,
+          currentStatus: "Existing functional application",
+          improvementAttempt: attempt,
+          maxRetries: maxRetries,
+        },
+        inputs: {
+          existingCode: existingCode,
+          improvementRequest: improvementPrompt,
+        },
+        criticalRequirements: [
+          {
+            requirement: "COMPLETE HTML DOCUMENT",
+            description: "Return the entire HTML document, not just changes",
           },
-          context: {
-            appName: appName,
-            appType: appIdea,
-            currentStatus: "Existing functional application",
-            improvementAttempt: attempt,
-            maxRetries: maxRetries,
+          {
+            requirement: "ADD NEW FEATURES",
+            description: "Implement the requested improvements fully",
           },
-          inputs: {
-            existingCode: existingCode,
-            improvementRequest: improvementPrompt,
+          {
+            requirement: "NO TRUNCATION",
+            description: "Generate the complete improved application",
           },
-          criticalRequirements: [
-            {
-              requirement: "COMPLETE HTML DOCUMENT",
-              description: "Return the entire HTML document, not just changes",
-            },
-            {
-              requirement: "ADD NEW FEATURES",
-              description: "Implement the requested improvements fully",
-            },
-            {
-              requirement: "NO TRUNCATION",
-              description: "Generate the complete improved application",
-            },
-            {
-              requirement: "PROPER STRUCTURE",
-              description:
-                "Maintain the existing HTML structure and organization",
-            },
-          ],
-          improvementGuidelines: [
-            {
-              guideline: "Maintain Context",
-              description: "Keep all existing functionality that works well",
-            },
-            {
-              guideline: "Enhance, Don't Replace",
-              description: "Build upon the existing foundation",
-            },
-            {
-              guideline: "Complete Implementation",
-              description: "Every improvement must be fully functional",
-            },
-            {
-              guideline: "Consistency",
-              description:
-                "Maintain the app's existing design language and patterns",
-            },
-            {
-              guideline: "User Experience",
-              description:
-                "Focus on making the app more intuitive and pleasant to use",
-            },
-            {
-              guideline: "Performance",
-              description: "Optimize any inefficient code",
-            },
-            {
-              guideline: "Modern Standards",
-              description: "Apply current web development best practices",
-            },
-            {
-              guideline: "Error Handling",
-              description: "Add robust error handling for new features",
-            },
-            {
-              guideline: "Accessibility",
-              description: "Ensure all improvements are accessible",
-            },
-            {
-              guideline: "Mobile Responsiveness",
-              description: "Ensure improvements work on all devices",
-            },
-          ],
-          retryInstructions:
-            attempt > 1
-              ? {
-                  message: `This is retry attempt ${attempt}. The previous attempt failed.`,
-                  requirements: [
-                    "Return the COMPLETE improved HTML document",
-                    "All improvements are fully implemented",
-                    "Maintain all existing functionality",
-                  ],
-                }
-              : null,
-          outputFormat: {
-            critical:
-              "The returned code must be 100% complete and functional with all improvements implemented",
+          {
+            requirement: "PROPER STRUCTURE",
+            description:
+              "Maintain the existing HTML structure and organization",
           },
-        };
+        ],
+        improvementGuidelines: [
+          {
+            guideline: "Maintain Context",
+            description: "Keep all existing functionality that works well",
+          },
+          {
+            guideline: "Enhance, Don't Replace",
+            description: "Build upon the existing foundation",
+          },
+          {
+            guideline: "Complete Implementation",
+            description: "Every improvement must be fully functional",
+          },
+          {
+            guideline: "Consistency",
+            description:
+              "Maintain the app's existing design language and patterns",
+          },
+          {
+            guideline: "User Experience",
+            description:
+              "Focus on making the app more intuitive and pleasant to use",
+          },
+          {
+            guideline: "Performance",
+            description: "Optimize any inefficient code",
+          },
+          {
+            guideline: "Modern Standards",
+            description: "Apply current web development best practices",
+          },
+          {
+            guideline: "Error Handling",
+            description: "Add robust error handling for new features",
+          },
+          {
+            guideline: "Accessibility",
+            description: "Ensure all improvements are accessible",
+          },
+          {
+            guideline: "Mobile Responsiveness",
+            description: "Ensure improvements work on all devices",
+          },
+        ],
+        retryInstructions:
+          attempt > 1
+            ? {
+                message: `This is retry attempt ${attempt}. The previous attempt failed.`,
+                requirements: [
+                  "Return the COMPLETE improved HTML document",
+                  "All improvements are fully implemented",
+                  "Maintain all existing functionality",
+                ],
+              }
+            : null,
+        outputFormat: {
+          critical:
+            "The returned code must be 100% complete and functional with all improvements implemented",
+        },
+      };
 
-        const promptText = `
+      const promptText = `
 You are an expert senior software engineer performing a surgical, context-aware code modification. Your primary directive is PRECISION and PRESERVATION.
 
 ---
@@ -678,18 +686,14 @@ ${structuredPrompt.inputs.existingCode}
 
 ## CRITICAL REQUIREMENTS
 ${structuredPrompt.criticalRequirements
-  .map(
-    (r, i) => `${i + 1}. ${r.requirement} — ${r.description}`
-  )
+  .map((r, i) => `${i + 1}. ${r.requirement} — ${r.description}`)
   .join("\n")}
 
 ---
 
 ## IMPROVEMENT GUIDELINES
 ${structuredPrompt.improvementGuidelines
-  .map(
-    (g, i) => `${i + 1}. ${g.guideline} — ${g.description}`
-  )
+  .map((g, i) => `${i + 1}. ${g.guideline} — ${g.description}`)
   .join("\n")}
 
 ---
@@ -706,50 +710,50 @@ ${structuredPrompt.improvementGuidelines
 Follow the above carefully. Output only the full improved code file (no explanations).
 `;
 
-        const contents = [
-          {
-            role: "user",
-            parts: [{ text: promptText }],
-          },
-        ];
+      const contents = [
+        {
+          role: "user",
+          parts: [{ text: promptText }],
+        },
+      ];
 
-        const response = await withApiKeyRotation(() =>
-          ai.models.generateContent({
-            model,
-            config,
-            contents,
-          })
+      const response = await withApiKeyRotation(() =>
+        ai.models.generateContent({
+          model,
+          config,
+          contents,
+        })
+      );
+
+      let improvedCode = response?.text?.trim() || "";
+      improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
+
+      if (improvedCode === existingCode) {
+        throw new Error("No improvements were made to the code");
+      }
+
+      if (improvedCode.length < existingCode.length * 0.8) {
+        throw new Error(
+          "Improved code appears to be significantly shorter than original - possible truncation"
         );
+      }
 
-        let improvedCode = response?.text?.trim() || "";
-        improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
+      return improvedCode;
+    } catch (error) {
+      console.error(`❌ Code improvement attempt ${attempt} failed:`, error);
+      lastError = error as Error;
 
-        if (improvedCode === existingCode) {
-          throw new Error("No improvements were made to the code");
-        }
-
-        if (improvedCode.length < existingCode.length * 0.8) {
-          throw new Error(
-            "Improved code appears to be significantly shorter than original - possible truncation"
-          );
-        }
-
-        return improvedCode;
-      } catch (error) {
-        console.error(`❌ Code improvement attempt ${attempt} failed:`, error);
-        lastError = error as Error;
-
-        if (attempt < maxRetries) {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-          continue;
-        }
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        continue;
       }
     }
+  }
 
-    throw new Error(
-      `Failed to improve application code after ${maxRetries} attempts: ${
-        lastError?.message || "Unknown error"
-      }`
-    );
+  throw new Error(
+    `Failed to improve application code after ${maxRetries} attempts: ${
+      lastError?.message || "Unknown error"
+    }`
+  );
   //});
 }

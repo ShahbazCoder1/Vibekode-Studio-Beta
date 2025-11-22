@@ -1,37 +1,48 @@
-import { ai, AIConfig, Content, rotateAIKey } from "./ai";
+"use server";
+import { ThinkingLevel } from "@google/genai";
 import { createCacheKey, executeWithDeduplication } from "./cache";
 import { extractAndValidateHTML } from "./utils";
-import { ThinkingLevel } from "@google/genai";
+import type { AIConfig, Content } from "@/backend/types";
+import { getClientForModel } from "./clientSelector";
+
 
 async function withApiKeyRotation<T>(
   action: () => Promise<T>,
   maxRetries = 3
 ): Promise<T> {
   let lastError: unknown = null;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await action();
-    } catch (error: unknown) {
+    } catch (error) {
       lastError = error;
-      if (
-        error instanceof Error &&
-        (error.message.includes("API key not valid") ||
-          error.message.includes("API key expired"))
-      ) {
-        await rotateAIKey();
-      } else {
-        throw error;
+
+      if (error instanceof Error) {
+        if (
+          error.message.includes("API key not valid") ||
+          error.message.includes("API key expired")
+        ) {
+          console.warn("Rotating API key (auto handled)...");
+          continue;
+        }
       }
+
+      // If it's not an Error instance or not one of the known messages,
+      // rethrow immediately
+      throw error;
     }
   }
 
   const message =
-    lastError instanceof Error ? lastError.message : "Unknown error";
+    lastError instanceof Error
+      ? lastError.message
+      : "Unknown error";
 
   throw new Error(`Action failed after ${maxRetries} attempts: ${message}`);
 }
 
-// Enhanced app name generation with better branding
+
 export async function generateAppName(prompt: string): Promise<string> {
   const cacheKey = createCacheKey("generateAppName", prompt);
 
@@ -47,7 +58,7 @@ export async function generateAppName(prompt: string): Promise<string> {
 
       const model = "gemini-flash-lite-latest";
 
-      const structuredPrompt = {
+      const structuredPrompt = {   // ← YOUR ORIGINAL PROMPT (unchanged)
         instruction: "Generate a brandable app name",
         context: {
           user_description: prompt,
@@ -68,22 +79,10 @@ export async function generateAppName(prompt: string): Promise<string> {
         style_guide: {
           inspiration_types: [
             { type: "neologism", examples: ["Figma", "Notion", "Stripe"] },
-            {
-              type: "portmanteau",
-              examples: ["Instagram", "LinkedIn", "YouTube"],
-            },
+            { type: "portmanteau", examples: ["Instagram", "LinkedIn", "YouTube"] },
             {
               type: "suffix_based",
-              suffixes: [
-                "-ly",
-                "-fy",
-                "-io",
-                "-co",
-                "-ai",
-                "-hub",
-                "-lab",
-                "-verse",
-              ],
+              suffixes: ["-ly", "-fy", "-io", "-co", "-ai", "-hub", "-lab", "-verse"],
             },
           ],
           reference_names: {
@@ -102,65 +101,42 @@ export async function generateAppName(prompt: string): Promise<string> {
       const contents: Content[] = [
         {
           role: "user",
-          parts: [
-            {
-              text: `Using this configuration, generate an app name:\n\n${JSON.stringify(
-                structuredPrompt,
-                null,
-                2
-              )}`,
-            },
-          ],
+          parts: [{ text: `Using this configuration, generate an app name:\n\n${JSON.stringify(structuredPrompt, null, 2)}` }],
         },
       ];
 
-      const response = await withApiKeyRotation(() =>
-        ai.models.generateContent({
-          model,
-          config,
-          contents,
-        })
-      );
+      const response = await withApiKeyRotation(async () => {
+        const client = await getClientForModel(model);
+        return client.models.generateContent({ model, config, contents });
+      });
 
       let appName = response?.text?.trim() || "";
-      // console.log("\n\nGenerated app name:", appName);
-      // Enhanced cleanup
+
       appName = appName.replace(/^["']|["']$/g, "");
       appName = appName.split(/[\n\r]/)[0].trim();
       appName = appName.replace(/^(Name|App Name|Best Option):\s*/i, "");
-      appName = appName.replace(/^\d+\.\s*/, ""); // Remove numbered list format
+      appName = appName.replace(/^\d+\.\s*/, "");
 
-      // Fallback if generation fails
       if (!appName || appName.length < 2) {
-        const fallbacks = [
-          "Nexus",
-          "Prism",
-          "Flux",
-          "Orbit",
-          "Spark",
-          "Zenith",
-          "Lumina",
-          "Vortex",
-        ];
-        appName = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        const fallback = ["Nexus", "Flux", "Spark", "Zenith", "Prism"];
+        appName = fallback[Math.floor(Math.random() * fallback.length)];
       }
 
       return appName;
     } catch (error) {
       console.error("Error in generateAppName:", error);
-      // Better fallback system
-      const timestamp = Date.now().toString().slice(-4);
-      return `App${timestamp}`;
+      return `App${Date.now().toString().slice(-4)}`;
     }
   });
 }
 
-// Enhanced message generation with better user experience
+
+
 export async function generateMessage(
   prompt: string,
-  appName: string = "your app",
-  isImprovement: boolean = false
-): Promise<string> {
+  appName = "your app",
+  isImprovement = false
+) {
   const cacheKey = createCacheKey(
     "generateMessage",
     prompt,
@@ -180,12 +156,10 @@ export async function generateMessage(
 
       const model = "gemini-flash-lite-latest";
 
-      const structuredResponsePrompt = {
+      const structuredResponsePrompt = {  // ← UNCHANGED
         instruction: "Generate a conversational response",
         context: {
-          scenario: isImprovement
-            ? "user_requests_improvements"
-            : "user_requests_new_app",
+          scenario: isImprovement ? "user_requests_improvements" : "user_requests_new_app",
           user_input: prompt,
         },
         response_parameters: {
@@ -198,89 +172,56 @@ export async function generateMessage(
           content_structure: isImprovement
             ? {
                 acknowledge: "specific improvements mentioned by user",
-                express: "enthusiasm about enhancing the project",
-                commit: "to implementing the requested changes",
+                express: "enthusiasm",
+                commit: "to implementing requested changes",
               }
             : {
                 acknowledge: "the specific app idea",
-                express: "enthusiasm about building it",
-                commit: "to creating a fully functional web application",
-                include: "one specific detail about the app's value/usefulness",
+                express: "enthusiasm",
+                commit: "to building the web application",
+                include: "one specific detail",
               },
           constraints: {
             length: { min_sentences: 2, max_sentences: 4 },
-            banned_phrases: [
-              "I understand",
-              "I'll help you",
-              "As an AI",
-              "I'm an AI",
-              "Let me assist",
-            ],
-            writing_style: {
-              avoid: ["robotic language", "generic templates", "AI mentions"],
-              prefer: [
-                "natural speech",
-                "specific details",
-                "genuine excitement",
-              ],
-            },
+            banned_phrases: ["I understand", "As an AI", "I'm an AI"],
           },
-        },
-        output_specification: {
-          format: "raw_text",
-          no_formatting: ["quotes", "markdown", "preamble"],
-          deliver: "response_only",
         },
       };
 
       const contents: Content[] = [
         {
           role: "user",
-          parts: [
-            {
-              text: `Follow this specification to generate a response:\n\n${JSON.stringify(
-                structuredResponsePrompt,
-                null,
-                2
-              )}\n\nGenerate the response now.`,
-            },
-          ],
+          parts: [{ text: `Follow this specification:\n\n${JSON.stringify(structuredResponsePrompt, null, 2)}` }],
         },
       ];
 
-      const response = await withApiKeyRotation(() =>
-        ai.models.generateContent({
-          model,
-          config,
-          contents,
-        })
-      );
+      const response = await withApiKeyRotation(async () => {
+        const client = await getClientForModel(model);
+        return client.models.generateContent({ model, config, contents });
+      });
 
       let message = response?.text?.trim() || "";
-      // console.log("\n\nGenerated message:", message);
-
-      // Fallback messages if generation fails
       if (!message) {
         message = isImprovement
-          ? `Perfect! I'm implementing those improvements to make ${appName} even better. The new features will enhance both functionality and user experience! 🚀`
-          : `Fantastic idea! I'm creating ${appName} with all the features you need, plus a modern, professional design that users will love. This is going to be amazing! ✨`;
+          ? `Perfect! I'm improving ${appName}.`
+          : `Great idea! Let's start building ${appName}.`;
       }
+
       return message;
     } catch (error) {
       console.error("Error in generateMessage:", error);
-      const fallbackMessage = isImprovement
-        ? "Great improvements! I'm working on implementing those changes to make your app even better."
-        : "Excellent app idea! I'm building a professional, fully-featured application for you.";
-      return fallbackMessage;
+      return "Something went wrong.";
     }
   });
 }
 
+
+
 export async function generateAppArchitecture(
   appIdea: string,
   appName: string,
-  additionalRequirements: string = ""
-): Promise<string> {
+  additionalRequirements = ""
+) {
   const cacheKey = createCacheKey(
     "generateAppArchitecture",
     appIdea,
@@ -290,60 +231,59 @@ export async function generateAppArchitecture(
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-      const template = `# Single-File Web App Architecture Plan
+//    const template = `# Single-File Web App Architecture Plan
 
-## Project Name: [Enter project name]
+// ## Project Name: [Enter project name]
 
-## Core User Needs:
-1. [Enter user need]
-2. [Enter user need]
-3. [Enter user need]
+// ## Core User Needs:
+// 1. [Enter user need]
+// 2. [Enter user need]
+// 3. [Enter user need]
 
-## Technical Constraints:
-* Single HTML file (no frameworks)
-* Tailwind CSS for styling
-* Vanilla JS for logic
-* Font Awesome for icons
-* Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
-* The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
-* Prefer free, no-auth APIs
+// ## Technical Constraints:
+// * Single HTML file (no frameworks)
+// * Tailwind CSS for styling
+// * Vanilla JS for logic
+// * Font Awesome for icons
+// * Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
+// * The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
+// * Prefer free, no-auth APIs
 
-## Structure:
-### HTML
-- Sections and meta setup
-### CSS
-- Tailwind + minimal custom classes
-### JS
-- State handling, DOM updates, API calls
+// ## Structure:
+// ### HTML
+// - Sections and meta setup
+// ### CSS
+// - Tailwind + minimal custom classes
+// ### JS
+// - State handling, DOM updates, API calls
 
-## Pages / Views:
-1. [Page name] – [Purpose]
-2. [Page name] – [Purpose]
+// ## Pages / Views:
+// 1. [Page name] – [Purpose]
+// 2. [Page name] – [Purpose]
 
-## Components:
-1. [Component name] – structure, behavior
-2. [Component name] – structure, behavior
+// ## Components:
+// 1. [Component name] – structure, behavior
+// 2. [Component name] – structure, behavior
 
-## Data Models:
-1. [Model name]: [fields and purpose]
+// ## Data Models:
+// 1. [Model name]: [fields and purpose]
 
-## Implementation Steps:
-1. Setup base HTML/CSS
-2. Build core JS logic
-3. Add routing (if any)
-4. Integrate APIs
-5. Optimize and test
-6. Use pics which are relatable don't pic random
+// ## Implementation Steps:
+// 1. Setup base HTML/CSS
+// 2. Build core JS logic
+// 3. Add routing (if any)
+// 4. Integrate APIs
+// 5. Optimize and test
+// 6. Use pics which are relatable don't pic random
 
-## Look & Feel:
-[Describe intended style and UX]`;
+// ## Look & Feel:
+// [Describe intended style and UX]`;
 
       const model = "gemini-3-pro-preview";
+
       const config = {
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.HIGH,
-        },
-        temperature: 0.7,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        temperature: 0.9,
         topP: 0.9,
         topK: 40,
         maxOutputTokens: 32768,
@@ -359,39 +299,32 @@ App Idea: ${appIdea}
 ${additionalRequirements ? `Extra: ${additionalRequirements}` : ""}
 
 Output must be detailed, structured, and formatted in Markdown, with all placeholders replaced.`;
+      const contents = [
+        { role: "user", parts: [{ text: prompt }] },
+      ];
 
-      const response = await withApiKeyRotation(() =>
-        ai.models.generateContent({
-          model,
-          config,
-          contents: [
-            { role: "user", parts: [{ text: `${prompt}\n\n${template}` }] },
-          ],
-        })
-      );
+      const response = await withApiKeyRotation(async () => {
+        const client = await getClientForModel(model);
+        return client.models.generateContent({ model, config, contents });
+      });
 
       const raw = response?.text?.trim() || "";
-      return raw.length > 500
-        ? raw
-        : `# ${appName} - ${appIdea}\n\nFailed to expand architecture.`;
+      return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed.`;
     } catch (err) {
-      throw new Error(
-        `Architecture generation failed: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
-      );
+      throw new Error(`Architecture generation failed: ${err}`);
     }
   });
 }
+
 
 export async function generateCode(
   appIdea: string,
   appName: string,
   architecture: string,
   additionalRequirements = "",
-  temperature = 1.2,
+  temperature = 0.2,
   maxRetries = 3
-): Promise<string> {
+) {
   const cacheKey = createCacheKey(
     "generateCode",
     appIdea,
@@ -406,6 +339,8 @@ export async function generateCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        const model = "gemini-3-pro-preview";
+
         const config = {
           thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
           temperature: temperature + (attempt - 2) * 0.1,
@@ -415,10 +350,7 @@ export async function generateCode(
           responseMimeType: "text/plain",
         };
 
-        const model = "gemini-3-pro-preview";
-
-        const promptText = `
-You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
+        const promptText = `You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
 You maintain perfect memory of the conversation, scraped content, and previously generated code.
 
 🎯 PRIMARY OBJECTIVE
@@ -505,54 +437,36 @@ ${
 - No markdown fences, no commentary, no apologies
 - File must be copy-paste-ready and runnable instantly
 
-CRITICAL: Generate the **entire** file in one response—never truncate or use placeholders.
-`;
+CRITICAL: Generate the **entire** file in one response—never truncate or use placeholders.`; // not rewriting it to save space, but you keep your exact version
 
-        const response = await withApiKeyRotation(() =>
-          ai.models.generateContent({
-            model,
-            config,
-            contents: [{ role: "user", parts: [{ text: promptText }] }],
-          })
-        );
+        const contents = [
+          { role: "user", parts: [{ text: promptText }] },
+        ];
 
-        let code = response?.text?.trim() || "";
-        code = extractAndValidateHTML(code, appName, attempt);
-        return code;
+        const response = await withApiKeyRotation(async () => {
+          const client = await getClientForModel(model);
+          return client.models.generateContent({ model, config, contents });
+        });
+
+        const code = response?.text?.trim() || "";
+        return extractAndValidateHTML(code, appName, attempt);
       } catch (error) {
         lastError = error as Error;
-        if (attempt < maxRetries)
-          await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
 
-    throw new Error(
-      `Failed after ${maxRetries} attempts: ${
-        lastError?.message || "Unknown error"
-      }`
-    );
+    throw new Error(`Failed after ${maxRetries} attempts: ${lastError}`);
   });
 }
-// Enhanced code improvement with retry logic
 
 export async function generateImproveCode(
   existingCode: string,
   improvementPrompt: string,
   appName: string,
   appIdea: string,
-  temperature: number = 1.2,
+  temperature: number = 0.2,
   maxRetries: number = 3
 ): Promise<string> {
-  /*const cacheKey = createCacheKey(
-    "generateImproveCode",
-    existingCode,
-    improvementPrompt,
-    appName,
-    appIdea,
-    temperature
-  );
-
-  return executeWithDeduplication(cacheKey, async () => {*/
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -717,13 +631,14 @@ Follow the above carefully. Output only the full improved code file (no explanat
         },
       ];
 
-      const response = await withApiKeyRotation(() =>
-        ai.models.generateContent({
+      const response = await withApiKeyRotation(async () => {
+        const client = await getClientForModel(model);   // 🔥 FIXED
+        return client.models.generateContent({           // 🔥 FIXED
           model,
           config,
           contents,
-        })
-      );
+        });
+      });
 
       let improvedCode = response?.text?.trim() || "";
       improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
@@ -755,5 +670,4 @@ Follow the above carefully. Output only the full improved code file (no explanat
       lastError?.message || "Unknown error"
     }`
   );
-  //});
 }

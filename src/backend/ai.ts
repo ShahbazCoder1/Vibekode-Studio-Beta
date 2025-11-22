@@ -1,36 +1,15 @@
+"use server";
+
 import { GoogleGenAI } from "@google/genai";
-import { getApiKey } from "./api_Key";
 
-let ai: GoogleGenAI;
+const apiKeyPaid = process.env.GEMINI_API_KEY_PAID!;
+const apiKeyNormal = process.env.GEMINI_API_KEY_NORMAL!;
 
-async function initializeAI(mode: "pro" | "flash" = "flash") {
-  const key = await getApiKey();
-  console.log(`Using API key for mode: ${mode}`);
-  ai = new GoogleGenAI({
-    apiKey: key,
-  });
+export async function getPaidClient() {
+  return new GoogleGenAI({ apiKey: apiKeyPaid });
 }
 
-initializeAI();
-
-export { ai };
-
-export async function rotateAIKey(mode: "pro" | "flash" = "flash") {
-  await initializeAI(mode);
-}
-export interface AIConfig {
-  temperature: number;
-  topK: number;
-  topP: number;
-  maxOutputTokens: number;
-  responseMimeType: string;
+export async function getNormalClient() {
+  return new GoogleGenAI({ apiKey: apiKeyNormal });
 }
 
-export interface ContentPart {
-  text: string;
-}
-
-export interface Content {
-  role: string;
-  parts: ContentPart[];
-}

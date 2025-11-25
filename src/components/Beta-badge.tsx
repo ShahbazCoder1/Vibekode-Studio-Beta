@@ -116,7 +116,7 @@ const BetaBadge: React.FC<BetaBadgeProps> = ({ className }) => {
 
         // --- STYLING & AESTHETICS ---
         "font-semibold",
-        "bg-gradient-to-r from-[#7b61ff] to-[#00ccb1]",
+        "bg-gradient-to-r from-[#5b21b6] to-[#1e40af]",
         "shadow-[0_0_20px_rgba(0,204,177,0.25)]",
         "border border-white/20",
         className

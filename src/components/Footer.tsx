@@ -97,7 +97,7 @@ export const Footer: FC = () => {
               </p>
               <Link
                 href="/project"
-                className="group inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-[#00ccb1] via-[#7b61ff] to-[#1ca0fb] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 transform active:scale-95 ease-out"
+                className="group inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-[#5b21b6] to-[#1e40af] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 transform active:scale-95 ease-out"
               >
                 Start Building Now
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />

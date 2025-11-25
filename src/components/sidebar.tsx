@@ -133,7 +133,7 @@ const SidebarItem = ({ link, isExpanded }: { link: LinkType; isExpanded: boolean
 };
 
 const Logo = ({ isExpanded }: { isExpanded: boolean }) => (
-  <Link href="/" className="flex items-center gap-2 overflow-hidden text-white">
+  <Link href="/project" className="flex items-center gap-2 overflow-hidden text-white">
     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md">
       <Image src="/logo.png" alt="VibeKode Logo" width="28" height="28" className="rounded-full object-contain" priority />
     </div>

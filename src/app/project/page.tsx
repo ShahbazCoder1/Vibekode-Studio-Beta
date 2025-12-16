@@ -1,10 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Settings, CreditCard, MessageCircle, Menu, X } from "lucide-react";
+import {
+  Users,
+  Settings,
+  CreditCard,
+  MessageCircle,
+  Menu,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils"; // Make sure cn is imported if it wasn't already
+import { useRouter, redirect } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 // Local Component Imports
 import FuturisticSidebar, { SidebarContent } from "@/components/sidebar";
@@ -16,7 +23,6 @@ import ScrollDown from "@/components/Scroll-Down";
 import CommunityProject from "@/components/Community-Project";
 import SettingsModal from "@/components/SettingsModal";
 import CommunityModal from "@/components/CommunityModal";
-import SignInPage from "@/components/SignInPage";
 
 // Firebase Imports
 import {
@@ -29,32 +35,33 @@ import {
 
 // Main Content Component with the CORRECTED responsive margin
 const MainContent = ({ isSidebarExpanded }: { isSidebarExpanded: boolean }) => (
-    <main
-      className={cn(
-        "transition-all duration-300 ease-in-out",
-        // This logic now applies margin ONLY on medium screens (desktop) and larger.
-        // On mobile, the margin will be 0.
-        isSidebarExpanded ? "md:ml-[260px]" : "md:ml-[80px]"
-      )}
-    >
-      <div className="h-full w-full bg-neutral-900">
-        <AuroraBackground>
-          <div className="relative flex min-h-screen flex-col items-center justify-center">
-            <HeroTitle />
-            <PromptBox containerClassName="flex items-center justify-center w-full max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] px-2 sm:px-4" />
-            <ScrollDown text="Scroll to explore more" />
-          </div>
-        </AuroraBackground>
-        <div id="community-showcase" className="bg-[#18181b]"><CommunityProject /></div>
+  <main
+    className={cn(
+      "transition-all duration-300 ease-in-out",
+      // This logic now applies margin ONLY on medium screens (desktop) and larger.
+      // On mobile, the margin will be 0.
+      isSidebarExpanded ? "md:ml-[260px]" : "md:ml-[80px]"
+    )}
+  >
+    <div className="h-full w-full bg-neutral-900">
+      <AuroraBackground>
+        <div className="relative flex min-h-screen flex-col items-center justify-center">
+          <HeroTitle />
+          <PromptBox containerClassName="flex items-center justify-center w-full max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] px-2 sm:px-4" />
+          <ScrollDown text="Scroll to explore more" />
+        </div>
+      </AuroraBackground>
+      <div id="community-showcase" className="bg-[#18181b]">
+        <CommunityProject />
       </div>
-    </main>
+    </div>
+  </main>
 );
-
 
 // Mobile Sidebar specific variants
 const mobileSidebarVariants = {
-  hidden: { x: '-100%', transition: { duration: 0.3, ease: 'easeInOut' } },
-  visible: { x: '0%', transition: { duration: 0.3, ease: 'easeInOut' } },
+  hidden: { x: "-100%", transition: { duration: 0.3, ease: "easeInOut" } },
+  visible: { x: "0%", transition: { duration: 0.3, ease: "easeInOut" } },
 };
 
 // Main Page Component
@@ -81,52 +88,101 @@ export default function ProjectPage() {
   useEffect(() => {
     fetch("https://keypulselive.onrender.com/stats").catch(() => {});
   }, []);
-  
+
   const loadUserProjects = async (userId: string) => {
     setProjectsLoading(true);
-    try { setProjects(await getUserProjects(userId)); }
-    catch (error) { console.error('Error loading user projects:', error); setProjects([]); }
-    finally { setProjectsLoading(false); }
+    try {
+      setProjects(await getUserProjects(userId));
+    } catch (error) {
+      console.error("Error loading user projects:", error);
+      setProjects([]);
+    } finally {
+      setProjectsLoading(false);
+    }
   };
 
   const handleLogout = async () => {
-    try { await logout(); router.push('/'); }
-    catch (error) { console.error('Error logging out:', error); }
+    try {
+      await logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   const links = [
-    { label: 'Community Showcase', href: '#', icon: <Users className="h-5 w-5" />, onClick: () => { setShowCommunityModal(true); setIsMobileOpen(false); } },
-    { label: 'Settings', href: '#', icon: <Settings className="h-5 w-5" />, onClick: () => { setShowSettingsModal(true); setIsMobileOpen(false); } },
-    { label: 'Manage Subscription', href: '/pricing', icon: <CreditCard className="h-5 w-5" /> },
-    { label: 'Contact Us!', href: 'mailto:hello.vibekode@gmail.com', icon: <MessageCircle className="h-5 w-5" /> },
+    {
+      label: "Community Showcase",
+      href: "#",
+      icon: <Users className="h-5 w-5" />,
+      onClick: () => {
+        setShowCommunityModal(true);
+        setIsMobileOpen(false);
+      },
+    },
+    {
+      label: "Settings",
+      href: "#",
+      icon: <Settings className="h-5 w-5" />,
+      onClick: () => {
+        setShowSettingsModal(true);
+        setIsMobileOpen(false);
+      },
+    },
+    {
+      label: "Manage Subscription",
+      href: "/pricing",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      label: "Contact Us!",
+      href: "mailto:hello.vibekode@gmail.com",
+      icon: <MessageCircle className="h-5 w-5" />,
+    },
   ];
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-[#18181b]"><div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div></div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#18181b]">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <SignInPage />;
+    redirect("/login");
   }
 
   return (
     <SmoothScroll>
       <div className="bg-neutral-900">
-        <FuturisticSidebar 
-          user={user} 
-          projects={projects} 
-          projectsLoading={projectsLoading} 
-          links={links} 
+        <FuturisticSidebar
+          user={user}
+          projects={projects}
+          projectsLoading={projectsLoading}
+          links={links}
           onLogout={handleLogout}
           isExpanded={isSidebarExpanded}
           setIsExpanded={setIsSidebarExpanded}
         />
-        
+
         <AnimatePresence>
           {isMobileOpen && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" />
-              <motion.div variants={mobileSidebarVariants} initial="hidden" animate="visible" exit="hidden" className="fixed left-0 top-0 z-50 h-full w-[260px] border-r border-white/10 bg-neutral-900/90 md:hidden">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileOpen(false)}
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              />
+              <motion.div
+                variants={mobileSidebarVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="fixed left-0 top-0 z-50 h-full w-[260px] border-r border-white/10 bg-neutral-900/90 md:hidden"
+              >
                 <SidebarContent
                   user={user}
                   projects={projects}
@@ -142,12 +198,22 @@ export default function ProjectPage() {
 
         <MainContent isSidebarExpanded={isSidebarExpanded} />
 
-        <button onClick={() => setIsMobileOpen(!isMobileOpen)} className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md md:hidden" aria-label="Toggle menu">
+        <button
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md md:hidden"
+          aria-label="Toggle menu"
+        >
           {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <CommunityModal isOpen={showCommunityModal} onClose={() => setShowCommunityModal(false)} />
-        <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
+        <CommunityModal
+          isOpen={showCommunityModal}
+          onClose={() => setShowCommunityModal(false)}
+        />
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />
       </div>
     </SmoothScroll>
   );

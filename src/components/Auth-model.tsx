@@ -9,6 +9,7 @@ import React, {
   useCallback,
 } from "react";
 import { createPortal } from "react-dom";
+import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { signInWithGoogle, auth } from "@/lib/firebase"; // Import auth
@@ -138,7 +139,7 @@ const CustomModalBody = ({ children }: { children: React.ReactNode }) => {
 
 interface AuthModalProps {
   triggerClassName?: string;
-  triggerText?: string;
+  triggerText?: ReactNode;
   mode: "signin" | "signup";
 }
 

@@ -27,7 +27,11 @@ import {
   saveChatMessage,
   getChatHistory,
   chatExists,
+  checkAndUpdateChatLimit,
+  incrementChatCount,
+  auth,
   type ChatMessage,
+  type ChatLimitStatus,
 } from "@/lib/firebase";
 import { Toaster, toast } from "sonner";
 import SpeechRecognition, {
@@ -149,6 +153,8 @@ export default function Chat({
   const [isLoadingProject, setIsLoadingProject] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [chatLimitStatus, setChatLimitStatus] = useState<ChatLimitStatus | null>(null);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
 
   // Refs
   const hasInitialized = useRef(false);
@@ -471,11 +477,71 @@ export default function Chat({
     }
   };
 
+  // Check chat limit on component mount and after each message
+  useEffect(() => {
+    const checkLimit = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      try {
+        const status = await checkAndUpdateChatLimit(user.uid);
+        setChatLimitStatus(status);
+        
+        // Show warning when user has 2 or fewer chats remaining (and not premium)
+        if (!status.isPremium && status.remaining <= 2 && status.remaining > 0) {
+          setShowLimitWarning(true);
+        }
+      } catch (error) {
+        console.error('Error checking chat limit:', error);
+      }
+    };
+    
+    if (!isLoadingProject) {
+      checkLimit();
+    }
+  }, [messages.length, isLoadingProject]);
+
   // Handle follow-up messages
   const handleSendMessage = async () => {
     if (!inputText.trim() || isGeneratingResponse) return;
 
-    // Stop listening if active
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Please sign in to continue");
+      return;
+    }
+
+    // Check chat limit before proceeding
+    try {
+      const limitStatus = await checkAndUpdateChatLimit(user.uid);
+      
+      if (!limitStatus.canSendMessage) {
+        const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: true 
+        });
+        toast.error("Daily chat limit reached", {
+          description: `You've used all ${limitStatus.total} free chats today. Limit resets at midnight (${resetTime}). Upgrade to Premium for unlimited chats!`,
+          duration: 6000,
+          action: {
+            label: "Upgrade",
+            onClick: () => {
+              // TODO: Navigate to pricing/subscription page
+              console.log("Navigate to upgrade page");
+            },
+          },
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking limit:', error);
+      toast.error("Failed to verify chat limit", {
+        description: "Please try again",
+      });
+      return;
+    }
+
     // Stop listening if active
     if (listening) {
       SpeechRecognition.stopListening();
@@ -497,6 +563,13 @@ export default function Chat({
     toast.info("Processing your request...");
 
     try {
+      // Increment chat count for free users
+      await incrementChatCount(user.uid);
+      
+      // Update limit status after increment
+      const newStatus = await checkAndUpdateChatLimit(user.uid);
+      setChatLimitStatus(newStatus);
+
       const lastVersion = messages.reduce(
         (max, msg) => Math.max(max, msg.progressVersion || 0),
         0
@@ -580,10 +653,28 @@ export default function Chat({
       );
 
       handleTrackerCompletion(botMessageId);
-      toast.success("Code updated successfully!", {
-        description: "Changes applied to your app",
-        duration: 3000,
-      });
+      
+      // Show appropriate success message based on remaining chats
+      if (newStatus.isPremium) {
+        toast.success("Code updated successfully!", {
+          description: "Premium: Unlimited chats available",
+          duration: 3000,
+        });
+      } else if (newStatus.remaining > 0) {
+        toast.success("Code updated successfully!", {
+          description: `${newStatus.remaining} chat${newStatus.remaining !== 1 ? 's' : ''} remaining today`,
+          duration: 3000,
+        });
+      } else {
+        toast.success("Code updated successfully!", {
+          description: "This was your last free chat today. Upgrade for unlimited!",
+          duration: 5000,
+          action: {
+            label: "Upgrade",
+            onClick: () => console.log("Navigate to upgrade"),
+          },
+        });
+      }
     } catch (error) {
       console.error("Error generating improvement:", error);
       const errorMessage: Message = {
@@ -641,6 +732,28 @@ export default function Chat({
           <h1 className="text-lg font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             {appName}
           </h1>
+          {chatLimitStatus && !chatLimitStatus.isPremium && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-full border border-zinc-700/50">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                chatLimitStatus.remaining > 2 ? "bg-emerald-500" :
+                chatLimitStatus.remaining > 0 ? "bg-yellow-500" : "bg-red-500"
+              )} />
+              <span className="text-xs font-medium text-gray-300">
+                {chatLimitStatus.remaining}/{chatLimitStatus.total} chats left
+              </span>
+            </div>
+          )}
+          {chatLimitStatus?.isPremium && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full border border-purple-500/30">
+              <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="text-xs font-semibold text-purple-300">
+                Premium
+              </span>
+            </div>
+          )}
         </div>
         <div className="relative">
           <button
@@ -694,6 +807,35 @@ export default function Chat({
           )}
         </div>
       </div>
+
+      {/* Chat Limit Warning Banner */}
+      {showLimitWarning && chatLimitStatus && !chatLimitStatus.isPremium && chatLimitStatus.remaining <= 2 && chatLimitStatus.remaining > 0 && (
+        <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-yellow-400">
+                Only {chatLimitStatus.remaining} chat{chatLimitStatus.remaining !== 1 ? 's' : ''} remaining today
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Resets at midnight • Upgrade to Premium for unlimited chats and exclusive features
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLimitWarning(false)}
+              className="text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div

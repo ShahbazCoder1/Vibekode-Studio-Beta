@@ -41,6 +41,11 @@ export interface UserDocument {
   createdAt: Timestamp;
   lastLogin: Timestamp;
   projects: string[];
+  subscriptionType?: 'free' | 'premium';
+  chatUsage?: {
+    count: number;
+    lastCheckedDate: string; // Format: YYYY-MM-DD
+  };
 }
 
 export interface AppUser {
@@ -82,6 +87,13 @@ export interface DeploymentInfo {
   deployedAt: Timestamp;
 }
 
+export interface ChatLimitStatus {
+  canSendMessage: boolean;
+  remaining: number;
+  total: number;
+  isPremium: boolean;
+  resetsAt: Date;
+}
 
 // --- FIREBASE INITIALIZATION ---
 
@@ -501,6 +513,117 @@ export const getLatestGeneratedCode = async (projectId: string): Promise<string 
   } catch (error) {
     console.error('Error fetching latest generated code:', error);
     return null;
+  }
+};
+
+const FREE_TIER_DAILY_LIMIT = 5;
+
+function getTodayDateString(): string {
+  const now = new Date();
+  return now.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+function getTomorrowMidnight(): Date {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+}
+
+export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimitStatus> => {
+  if (!userId) throw new Error("User ID is required to check chat limit.");
+  
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error("User document not found.");
+    }
+    
+    const userData = userDoc.data() as UserDocument;
+    const today = getTodayDateString();
+    
+    // Initialize defaults for existing users without these fields
+    const subscriptionType = userData.subscriptionType || 'free';
+    let chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
+    
+    // If user doesn't have subscription fields, add them
+    if (!userData.subscriptionType || !userData.chatUsage) {
+      await updateDoc(userDocRef, {
+        subscriptionType: 'free',
+        chatUsage: { count: 0, lastCheckedDate: today }
+      });
+    }
+    
+    // Premium users have unlimited access
+    if (subscriptionType === 'premium') {
+      return {
+        canSendMessage: true,
+        remaining: Infinity,
+        total: Infinity,
+        isPremium: true,
+        resetsAt: getTomorrowMidnight(),
+      };
+    }
+    
+    // Check if it's a new day - auto reset if yes
+    if (chatUsage.lastCheckedDate !== today) {
+      chatUsage = { count: 0, lastCheckedDate: today };
+      await updateDoc(userDocRef, { chatUsage });
+    }
+    
+    // Check free tier limit
+    const canSendMessage = chatUsage.count < FREE_TIER_DAILY_LIMIT;
+    const remaining = Math.max(0, FREE_TIER_DAILY_LIMIT - chatUsage.count);
+    
+    return {
+      canSendMessage,
+      remaining,
+      total: FREE_TIER_DAILY_LIMIT,
+      isPremium: false,
+      resetsAt: getTomorrowMidnight(),
+    };
+  } catch (error) {
+    console.error('Error checking chat limit:', error);
+    throw error;
+  }
+};
+
+export const incrementChatCount = async (userId: string): Promise<void> => {
+  if (!userId) throw new Error("User ID is required to increment chat count.");
+  
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error("User document not found.");
+    }
+    
+    const userData = userDoc.data() as UserDocument;
+    const today = getTodayDateString();
+    
+    // Skip increment for premium users
+    if (userData.subscriptionType === 'premium') {
+      return;
+    }
+    
+    const chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
+    
+    // Ensure we're incrementing for the correct day
+    if (chatUsage.lastCheckedDate !== today) {
+      await updateDoc(userDocRef, {
+        chatUsage: { count: 1, lastCheckedDate: today }
+      });
+    } else {
+      await updateDoc(userDocRef, {
+        chatUsage: { count: chatUsage.count + 1, lastCheckedDate: today }
+      });
+    }
+  } catch (error) {
+    console.error('Error incrementing chat count:', error);
+    throw error;
   }
 };
 

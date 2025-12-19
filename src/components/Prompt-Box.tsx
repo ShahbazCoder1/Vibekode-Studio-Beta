@@ -322,7 +322,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
     setIsMagicLoading(true);
     setError(null);
     try {
-      const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      const GEMINI_API_KEY = process.env.GEMINI_API_KEY_NORMAL;
       if (!GEMINI_API_KEY) throw new Error("Missing Gemini API Key");
 
       const response = await fetch(

@@ -1,64 +1,22 @@
 "use server";
-import { ThinkingLevel } from "@google/genai";
 import { createCacheKey, executeWithDeduplication } from "./cache";
 import { extractAndValidateHTML } from "./utils";
-import type { AIConfig, Content } from "@/backend/types";
-import { getClientForModel } from "./clientSelector";
+import OpenAI from "openai";
 
-
-async function withApiKeyRotation<T>(
-  action: () => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await action();
-    } catch (error) {
-      lastError = error;
-
-      if (error instanceof Error) {
-        if (
-          error.message.includes("API key not valid") ||
-          error.message.includes("API key expired")
-        ) {
-          console.warn("Rotating API key (auto handled)...");
-          continue;
-        }
-      }
-
-      // If it's not an Error instance or not one of the known messages,
-      // rethrow immediately
-      throw error;
-    }
-  }
-
-  const message =
-    lastError instanceof Error
-      ? lastError.message
-      : "Unknown error";
-
-  throw new Error(`Action failed after ${maxRetries} attempts: ${message}`);
-}
-
+const XAI_API_KEY = process.env.NEXT_PUBLIC_XAI_API_KEY;
 
 export async function generateAppName(prompt: string): Promise<string> {
   const cacheKey = createCacheKey("generateAppName", prompt);
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-      const config: AIConfig = {
-        temperature: 1.0,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 50,
-        responseMimeType: "text/plain",
-      };
+      const client = new OpenAI({
+        apiKey: XAI_API_KEY,
+        baseURL: "https://api.x.ai/v1",
+        timeout: 360000,
+      });
 
-      const model = "gemini-flash-lite-latest";
-
-      const structuredPrompt = {   // ← YOUR ORIGINAL PROMPT (unchanged)
+      const structuredPrompt = {
         instruction: "Generate a brandable app name",
         context: {
           user_description: prompt,
@@ -79,10 +37,22 @@ export async function generateAppName(prompt: string): Promise<string> {
         style_guide: {
           inspiration_types: [
             { type: "neologism", examples: ["Figma", "Notion", "Stripe"] },
-            { type: "portmanteau", examples: ["Instagram", "LinkedIn", "YouTube"] },
+            {
+              type: "portmanteau",
+              examples: ["Instagram", "LinkedIn", "YouTube"],
+            },
             {
               type: "suffix_based",
-              suffixes: ["-ly", "-fy", "-io", "-co", "-ai", "-hub", "-lab", "-verse"],
+              suffixes: [
+                "-ly",
+                "-fy",
+                "-io",
+                "-co",
+                "-ai",
+                "-hub",
+                "-lab",
+                "-verse",
+              ],
             },
           ],
           reference_names: {
@@ -98,19 +68,26 @@ export async function generateAppName(prompt: string): Promise<string> {
         },
       };
 
-      const contents: Content[] = [
-        {
-          role: "user",
-          parts: [{ text: `Using this configuration, generate an app name:\n\n${JSON.stringify(structuredPrompt, null, 2)}` }],
-        },
-      ];
-
-      const response = await withApiKeyRotation(async () => {
-        const client = await getClientForModel(model);
-        return client.models.generateContent({ model, config, contents });
+      const completion = await client.chat.completions.create({
+        model: "grok-4-1-fast-non-reasoning",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a creative branding expert specializing in generating unique and memorable app names based on user descriptions and specific constraints.",
+          },
+          {
+            role: "user",
+            content: `Using this configuration, generate an app name:\n\n${JSON.stringify(
+              structuredPrompt,
+              null,
+              2
+            )}`,
+          },
+        ],
       });
 
-      let appName = response?.text?.trim() || "";
+      let appName = completion.choices[0]?.message?.content?.trim() || "";
 
       appName = appName.replace(/^["']|["']$/g, "");
       appName = appName.split(/[\n\r]/)[0].trim();
@@ -130,8 +107,6 @@ export async function generateAppName(prompt: string): Promise<string> {
   });
 }
 
-
-
 export async function generateMessage(
   prompt: string,
   appName = "your app",
@@ -146,20 +121,18 @@ export async function generateMessage(
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-      const config: AIConfig = {
-        temperature: 0.9,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 200,
-        responseMimeType: "text/plain",
-      };
+      const client = new OpenAI({
+        apiKey: XAI_API_KEY,
+        baseURL: "https://api.x.ai/v1",
+        timeout: 360000,
+      });
 
-      const model = "gemini-flash-lite-latest";
-
-      const structuredResponsePrompt = {  // ← UNCHANGED
+      const structuredResponsePrompt = {
         instruction: "Generate a conversational response",
         context: {
-          scenario: isImprovement ? "user_requests_improvements" : "user_requests_new_app",
+          scenario: isImprovement
+            ? "user_requests_improvements"
+            : "user_requests_new_app",
           user_input: prompt,
         },
         response_parameters: {
@@ -188,19 +161,26 @@ export async function generateMessage(
         },
       };
 
-      const contents: Content[] = [
-        {
-          role: "user",
-          parts: [{ text: `Follow this specification:\n\n${JSON.stringify(structuredResponsePrompt, null, 2)}` }],
-        },
-      ];
-
-      const response = await withApiKeyRotation(async () => {
-        const client = await getClientForModel(model);
-        return client.models.generateContent({ model, config, contents });
+      const completion = await client.chat.completions.create({
+        model: "grok-4-1-fast-non-reasoning",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a friendly and enthusiastic AI assistant that crafts engaging and personalized messages based on user requests for new app ideas or improvements to existing apps.",
+          },
+          {
+            role: "user",
+            content: `Using this configuration, generate an app name:\n\n${JSON.stringify(
+              structuredResponsePrompt,
+              null,
+              2
+            )}`,
+          },
+        ],
       });
 
-      let message = response?.text?.trim() || "";
+      let message = completion.choices[0]?.message?.content?.trim() || "";
       if (!message) {
         message = isImprovement
           ? `Perfect! I'm improving ${appName}.`
@@ -214,8 +194,6 @@ export async function generateMessage(
     }
   });
 }
-
-
 
 export async function generateAppArchitecture(
   appIdea: string,
@@ -231,63 +209,59 @@ export async function generateAppArchitecture(
 
   return executeWithDeduplication(cacheKey, async () => {
     try {
-//    const template = `# Single-File Web App Architecture Plan
+      const template = `# Single-File Web App Architecture Plan
 
-// ## Project Name: [Enter project name]
+      ## Project Name: [Enter project name]
 
-// ## Core User Needs:
-// 1. [Enter user need]
-// 2. [Enter user need]
-// 3. [Enter user need]
+      ## Core User Needs:
+      1. [Enter user need]
+      2. [Enter user need]
+      3. [Enter user need]
 
-// ## Technical Constraints:
-// * Single HTML file (no frameworks)
-// * Tailwind CSS for styling
-// * Vanilla JS for logic
-// * Font Awesome for icons
-// * Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
-// * The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
-// * Prefer free, no-auth APIs
+      ## Technical Constraints:
+      * Single HTML file (no frameworks)
+      * Tailwind CSS for styling
+      * Vanilla JS for logic
+      * Font Awesome for icons
+      * Pixabay API (key: 50370718-98cd42cb1427f3bcfa222a614)
+      * The Pixabay API format "https://pixabay.com/api/?key={ KEY }&q=yellow+flowers&image_type=photo"
+      * Prefer free, no-auth APIs
 
-// ## Structure:
-// ### HTML
-// - Sections and meta setup
-// ### CSS
-// - Tailwind + minimal custom classes
-// ### JS
-// - State handling, DOM updates, API calls
+      ## Structure:
+      ### HTML
+      - Sections and meta setup
+      ### CSS
+      - Tailwind + minimal custom classes
+      ### JS
+      - State handling, DOM updates, API calls
 
-// ## Pages / Views:
-// 1. [Page name] – [Purpose]
-// 2. [Page name] – [Purpose]
+      ## Pages / Views:
+      1. [Page name] – [Purpose]
+      2. [Page name] – [Purpose]
 
-// ## Components:
-// 1. [Component name] – structure, behavior
-// 2. [Component name] – structure, behavior
+      ## Components:
+      1. [Component name] – structure, behavior
+      2. [Component name] – structure, behavior
 
-// ## Data Models:
-// 1. [Model name]: [fields and purpose]
+      ## Data Models:
+      1. [Model name]: [fields and purpose]
 
-// ## Implementation Steps:
-// 1. Setup base HTML/CSS
-// 2. Build core JS logic
-// 3. Add routing (if any)
-// 4. Integrate APIs
-// 5. Optimize and test
-// 6. Use pics which are relatable don't pic random
+      ## Implementation Steps:
+      1. Setup base HTML/CSS
+      2. Build core JS logic
+      3. Add routing (if any)
+      4. Integrate APIs
+      5. Optimize and test
+      6. Use pics which are relatable don't pic random
 
-// ## Look & Feel:
-// [Describe intended style and UX]`;
+      ## Look & Feel:
+      [Describe intended style and UX]`;
 
-      const model = "gemini-3-pro-preview";
-
-      const config = {
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-        temperature: 0.9,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 32768,
-      };
+      const client = new OpenAI({
+        apiKey: XAI_API_KEY,
+        baseURL: "https://api.x.ai/v1",
+        timeout: 360000,
+      });
 
       const prompt = `
 You are an expert web architect.
@@ -296,26 +270,33 @@ for the app described below.
 
 App Name: ${appName}
 App Idea: ${appIdea}
-${additionalRequirements ? `Extra: ${additionalRequirements}` : ""}
+${template ? `Extra: ${template}` : ""}
 
 Output must be detailed, structured, and formatted in Markdown, with all placeholders replaced.`;
-      const contents = [
-        { role: "user", parts: [{ text: prompt }] },
-      ];
 
-      const response = await withApiKeyRotation(async () => {
-        const client = await getClientForModel(model);
-        return client.models.generateContent({ model, config, contents });
+      const completion = await client.chat.completions.create({
+        model: "grok-4-1-fast-reasoning",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a world-class software architect specializing in single-file web applications. Provide detailed, structured architecture plans based on user requirements.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
       });
 
-      const raw = response?.text?.trim() || "";
+      const raw = completion.choices[0].message.content || "";
+      console.log("Architecture Raw Output:", raw);
       return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed.`;
     } catch (err) {
       throw new Error(`Architecture generation failed: ${err}`);
     }
   });
 }
-
 
 export async function generateCode(
   appIdea: string,
@@ -339,16 +320,11 @@ export async function generateCode(
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const model = "gemini-3-pro-preview";
-
-        const config = {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-          temperature: temperature + (attempt - 2) * 0.1,
-          topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 65536,
-          responseMimeType: "text/plain",
-        };
+        const client = new OpenAI({
+          apiKey: XAI_API_KEY,
+          baseURL: "https://api.x.ai/v1",
+          timeout: 360000,
+        });
 
         const promptText = `You are a Senior Full-Stack Developer & UI/UX Designer with decades of experience shipping production-ready web apps.
 You maintain perfect memory of the conversation, scraped content, and previously generated code.
@@ -439,16 +415,22 @@ ${
 
 CRITICAL: Generate the **entire** file in one response—never truncate or use placeholders.`; // not rewriting it to save space, but you keep your exact version
 
-        const contents = [
-          { role: "user", parts: [{ text: promptText }] },
-        ];
-
-        const response = await withApiKeyRotation(async () => {
-          const client = await getClientForModel(model);
-          return client.models.generateContent({ model, config, contents });
+        const completion = await client.chat.completions.create({
+          model: "grok-4-1-fast-reasoning",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a world-class senior full-stack developer and UI/UX designer specializing in single-file web applications. Your task is to generate complete, production-ready HTML files based on detailed user requirements, adhering strictly to technical and structural guidelines.",
+            },
+            {
+              role: "user",
+              content: promptText,
+            },
+          ],
         });
 
-        const code = response?.text?.trim() || "";
+        const code = completion.choices[0]?.message?.content?.trim() || "";
         return extractAndValidateHTML(code, appName, attempt);
       } catch (error) {
         lastError = error as Error;
@@ -464,25 +446,17 @@ export async function generateImproveCode(
   improvementPrompt: string,
   appName: string,
   appIdea: string,
-  temperature: number = 0.2,
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const config = {
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.HIGH,
-        },
-        temperature: temperature + (attempt - 1) * 0.1,
-        topP: 0.92,
-        topK: 30,
-        maxOutputTokens: 65536,
-        responseMimeType: "text/plain",
-      };
-
-      const model = "gemini-3-pro-preview";
+      const client = new OpenAI({
+        apiKey: XAI_API_KEY,
+        baseURL: "https://api.x.ai/v1",
+        timeout: 360000,
+      });
 
       const structuredPrompt = {
         system: {
@@ -624,23 +598,17 @@ ${structuredPrompt.improvementGuidelines
 Follow the above carefully. Output only the full improved code file (no explanations).
 `;
 
-      const contents = [
-        {
-          role: "user",
-          parts: [{ text: promptText }],
-        },
-      ];
-
-      const response = await withApiKeyRotation(async () => {
-        const client = await getClientForModel(model);   // 🔥 FIXED
-        return client.models.generateContent({           // 🔥 FIXED
-          model,
-          config,
-          contents,
-        });
+      const completion = await client.chat.completions.create({
+        model: "grok-4-1-fast-reasoning",
+        messages: [
+          {
+            role: "user",
+            content: promptText,
+          },
+        ],
       });
 
-      let improvedCode = response?.text?.trim() || "";
+      let improvedCode = completion.choices[0]?.message?.content?.trim() || "";
       improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
 
       if (improvedCode === existingCode) {

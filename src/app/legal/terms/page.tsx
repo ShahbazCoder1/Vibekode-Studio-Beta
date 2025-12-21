@@ -6,305 +6,187 @@ import { Footer } from "@/components/Footer";
 import PersistentBetaBanner from "@/components/ScrollingBetaBanner";
 import SmoothScroll from "@/components/ui/SmoothScroll";
 import Link from "next/link";
+import { FileText, AlertCircle, Scale, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+
+const GradientText = ({ children }: { children: React.ReactNode }) => (
+  <span className="bg-gradient-to-r from-[#5b21b6] to-[#1e40af] bg-clip-text text-transparent">
+    {children}
+  </span>
+);
 
 export default function TermsAndConditions() {
   return (
     <SmoothScroll>
-    <div className="min-h-screen bg-[#18181b]">
-      <PersistentBetaBanner />
-      
-      {/* Fixed header */}
-      <Header />
-      
-      <main className="max-w-4xl mx-auto px-6 py-16 pt-24">
-        <div className="bg-[#252529]/50 backdrop-blur-sm rounded-2xl p-8 border border-[#333338]/50">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-white mb-4">Terms & Conditions</h1>
-            <p className="text-zinc-300 text-lg">
-              Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+      <div className="min-h-screen bg-[#09090b] text-white selection:bg-[#5b21b6]/30">
+        <PersistentBetaBanner />
+        <Header />
+
+        {/* Background Decorations */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#5b21b6]/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#1e40af]/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+        </div>
+
+        <main className="relative z-10 max-w-4xl mx-auto px-6 py-24 pt-32">
+          
+          {/* Header Section */}
+          <div className="text-center mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-[#5b21b6]/10 border border-[#5b21b6]/20">
+                <FileText className="w-8 h-8 text-[#7c3aed]" />
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Terms & <GradientText>Conditions</GradientText>
+              </h1>
+              <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+                Please read these terms carefully before using VibeKode. By using our service, you agree to be bound by these terms.
+              </p>
+              <div className="mt-6 text-sm font-medium text-zinc-500 uppercase tracking-wider">
+                Last updated: December 21, 2025
+              </div>
+            </motion.div>
           </div>
 
-          <div className="prose prose-invert max-w-none">
-            <div className="text-zinc-300 space-y-8">
+          {/* Main Content Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-[#0f0f12]/60 backdrop-blur-md rounded-2xl p-8 md:p-12 border border-zinc-800 shadow-2xl"
+          >
+            <div className="space-y-12 text-zinc-400 leading-relaxed">
               
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
                 <p className="mb-4">
-                  Welcome to VibeKode! These Terms and Conditions (&quot;Terms&quot;) govern your use of the VibeKode platform, website, and services (collectively, the &quot;Service&quot;) operated by VibeKode (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our Service.
+                  Welcome to VibeKode! These Terms and Conditions (&quot;Terms&quot;) govern your use of the VibeKode platform, website, and services (collectively, the &quot;Service&quot;) operated by VibeKode (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;).
                 </p>
                 <p>
-                  These Terms constitute a legally binding agreement between you and VibeKode. We may modify these Terms at any time, and such modifications will be effective immediately upon posting. Your continued use of the Service after any modifications constitutes acceptance of the updated Terms.
+                  These Terms constitute a legally binding agreement between you and VibeKode. We may modify these Terms at any time, and such modifications will be effective immediately upon posting.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">2. Description of Service</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">2. Description of Service</h2>
                 <p className="mb-4">
-                  VibeKode is an AI-powered application builder platform that allows users to create web applications through natural language prompts. Our Service includes:
+                  VibeKode is an AI-powered application builder platform. During the beta period, the Service is provided free of charge (subject to usage limits). We reserve the right to introduce pricing plans in the future with appropriate notice.
                 </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>AI-powered code generation from text descriptions</li>
-                  <li>Real-time application preview and editing capabilities</li>
-                  <li>Project management and version control features</li>
-                  <li>Community showcase and sharing functionality</li>
-                  <li>Export and download capabilities for generated applications</li>
-                  <li>Customer support and documentation</li>
-                </ul>
-                <p>
-                  During the beta period, the Service is provided free of charge. We reserve the right to introduce pricing plans in the future with appropriate notice to users.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">3. User Accounts and Registration</h2>
-                
-                <h3 className="text-xl font-medium text-white mb-3">3.1 Account Creation</h3>
-                <p className="mb-4">
-                  To use certain features of VibeKode, you must create an account. You may register using your email address or through third-party authentication providers (Google, GitHub, etc.).
-                </p>
-
-                <h3 className="text-xl font-medium text-white mb-3">3.2 Account Security</h3>
-                <p className="mb-4">You are responsible for:</p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Maintaining the confidentiality of your account credentials</li>
-                  <li>All activities that occur under your account</li>
-                  <li>Immediately notifying us of any unauthorized use of your account</li>
-                  <li>Ensuring that your account information is accurate and up-to-date</li>
-                </ul>
-
-                <h3 className="text-xl font-medium text-white mb-3">3.3 Account Termination</h3>
-                <p className="mb-4">
-                  You may delete your account at any time. We may suspend or terminate your account if you violate these Terms or engage in prohibited activities.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">4. Acceptable Use Policy</h2>
-                
-                <h3 className="text-xl font-medium text-white mb-3">4.1 Permitted Uses</h3>
-                <p className="mb-4">You may use VibeKode to:</p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Create legitimate web applications for personal or commercial use</li>
-                  <li>Learn and experiment with AI-powered development tools</li>
-                  <li>Share your creations with the community (subject to content guidelines)</li>
-                  <li>Provide feedback to help improve our Service</li>
-                </ul>
-
-                <h3 className="text-xl font-medium text-white mb-3">4.2 Prohibited Activities</h3>
-                <p className="mb-4">You agree not to:</p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Create applications containing illegal, harmful, or offensive content</li>
-                  <li>Generate content that infringes on intellectual property rights</li>
-                  <li>Use the Service to create malware, phishing sites, or other malicious applications</li>
-                  <li>Attempt to reverse engineer, decompile, or extract our AI models</li>
-                  <li>Overload our systems through automated requests or excessive usage</li>
-                  <li>Share account credentials or allow unauthorized access to your account</li>
-                  <li>Use the Service for any unlawful purpose or in violation of applicable laws</li>
-                  <li>Create fake accounts or impersonate others</li>
-                  <li>Interfere with or disrupt the Service or servers</li>
+                <ul className="list-disc pl-5 space-y-2 mt-4 bg-[#18181b]/30 p-4 rounded-xl border border-zinc-800/50">
+                  <li>AI-powered code generation from text</li>
+                  <li>Real-time application preview and editing</li>
+                  <li>Project management and version control</li>
+                  <li>Community showcase features</li>
                 </ul>
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">5. Intellectual Property Rights</h2>
-                
-                <h3 className="text-xl font-medium text-white mb-3">5.1 Your Content</h3>
-                <p className="mb-4">
-                  You retain ownership of the applications and content you create using VibeKode. However, by using our Service, you grant us a limited, non-exclusive license to:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Store and process your content to provide the Service</li>
-                  <li>Use anonymized data to improve our AI models and platform</li>
-                  <li>Display your shared projects in the community showcase (with your permission)</li>
-                </ul>
-
-                <h3 className="text-xl font-medium text-white mb-3">5.2 VibeKode&apos;s Intellectual Property</h3>
-                <p className="mb-4">
-                  VibeKode and all related technology, including our AI models, algorithms, user interface, and branding, are owned by us and protected by intellectual property laws. You may not copy, modify, or distribute our technology without express written permission.
-                </p>
-
-                <h3 className="text-xl font-medium text-white mb-3">5.3 Third-Party Content</h3>
-                <p className="mb-4">
-                  Our Service may incorporate third-party libraries, frameworks, or APIs. Such content is subject to their respective licenses and terms of use.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">6. Privacy and Data Protection</h2>
-                <p className="mb-4">
-                  Your privacy is important to us. Our collection, use, and protection of your personal information is governed by our <Link href="/legal/privacy" className="text-[#1ca0fb] hover:text-[#00ccb1]">Privacy Policy</Link>, which is incorporated into these Terms by reference. By using our Service, you consent to the practices described in our Privacy Policy.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">7. Beta Service Disclaimer</h2>
-                <p className="mb-4">
-                  VibeKode is currently in beta testing. This means:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>The Service may contain bugs, errors, or incomplete features</li>
-                  <li>Service availability and performance may vary</li>
-                  <li>Features and functionality may change without notice</li>
-                  <li>Data loss or corruption may occur (though we implement safeguards to prevent this)</li>
-                  <li>The Service is provided &quot;as-is&quot; during the beta period</li>
-                </ul>
-                <p>
-                  We appreciate your participation in our beta program and encourage you to report any issues or provide feedback.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">8. Service Availability and Maintenance</h2>
-                <p className="mb-4">
-                  We strive to maintain high service availability but do not guarantee uninterrupted access. We may:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Perform scheduled maintenance with advance notice when possible</li>
-                  <li>Implement emergency maintenance or security updates as needed</li>
-                  <li>Experience temporary outages due to technical issues or third-party dependencies</li>
-                  <li>Modify or discontinue features with reasonable notice</li>
-                </ul>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">9. Limitation of Liability</h2>
-                <p className="mb-4">
-                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, VIBEKODE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Loss of profits, data, or business opportunities</li>
-                  <li>Service interruptions or security breaches</li>
-                  <li>Errors in AI-generated content or code</li>
-                  <li>Third-party actions or content</li>
-                  <li>Any damages arising from use of the Service</li>
-                </ul>
-                <p>
-                  Our total liability for any claims related to the Service shall not exceed the amount you paid us in the twelve months preceding the claim (currently $0 during beta).
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">10. Disclaimer of Warranties</h2>
-                <p className="mb-4">
-                  THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Merchantability, fitness for a particular purpose, or non-infringement</li>
-                  <li>Accuracy, reliability, or completeness of AI-generated content</li>
-                  <li>Uninterrupted or error-free operation</li>
-                  <li>Security or freedom from harmful components</li>
-                </ul>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">11. Indemnification</h2>
-                <p className="mb-4">
-                  You agree to defend, indemnify, and hold harmless VibeKode and its officers, directors, employees, and agents from any claims, damages, or expenses (including reasonable attorneys&apos; fees) arising from:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Your use of the Service</li>
-                  <li>Your violation of these Terms</li>
-                  <li>Your infringement of any third-party rights</li>
-                  <li>Content you create or share through the Service</li>
-                </ul>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">12. Governing Law and Dispute Resolution</h2>
-                <p className="mb-4">
-                  These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction], without regard to conflict of law principles. Any disputes arising from these Terms or your use of the Service shall be resolved through:
-                </p>
-                <ol className="list-decimal pl-6 mb-4 space-y-2">
-                  <li>Good faith negotiation between the parties</li>
-                  <li>Binding arbitration if negotiation fails (where legally permissible)</li>
-                  <li>Courts of competent jurisdiction in [Your Jurisdiction] as a last resort</li>
-                </ol>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">13. International Users</h2>
-                <p className="mb-4">
-                  VibeKode is operated from [Your Country]. If you access the Service from outside [Your Country], you are responsible for compliance with local laws and regulations. The Service may not be available in all jurisdictions.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">14. Termination</h2>
-                <p className="mb-4">
-                  These Terms remain in effect until terminated by either party. We may terminate or suspend your access immediately, without prior notice, for any breach of these Terms. Upon termination:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Your right to use the Service ceases immediately</li>
-                  <li>You may download your projects and data (subject to technical feasibility)</li>
-                  <li>We may delete your account and associated data after a reasonable period</li>
-                  <li>Provisions regarding intellectual property, liability, and disputes shall survive</li>
-                </ul>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">15. Changes to Terms</h2>
-                <p className="mb-4">
-                  We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting on our website. We will provide notice of material changes through:
-                </p>
-                <ul className="list-disc pl-6 mb-4 space-y-2">
-                  <li>Email notification to registered users</li>
-                  <li>Prominent notices on our website</li>
-                  <li>In-app notifications when appropriate</li>
-                </ul>
-                <p>
-                  Your continued use of the Service after changes constitutes acceptance of the updated Terms.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">16. Severability</h2>
-                <p className="mb-4">
-                  If any provision of these Terms is found to be unenforceable or invalid, that provision will be limited or eliminated to the minimum extent necessary so that the remaining Terms will remain in full force and effect.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">17. Contact Information</h2>
-                <p className="mb-4">
-                  If you have any questions about these Terms, please contact us:
-                </p>
-                <div className="bg-[#333338]/50 p-4 rounded-lg">
-                  <p><strong>Email:</strong> <a href="mailto:legal@vibekode.studio" className="text-[#1ca0fb] hover:text-[#00ccb1]">legal@vibekode.studio</a></p>
-                  <p><strong>General Contact:</strong> <a href="mailto:hello.vibekode@gmail.com" className="text-[#1ca0fb] hover:text-[#00ccb1]">hello.vibekode@gmail.com</a></p>
-                  <p><strong>Website:</strong> <a href="https://vibekode.studio" className="text-[#1ca0fb] hover:text-[#00ccb1]">https://vibekode.studio</a></p>
+                <h2 className="text-2xl font-bold text-white mb-4">3. User Accounts</h2>
+                <div className="grid gap-4 sm:grid-cols-2 mt-6">
+                    <div className="bg-[#18181b]/50 p-5 rounded-lg border border-zinc-800/50">
+                        <h3 className="text-white font-medium mb-2">Registration</h3>
+                        <p className="text-sm">You must register using a valid email or third-party provider (Google/GitHub) to access features.</p>
+                    </div>
+                    <div className="bg-[#18181b]/50 p-5 rounded-lg border border-zinc-800/50">
+                        <h3 className="text-white font-medium mb-2">Security</h3>
+                        <p className="text-sm">You are responsible for maintaining the confidentiality of your credentials and all account activity.</p>
+                    </div>
                 </div>
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-4">18. Entire Agreement</h2>
-                <p>
-                  These Terms, together with our Privacy Policy and any other policies referenced herein, constitute the entire agreement between you and VibeKode regarding the use of our Service and supersede all prior agreements and understandings.
+                <h2 className="text-2xl font-bold text-white mb-4">4. Acceptable Use Policy</h2>
+                <p className="mb-4">You agree NOT to use VibeKode to:</p>
+                <ul className="space-y-3">
+                   {[
+                       "Create illegal, harmful, or offensive content",
+                       "Generate malicious code or phishing sites",
+                       "Reverse engineer our AI models",
+                       "Overload our systems via automation"
+                   ].map((item, i) => (
+                       <li key={i} className="flex items-start gap-3 text-sm">
+                           <AlertCircle className="w-5 h-5 text-red-500/80 flex-shrink-0" />
+                           <span>{item}</span>
+                       </li>
+                   ))}
+                </ul>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-4">5. Intellectual Property</h2>
+                <div className="p-4 rounded-xl bg-gradient-to-r from-[#5b21b6]/10 to-[#1e40af]/10 border border-[#5b21b6]/20">
+                    <h3 className="text-white font-semibold mb-2">Your Content</h3>
+                    <p className="text-zinc-300 text-sm">
+                        You retain ownership of the applications and content you create using VibeKode. You grant us a license to store and process this content to provide the Service.
+                    </p>
+                </div>
+                <p className="mt-4 text-sm">
+                    VibeKode technology, branding, and UI are owned by us and protected by IP laws.
                 </p>
               </section>
 
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-4">6. Beta Disclaimer</h2>
+                <p className="mb-4">
+                  VibeKode is in <strong>Beta</strong>. The Service may contain bugs, and features may change without notice. The service is provided &quot;as-is&quot; without warranties of any kind regarding reliability or availability.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-4">7. Limitation of Liability</h2>
+                <p className="mb-4">
+                  To the maximum extent permitted by law, VibeKode shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-4">8. Termination</h2>
+                <p className="mb-4">
+                  We may suspend or terminate your access immediately, without prior notice, for any breach of these Terms. Upon termination, your right to use the Service ceases immediately.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-4">9. Contact Us</h2>
+                <div className="bg-[#18181b] p-6 rounded-xl border border-zinc-800 flex flex-col md:flex-row gap-6 items-start md:items-center">
+                  <div className="p-3 bg-[#5b21b6]/10 rounded-full">
+                      <Scale className="w-6 h-6 text-[#7c3aed]" />
+                  </div>
+                  <div>
+                      <p className="text-white font-medium mb-1">Legal Inquiries</p>
+                      <p className="text-sm text-zinc-500 mb-2">For questions regarding these Terms:</p>
+                      <a href="mailto:legal@vibekode.studio" className="text-[#1e40af] hover:text-[#7c3aed] font-medium transition-colors">hello.vibekode@gmail.com</a>
+                  </div>
+                </div>
+              </section>
+
             </div>
-          </div>
 
-          <div className="mt-12 pt-8 border-t border-[#333338] text-center">
-            <Link 
-              href="/legal/privacy" 
-              className="text-[#1ca0fb] hover:text-[#00ccb1] mr-6"
-            >
-              View Privacy Policy
-            </Link>
-            <Link 
-              href="/" 
-              className="text-zinc-400 hover:text-zinc-300"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </main>
+            <div className="mt-12 pt-8 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <Link 
+                href="/" 
+                className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                Back to Home
+              </Link>
+              <Link 
+                href="/legal/privacy" 
+                className="px-6 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium transition-colors"
+              >
+                View Privacy Policy
+              </Link>
+            </div>
+          </motion.div>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
     </SmoothScroll>
   );
 }

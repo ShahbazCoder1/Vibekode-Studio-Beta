@@ -1,298 +1,774 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, CreditCard, Info, Zap, AlertCircle, Mail, Book, Users, Star } from "lucide-react";
+import React, { useState, useEffect, ComponentType } from "react";
+import {
+  X,
+  User,
+  BarChart3,
+  Info,
+  LogOut,
+  Sparkles,
+  Lock,
+  Linkedin,
+  MessageSquare,
+  ExternalLink,
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  Check,
+  Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import { auth, db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 
-// --- TYPES & CONSTANTS ---
+// --- TYPES ---
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type Tab = "credits" | "info" | "features";
+interface UserData {
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  chatUsage: {
+    count: number;
+    lastCheckedDate: string;
+  };
+  subscriptionType: "free" | "premium";
+}
 
-const tabs = [
-  { id: "credits" as Tab, label: "Credits", icon: CreditCard },
-  { id: "info" as Tab, label: "Info", icon: Info },
-  { id: "features" as Tab, label: "Early Access", icon: Zap },
-];
+type Tab = "profile" | "usage" | "about";
 
-// --- HELPER & REUSABLE COMPONENTS ---
-const TooltipProvider = ({ children, content }: { children: React.ReactNode; content: string }) => (
-  <Tooltip.Provider delayDuration={100}>
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          side="bottom"
-          sideOffset={5}
-          className="bg-zinc-800 text-white text-xs px-2 py-1 rounded-md shadow-lg z-[99999]"
-        >
-          {content}
-          <Tooltip.Arrow className="fill-zinc-800" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  </Tooltip.Provider>
+// --- CONSTANTS ---
+const FREE_DAILY_LIMIT = 5;
+
+// --- REUSABLE COMPONENTS ---
+
+const TabButton = ({
+  active,
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  active: boolean;
+  id: Tab;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group",
+      active
+        ? "bg-zinc-800/80 text-white shadow-sm ring-1 ring-zinc-700"
+        : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+    )}
+  >
+    <Icon
+      className={cn(
+        "w-4 h-4 transition-colors",
+        active ? "text-[#5b21b6]" : "text-zinc-500 group-hover:text-zinc-400"
+      )}
+    />
+    {label}
+  </button>
 );
 
-const SettingsCard = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("bg-zinc-800/50 border border-zinc-700/60 rounded-lg p-5 sm:p-6", className)}>
+const SectionCard = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={cn(
+      "bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-5 hover:border-zinc-700/50 transition-colors",
+      className
+    )}
+  >
     {children}
   </div>
 );
 
-// --- MAIN MODAL COMPONENT ---
+// Custom Reddit Icon
+const RedditIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+    <path d="M17 13c.5-1 .5-2.5-1-3" />
+    <path d="M7 13c-.5-1-.5-2.5 1-3" />
+    <path d="M15 16.5c-1 1-5 1-6 0" />
+    <circle cx="9.5" cy="9.5" r="1.5" fill="currentColor" />
+    <circle cx="14.5" cy="9.5" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+// Logout Confirmation Dialog
+const LogoutConfirmDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+        <Dialog.Portal forceMount>
+          <Dialog.Overlay asChild>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1001] bg-black/60 backdrop-blur-sm"
+            />
+          </Dialog.Overlay>
+          <Dialog.Content asChild>
+            <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-[#09090b] border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl"
+              >
+                {/* Accessibility Title for Logout */}
+                <Dialog.Title className="text-lg font-semibold text-white mb-2">
+                  Sign Out?
+                </Dialog.Title>
+
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-red-500/10 rounded-lg shrink-0">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-zinc-400 mb-4">
+                      Are you sure you want to sign out? You will need to log in
+                      again to access your account.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={onConfirm}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    )}
+  </AnimatePresence>
+);
+
+// --- MAIN COMPONENT ---
+
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("credits");
+  const [activeTab, setActiveTab] = useState<Tab>("usage");
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch User Data Real-time
+  useEffect(() => {
+    if (!auth.currentUser) {
+      setError("No authenticated user found");
+      setLoading(false);
+      return;
+    }
+
+    const userRef = doc(db, "users", auth.currentUser.uid);
+
+    const unsubscribe = onSnapshot(
+      userRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserData({
+            displayName: auth.currentUser?.displayName || "Creator",
+            email: auth.currentUser?.email || "",
+            photoURL: auth.currentUser?.photoURL || null,
+            chatUsage: data.chatUsage || {
+              count: 0,
+              lastCheckedDate: new Date().toISOString().split("T")[0],
+            },
+            subscriptionType: data.subscriptionType || "free",
+          });
+          setError(null);
+        } else {
+          setError("User data not found");
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data");
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [isOpen]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (e.key === "Escape" && !showLogoutConfirm) {
+        onClose();
+      } else if (e.key === "1" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setActiveTab("profile");
+      } else if (e.key === "2" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setActiveTab("usage");
+      } else if (e.key === "3" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setActiveTab("about");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isOpen, onClose, showLogoutConfirm]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setShowLogoutConfirm(false);
+      onClose();
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error signing out", error);
+      setError("Failed to sign out. Please try again.");
+      setShowLogoutConfirm(false);
+    }
+  };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <AnimatePresence>
-        {isOpen && (
-          <Dialog.Portal forceMount>
-            {/* Backdrop */}
-            <Dialog.Overlay asChild>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm"
-              />
-            </Dialog.Overlay>
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-              <Dialog.Content asChild>
+    <>
+      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+        <AnimatePresence>
+          {isOpen && (
+            <Dialog.Portal forceMount>
+              {/* Backdrop */}
+              <Dialog.Overlay asChild>
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.5 }}
-                  className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl max-h-[90vh] flex flex-col"
-                >
-                  {/* Header */}
-                  <header className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-zinc-800">
-                    <Dialog.Title className="text-xl font-bold text-white">Settings</Dialog.Title>
-                    <TooltipProvider content="Close (Esc)">
-                      <Dialog.Close asChild>
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm"
+                />
+              </Dialog.Overlay>
+
+              {/* Modal Container */}
+              <Dialog.Content asChild>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+                    className="w-full max-w-4xl h-[650px] bg-[#09090b] border border-zinc-800 rounded-2xl shadow-2xl flex overflow-hidden relative"
+                  >
+                    {/* 
+                        ACCESSIBILITY FIX: 
+                        Dialog.Title must be a child of Dialog.Content. 
+                        We use sr-only (screen reader only) to hide it visually but keep it accessible.
+                     */}
+                    <Dialog.Title className="sr-only">
+                      Settings Menu
+                    </Dialog.Title>
+
+                    {/* LEFT SIDEBAR */}
+                    <aside className="w-64 bg-zinc-900/20 border-r border-zinc-800 flex flex-col p-6">
+                      <div className="mb-8 pl-2">
+                        <div className="flex items-center gap-2 text-white font-bold text-lg">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5b21b6] to-[#1e40af]">
+                            <Settings className="w-4 h-4 text-white" />
+                          </div>
+                          Settings
+                        </div>
+                        {/* <p className="text-xs text-zinc-500 mt-2 pl-1">
+                          Manage your account preferences
+                        </p> */}
+                      </div>
+
+                      <nav className="space-y-1 flex-1">
+                        <TabButton
+                          active={activeTab === "usage"}
+                          id="usage"
+                          label="Usage & Limits"
+                          icon={BarChart3}
+                          onClick={() => setActiveTab("usage")}
+                        />
+                        <TabButton
+                          active={activeTab === "profile"}
+                          id="profile"
+                          label="Profile"
+                          icon={User}
+                          onClick={() => setActiveTab("profile")}
+                        />
+                        <TabButton
+                          active={activeTab === "about"}
+                          id="about"
+                          label="About"
+                          icon={Info}
+                          onClick={() => setActiveTab("about")}
+                        />
+                      </nav>
+
+                      {/* Keyboard Shortcuts Hint */}
+                      <div className="mt-4 px-3 py-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                          Shortcuts
+                        </p>
+                        <div className="space-y-1.5 text-xs text-zinc-500">
+                          <div className="flex justify-between items-center">
+                            <span>Usage</span>
+                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
+                              ⌘2
+                            </kbd>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Profile</span>
+                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
+                              ⌘1
+                            </kbd>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>About</span>
+                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
+                              ⌘3
+                            </kbd>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-zinc-800">
                         <button
-                          className="p-2 text-zinc-400 rounded-lg transition-colors hover:text-white hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-[#7b61ff]"
-                          aria-label="Close settings"
+                          onClick={() => setShowLogoutConfirm(true)}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors group"
                         >
-                          <X className="w-5 h-5" />
+                          <LogOut className="w-4 h-4 group-hover:text-red-400" />
+                          Sign Out
                         </button>
-                      </Dialog.Close>
-                    </TooltipProvider>
-                  </header>
+                      </div>
+                    </aside>
 
-                  {/* Tabs */}
-                  <nav className="flex-shrink-0 flex border-b border-zinc-800 bg-zinc-900/50">
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={cn(
-                          "flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative focus:outline-none",
-                          activeTab === tab.id
-                            ? "text-white"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                        )}
-                      >
-                        <tab.icon className="w-4 h-4" />
-                        {tab.label}
-                        {activeTab === tab.id && (
+                    {/* RIGHT CONTENT AREA */}
+                    <main
+                      data-lenis-prevent="true"
+                      className="flex-1 overflow-y-auto bg-[#09090b] relative custom-scrollbar"
+                    >
+                      {/* Top Header inside scroll area */}
+                      <div className="sticky top-0 z-20 bg-[#09090b]/95 backdrop-blur-md px-8 py-6 border-b border-zinc-800 flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-white">
+                          {activeTab === "profile" && "My Profile"}
+                          {activeTab === "usage" && "Usage & Plan"}
+                          {activeTab === "about" && "About VibeKode"}
+                        </h1>
+
+                        <Dialog.Close asChild>
+                          <button
+                            onClick={onClose}
+                            className="group p-2 rounded-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95"
+                            aria-label="Close settings"
+                          >
+                            <X className="w-5 h-5 text-zinc-400 group-hover:text-white" />
+                          </button>
+                        </Dialog.Close>
+                      </div>
+
+                      <div className="p-8 max-w-2xl mx-auto">
+                        {/* Error State */}
+                        {error && (
                           <motion.div
-                            layoutId="activeSettingsTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb]"
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          />
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3"
+                          >
+                            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-red-400">
+                                Error
+                              </p>
+                              <p className="text-xs text-red-300/80 mt-1">
+                                {error}
+                              </p>
+                            </div>
+                          </motion.div>
                         )}
-                      </button>
-                    ))}
-                  </nav>
 
-                  {/* Content */}
-                  <div className="flex-grow p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {activeTab === "credits" && <CreditsTab />}
-                        {activeTab === "info" && <InfoTab />}
-                        {activeTab === "features" && <FeaturesTab />}
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
+                        {loading ? (
+                          <div className="flex flex-col items-center justify-center h-40">
+                            <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-[#5b21b6] animate-spin" />
+                            <p className="text-sm text-zinc-500 mt-4">
+                              Loading your data...
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6 pb-8">
+                            <AnimatePresence mode="wait">
+                              <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                {activeTab === "profile" && (
+                                  <ProfileView userData={userData} />
+                                )}
+                                {activeTab === "usage" && (
+                                  <UsageView userData={userData} />
+                                )}
+                                {activeTab === "about" && <AboutView />}
+                              </motion.div>
+                            </AnimatePresence>
+                          </div>
+                        )}
+                      </div>
+                    </main>
+                  </motion.div>
+                </div>
               </Dialog.Content>
-            </div>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+            </Dialog.Portal>
+          )}
+        </AnimatePresence>
+      </Dialog.Root>
+
+      {/* Logout Confirmation */}
+      <LogoutConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+      />
+    </>
   );
 }
 
+// --- SUB-VIEWS ---
 
-// --- TAB CONTENT COMPONENTS ---
+const ProfileView = ({ userData }: { userData: UserData | null }) => {
+  const [copied, setCopied] = useState(false);
 
-const CreditsTab = () => (
-  <div className="space-y-6">
-    <div className="bg-gradient-to-r from-[#00ccb1]/10 to-[#1ca0fb]/10 border border-[#00ccb1]/20 rounded-lg p-4 flex items-start gap-3">
-      <AlertCircle className="w-5 h-5 text-[#00ccb1] flex-shrink-0 mt-0.5" />
-      <div>
-        <h3 className="text-[#00ccb1] font-semibold text-sm mb-1">Beta Notice</h3>
-        <p className="text-zinc-300 text-sm">
-          During beta, you have unlimited credits. This may change at any time without prior notification.
-        </p>
-      </div>
-    </div>
+  if (!userData) return null;
 
-    <SettingsCard>
-      <h3 className="text-white font-semibold mb-5">Current Usage</h3>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-400">Current Plan</span>
-          <span className="text-[#00ccb1] font-medium bg-[#00ccb1]/20 px-2 py-0.5 rounded-full">Beta</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-400">Credits Remaining</span>
-          <span className="text-white font-medium text-lg">∞</span>
-        </div>
-      </div>
-      <div className="mt-5 pt-5 border-t border-zinc-700/60">
-        <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
-          <span>Usage this month</span>
-          <span>Unlimited</span>
-        </div>
-        <div className="w-full bg-zinc-700/50 rounded-full h-2 overflow-hidden">
-          <div className="bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] h-2 rounded-full w-full opacity-75"></div>
-        </div>
-      </div>
-    </SettingsCard>
+  const handleCopyEmail = () => {
+    if (userData.email) {
+      navigator.clipboard.writeText(userData.email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
-    <div className="bg-gradient-to-r from-[#7b61ff]/10 to-[#00ccb1]/10 border border-[#7b61ff]/20 rounded-lg p-6 text-center">
-      <h3 className="text-white font-semibold mb-2">Future Plans</h3>
-      <p className="text-zinc-300 text-sm mb-4 max-w-sm mx-auto">
-        When beta ends, we will introduce flexible pricing plans to suit your needs. Stay tuned!
-      </p>
-      <button disabled className="px-4 py-2 bg-zinc-700 text-zinc-400 rounded-lg font-medium cursor-not-allowed text-sm">
-        Coming Soon
-      </button>
-    </div>
-  </div>
-);
-
-const InfoTab = () => (
-  <div className="space-y-6">
-    <SettingsCard>
-      <h3 className="text-white font-semibold mb-4">Application Information</h3>
-      <ul className="space-y-3 text-sm">
-        <li className="flex justify-between">
-          <span className="text-zinc-400">Version</span>
-          <span className="text-white font-medium">Beta 1.0.0</span>
-        </li>
-        <li className="flex justify-between">
-          <span className="text-zinc-400">Last Build</span>
-          <span className="text-white font-medium">2025.01.02</span>
-        </li>
-      </ul>
-    </SettingsCard>
-
-    <SettingsCard>
-      <h3 className="text-white font-semibold mb-2">About VibeKode Studio</h3>
-      <p className="text-zinc-300 text-sm leading-relaxed">
-        VibeKode Studio is an AI-powered web development platform designed to make creating stunning applications as easy as describing them.
-      </p>
-    </SettingsCard>
-
-    <SettingsCard>
-      <h3 className="text-white font-semibold mb-4">Contact & Support</h3>
-      <ul className="space-y-3 text-sm">
-        {[
-          { icon: Mail, label: 'Email', value: 'hello.vibekode@gmail.com', href: 'mailto:hello.vibekode@gmail.com' },
-          { icon: Book, label: 'Docs', value: 'docs.vibekode.com', href: 'https://docs.vibekode.com' },
-          { icon: Users, label: 'Community', value: 'community.vibekode.com', href: 'https://community.vibekode.com' },
-        ].map(item => (
-          <li key={item.label} className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-zinc-400">
-              <item.icon className="w-4 h-4" /> {item.label}
-            </span>
-            <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-[#00ccb1] font-medium hover:underline">
-              {item.value}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </SettingsCard>
-  </div>
-);
-
-const FeaturesTab = () => {
-    const features = [
-        { name: "Advanced AI Models", description: "Access to latest GPT-4 and Claude models.", status: "active" },
-        { name: "Custom Templates", description: "Create and share your own project templates.", status: "active" },
-        { name: "API Integration", description: "Connect external APIs to your projects.", status: "active" },
-        { name: "Priority Support", description: "Get faster response times and dedicated support.", status: "active" },
-        { name: "Real-time Collaboration", description: "Work together with your team in real-time.", status: "coming-soon" },
-        { name: "Advanced Analytics", description: "Detailed insights into your project performance.", status: "coming-soon" },
-    ];
-    return (
-        <div className="space-y-6">
-             <div className="bg-gradient-to-r from-[#7b61ff]/10 to-[#00ccb1]/10 border border-[#7b61ff]/20 rounded-lg p-4 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-[#7b61ff] flex-shrink-0 mt-0.5" />
-                <div>
-                    <h3 className="text-[#7b61ff] font-semibold text-sm mb-1">Early Access Features</h3>
-                    <p className="text-zinc-300 text-sm">
-                        As a beta user, you get access to cutting-edge features before they are released publicly.
-                    </p>
-                </div>
+  return (
+    <div className="space-y-6">
+      <SectionCard>
+        <div className="flex items-start gap-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
+              {userData.photoURL ? (
+                <img
+                  src={userData.photoURL}
+                  alt={userData.displayName || "User"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-10 h-10 text-zinc-600" />
+              )}
             </div>
-
-            <SettingsCard>
-                <ul className="divide-y divide-zinc-700/60">
-                    {features.map((feature) => (
-                        <li key={feature.name} className="py-4 first:pt-0 last:pb-0">
-                            <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-white">{feature.name}</h4>
-                                <span className={cn(
-                                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                                    feature.status === "active"
-                                        ? "bg-[#00ccb1]/20 text-[#00ccb1]"
-                                        : "bg-yellow-500/20 text-yellow-400"
-                                )}>
-                                    {feature.status === "active" ? "Active" : "Soon"}
-                                </span>
-                            </div>
-                            <p className="text-zinc-400 text-sm mt-1">{feature.description}</p>
-                        </li>
-                    ))}
-                </ul>
-            </SettingsCard>
-
-            <SettingsCard className="text-center">
-                <div className="flex justify-center mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] rounded-full flex items-center justify-center">
-                        <Star className="w-6 h-6 text-white" />
-                    </div>
-                </div>
-                <h3 className="text-white font-semibold mb-2">Help Us Improve!</h3>
-                <p className="text-zinc-300 text-sm mb-4 max-w-sm mx-auto">
-                    Your feedback on these early access features is invaluable in shaping the future of VibeKode.
-                </p>
-                <button className="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-[#00ccb1] to-[#1ca0fb] text-white rounded-lg font-medium hover:opacity-90 transition-opacity text-sm">
-                    Share Feedback
-                </button>
-            </SettingsCard>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-full border-4 border-[#09090b] flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+            </div>
+          </div>
+          <div className="flex-1 pt-2">
+            <h3 className="text-2xl font-bold text-white">
+              {userData.displayName}
+            </h3>
+            <div className="flex items-center gap-2 mt-1.5">
+              <p className="text-zinc-400 font-medium">{userData.email}</p>
+              <button
+                onClick={handleCopyEmail}
+                className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white"
+                title="Copy email"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-semibold bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
+              <Sparkles className="w-3 h-3" />
+              Beta User
+            </span>
+          </div>
         </div>
-    );
+      </SectionCard>
+
+      <SectionCard>
+        <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+          <Info className="w-4 h-4 text-zinc-500" />
+          Account Details
+        </h4>
+        <div className="space-y-0 divide-y divide-zinc-800">
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Status</span>
+            <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active
+            </span>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Member Since</span>
+            <span className="text-sm text-zinc-300">Beta 2025</span>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Plan Type</span>
+            <span className="text-sm text-white capitalize font-medium">
+              {userData.subscriptionType} Plan
+            </span>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
 };
+
+const UsageView = ({ userData }: { userData: UserData | null }) => {
+  if (!userData) return null;
+
+  const today = new Date().toISOString().split("T")[0];
+  const currentCount =
+    userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
+  const percentage = Math.min((currentCount / FREE_DAILY_LIMIT) * 100, 100);
+  const remaining = Math.max(FREE_DAILY_LIMIT - currentCount, 0);
+
+  // Calculate reset time
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const hoursUntilReset = Math.floor(
+    (tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60)
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Current Plan Card */}
+      <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6">
+        <div className="flex items-start justify-between relative z-10">
+          <div>
+            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#7c3aed]" /> Free Beta Plan
+            </h3>
+            <p className="text-zinc-400 text-sm mt-1 max-w-sm">
+              You are currently using the free tier during our beta period.
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
+              {remaining}
+            </span>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+              Credits Left
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Usage Progress */}
+      <SectionCard>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-zinc-500" />
+            Daily Chat Usage
+          </h4>
+          <span className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
+            Resets in {hoursUntilReset}h
+          </span>
+        </div>
+
+        <div className="mb-3 flex justify-between text-sm">
+          <span className="text-zinc-300 font-medium">{currentCount} used</span>
+          <span className="text-zinc-500">{FREE_DAILY_LIMIT} total</span>
+        </div>
+
+        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className={cn(
+              "h-full rounded-full relative",
+              percentage > 85
+                ? "bg-red-500"
+                : "bg-gradient-to-r from-[#5b21b6] to-[#1e40af]"
+            )}
+          ></motion.div>
+        </div>
+
+        {percentage > 85 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20 flex gap-3 items-start"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-red-300 leading-relaxed">
+              You are running low on daily credits.
+            </p>
+          </motion.div>
+        )}
+      </SectionCard>
+
+      {/* Premium Teaser */}
+      <div className="border border-dashed border-zinc-800 rounded-xl p-6 relative overflow-hidden group hover:border-[#5b21b6]/30 transition-colors">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#5b21b6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
+              <Lock className="w-4 h-4 text-zinc-500" />
+              VibeKode Premium
+            </h4>
+            <span className="px-2 py-0.5 rounded text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 font-bold uppercase tracking-wide">
+              Coming Soon
+            </span>
+          </div>
+          <p className="text-sm text-zinc-500 mb-6">
+            Unlock unlimited chats, faster generation speeds, and priority
+            support.
+          </p>
+          <button
+            disabled
+            className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-600 text-sm font-medium rounded-lg cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            Upgrade (Coming Soon)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AboutView = () => (
+  <div className="space-y-6">
+    <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
+      <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
+        <img
+          src="/logo.png"
+          alt="VibeKode Studio Logo"
+          className="w-16 h-16 object-contain"
+        />
+      </div>
+
+      <h3 className="text-xl font-bold text-white">VibeKode Studio</h3>
+      <p className="text-sm text-[#7c3aed] font-medium mt-1">
+        Beta Release v0.1
+      </p>
+      <p className="text-xs text-zinc-500 mt-2 max-w-sm">
+        Empowering creators with AI-powered code generation.
+      </p>
+    </div>
+
+    <SectionCard>
+      <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <MessageSquare className="w-4 h-4 text-zinc-500" />
+        Community
+      </h4>
+      <div className="space-y-2">
+        <a
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#FF4500]/10 rounded-md group-hover:bg-[#FF4500]/20 transition-colors">
+              <RedditIcon className="w-5 h-5 text-[#FF4500]" />
+            </div>
+            <div>
+              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
+                Join our Subreddit
+              </span>
+              <span className="text-xs text-zinc-500">r/VibeKode</span>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+        </a>
+
+        <a
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#0A66C2]/10 rounded-md group-hover:bg-[#0A66C2]/20 transition-colors">
+              <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            </div>
+            <div>
+              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
+                Connect on LinkedIn
+              </span>
+              <span className="text-xs text-zinc-500">Follow for updates</span>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+        </a>
+      </div>
+    </SectionCard>
+
+    <div className="grid grid-cols-2 gap-4">
+      <a
+        href="#"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+      >
+        Documentation <ExternalLink className="w-3 h-3" />
+      </a>
+      <a
+        href="#"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+      >
+        Privacy Policy <ExternalLink className="w-3 h-3" />
+      </a>
+    </div>
+
+    <div className="text-center pt-6 border-t border-zinc-800">
+      <p className="text-xs text-zinc-600">
+        © 2025 VibeKode Inc. All rights reserved.
+      </p>
+    </div>
+  </div>
+);

@@ -290,7 +290,7 @@ Output must be detailed, structured, and formatted in Markdown, with all placeho
       });
 
       const raw = completion.choices[0].message.content || "";
-      console.log("Architecture Raw Output:", raw);
+      // console.log("Architecture Raw Output:", raw);
       return raw.length > 500 ? raw : `# ${appName} - ${appIdea}\n\nFailed.`;
     } catch (err) {
       throw new Error(`Architecture generation failed: ${err}`);

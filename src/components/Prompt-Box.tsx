@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject } from "@/lib/firebase";
+import { generateMagicPrompt } from "@/backend/magic_prompt";
 
 // --- Declarations & Constants ---
 
@@ -321,34 +322,10 @@ const PromptBox: React.FC<PromptBoxProps> = ({
   const handleMagicClick = useCallback(async () => {
     setIsMagicLoading(true);
     setError(null);
+
     try {
-      const GEMINI_API_KEY = process.env.GEMINI_API_KEY_NORMAL;
-      if (!GEMINI_API_KEY) throw new Error("Missing Gemini API Key");
+      const generatedText = await generateMagicPrompt();
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: "Generate a single, innovative, and concise app idea. Describe it in one continuous, conversational paragraph (100-150 words) without any special formatting. Naturally include a creative name for the app within the description.",
-                  },
-                ],
-              },
-            ],
-            generationConfig: { temperature: 1.0, maxOutputTokens: 200 },
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-      const data = await response.json();
-      const generatedText =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       setPrompt(
         generatedText ||
           typingIdeas[Math.floor(Math.random() * typingIdeas.length)]

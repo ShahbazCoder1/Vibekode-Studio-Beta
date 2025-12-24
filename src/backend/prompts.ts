@@ -16,57 +16,47 @@ Requirements:
 
 Return ONLY the app name as plain text, no quotes, no explanations, no alternatives.
 `;
-
 export const GENERATE_MESSAGE_PROMPT = (
   prompt: string,
   isImprovement: boolean,
-  conversationHistory?: string[]
-) => ({
-  system: `You are an enthusiastic, genuine product communicator. You remember the entire conversation history and maintain context.
+  conversationHistory: string[] = []
+) => {
+  const historyContext = conversationHistory.length > 0 
+    ? `\nRecent conversation context:\n${conversationHistory.slice(-3).join('\n')}` 
+    : '';
 
-${conversationHistory ? `Recent conversation context:\n${conversationHistory.slice(-3).join('\n')}` : ''}
+  return `You are an enthusiastic, genuine product communicator responding to a user's request. Your tone should be warm, encouraging, and professional.
 
-CRITICAL: Never use banned phrases. Keep responses natural and conversational.`,
-  
-  instruction: "Generate a warm, enthusiastic response that acknowledges specifics and commits to action.",
-  
-  context: {
-    scenario: isImprovement ? "user_requests_improvements" : "user_requests_new_app",
-    user_input: prompt,
-    conversation_turns: conversationHistory?.length || 0
-  },
-  
-  response_parameters: {
-    tone_profile: {
-      warmth: "high",
-      enthusiasm: "high",
-      formality: "low",
-      personality: "encouraging and genuine",
-      brevity: "concise"
-    },
-    content_structure: isImprovement
-      ? {
-          acknowledge: "specific improvements mentioned by user with explicit reference",
-          express: "genuine excitement about the improvements",
-          commit: "to implementing requested changes with precision",
-          timeframe: "immediately"
-        }
-      : {
-          acknowledge: "the specific app idea with details",
-          express: "authentic enthusiasm for the concept",
-          commit: "to building a complete, production-ready application",
-          include: "one specific, relevant detail that shows understanding"
-        },
-    constraints: {
-      length: { min_sentences: 2, max_sentences: 4, max_words_per_sentence: 15 },
-      banned_phrases: ["I understand", "As an AI", "I'm an AI", "I see", "I notice"],
-      forbidden_openings: ["Sure!", "Okay!", "Certainly!", "Of course!"]
-    }
-  },
-  
-  output_format: "Plain text only. No markdown, no quotes, no formatting."
-});
+${historyContext}
 
+The user has just ${isImprovement ? 'requested improvements to their existing app' : 'asked me to build a new web application'}.
+
+**User's input:** "${prompt}"
+
+**CRITICAL OUTPUT REQUIREMENTS:**
+1. Respond in 2-4 complete sentences
+2. Be specific - reference their actual request, not generic statements
+3. Show genuine enthusiasm without being overly excited
+4. Commit to action ("I'll...", "Let me...")
+5. **NEVER** use these banned phrases: "I understand", "As an AI", "I'm an AI", "I see", "I notice"
+6. **NEVER** start with: "Sure!", "Okay!", "Certainly!", "Of course!"
+7. **NEVER** just repeat the app name - give a meaningful response
+8. Keep it conversational and natural
+
+**CORRECT EXAMPLES:**
+- "Adding a dark mode toggle to your Astrovoid game - great idea! I'll update the UI to include a moon/sun icon in the header that switches the entire theme to a space-inspired dark palette with glowing accents."
+- "Expanding your hero section with more content? Perfect! I'll craft compelling copy that highlights your app's unique value and add a strong call-to-action button below the main headline."
+
+**INCORRECT EXAMPLES (DO NOT DO THIS):**
+- "I understand you want to add dark mode." ❌ Too generic, uses banned phrase
+- "Astrovoid" ❌ Just the app name, no substance
+- "Sure! I'll help with that." ❌ Doesn't reference specifics
+
+**Your response must be a paragraph, not a single sentence or just the app name.**
+
+Now respond to the user's request naturally:
+`;
+};
 export const GENERATE_APP_ARCHITECTURE_PROMPT = (
   appName: string,
   appIdea: string,

@@ -52,23 +52,12 @@ export async function generateAppName(prompt: string): Promise<string> {
         timeout: 360000,
       });
 
-      const structuredPrompt = GENERATE_APP_NAME_PROMPT(prompt);
-
       const completion = await client.chat.completions.create({
         model: "grok-4-1-fast-non-reasoning",
         messages: [
           {
-            role: "system",
-            content:
-              "You are a creative branding expert specializing in generating unique and memorable app names based on user descriptions and specific constraints.",
-          },
-          {
             role: "user",
-            content: `Using this configuration, generate an app name:\n\n${JSON.stringify(
-              structuredPrompt,
-              null,
-              2
-            )}`,
+            content: GENERATE_APP_NAME_PROMPT(prompt),
           },
         ],
       });

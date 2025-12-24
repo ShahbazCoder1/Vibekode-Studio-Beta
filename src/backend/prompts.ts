@@ -1,54 +1,14 @@
-export const GENERATE_APP_NAME_PROMPT = (prompt: string) => ({
-  instruction: "Generate a brandable app name",
-  context: {
-    user_description: prompt,
-    task_type: "creative_naming",
-  },
-  constraints: {
-    length: { min: 1, max: 2, unit: "words" },
-    characteristics: [
-      "brandable",
-      "unique",
-      "memorable",
-      "professional",
-      "modern",
-    ],
-    domain_availability: "prioritize",
-    exclude_patterns: ["*manager", "*tracker", "*tool", "*app"],
-  },
-  style_guide: {
-    inspiration_types: [
-      { type: "neologism", examples: ["Figma", "Notion", "Stripe"] },
-      {
-        type: "portmanteau",
-        examples: ["Instagram", "LinkedIn", "YouTube"],
-      },
-      {
-        type: "suffix_based",
-        suffixes: [
-          "-ly",
-          "-fy",
-          "-io",
-          "-co",
-          "-ai",
-          "-hub",
-          "-lab",
-          "-verse",
-        ],
-      },
-    ],
-    reference_names: {
-      project_management: ["Asana", "Trello", "Monday"],
-      design: ["Figma", "Canva", "Sketch"],
-      communication: ["Slack", "Discord", "Zoom"],
-    },
-  },
-  output: {
-    format: "plain_text",
-    include: ["name_only"],
-    exclude: ["quotes", "explanation", "alternatives"],
-  },
-});
+export const GENERATE_APP_NAME_PROMPT = (prompt: string) => `
+You are a creative branding expert.
+Generate a unique, brandable, and memorable app name based on the following idea:
+
+"${prompt}"
+
+The name should be 1-2 words long, modern, and professional.
+Avoid generic terms like "manager", "tracker", or "app".
+Prioritize names that are likely to have available domain names.
+Return only the app name, without any quotes, explanations, or alternatives.
+`;
 
 export const GENERATE_MESSAGE_PROMPT = (
   prompt: string,

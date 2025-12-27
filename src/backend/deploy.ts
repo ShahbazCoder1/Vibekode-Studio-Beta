@@ -35,7 +35,7 @@ export const deployToNetlify = async (
 ): Promise<DeploymentResult> => {
   // Use environment variable or provided token
   const token = netlifyToken || process.env.NEXT_PUBLIC_NETLIFY_TOKEN;
-  
+
   if (!token) {
     throw new Error('Netlify API token is required');
   }
@@ -52,11 +52,11 @@ export const deployToNetlify = async (
       url: string;
       admin_url?: string;
     };
-    
+
     if (existingDeployment) {
       // Update existing deployment
       console.log('Updating existing deployment...');
-      
+
       // Get existing site data
       const siteResponse = await fetch(`https://api.netlify.com/api/v1/sites/${existingDeployment.siteId}`, {
         method: 'GET',
@@ -73,7 +73,7 @@ export const deployToNetlify = async (
     } else {
       // Create new site
       console.log('Creating new deployment...');
-      
+
       const uniqueKey = generateUniqueKey();
       const cleanProjectName = projectName
         .toLowerCase()
@@ -81,7 +81,7 @@ export const deployToNetlify = async (
         .replace(/--+/g, '-')
         .replace(/^-|-$/g, '')
         .substring(0, 20);
-      
+
       const siteName = `${cleanProjectName}-${uniqueKey}`;
 
       const sitePayload = {
@@ -100,7 +100,7 @@ export const deployToNetlify = async (
       if (!siteResponse.ok) {
         const errorData = await siteResponse.json().catch(() => ({}));
         let errorMessage = 'Failed to create site';
-        
+
         if (errorData.message) {
           errorMessage = errorData.message;
         } else if (siteResponse.status === 401) {
@@ -108,7 +108,7 @@ export const deployToNetlify = async (
         } else if (siteResponse.status === 403) {
           errorMessage = 'Access denied. Check API token permissions';
         }
-        
+
         throw new Error(errorMessage);
       }
 

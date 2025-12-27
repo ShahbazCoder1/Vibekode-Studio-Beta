@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject } from "@/lib/firebase";
-import { generateMagicPrompt } from "@/backend/magic_prompt";
+import { generateAppIdea } from "@/backend/backend";
 
 // --- Declarations & Constants ---
 
@@ -322,9 +322,8 @@ const PromptBox: React.FC<PromptBoxProps> = ({
   const handleMagicClick = useCallback(async () => {
     setIsMagicLoading(true);
     setError(null);
-
     try {
-      const generatedText = await generateMagicPrompt();
+      const generatedText = await generateAppIdea();
 
       setPrompt(
         generatedText ||

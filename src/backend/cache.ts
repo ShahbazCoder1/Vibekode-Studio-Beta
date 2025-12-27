@@ -36,15 +36,24 @@ export async function executeWithDeduplication<T>(
     return cached.promise as Promise<T>;
   }
 
-  const requestPromise = executionFunction().finally(() => {
-    setTimeout(() => requestCache.delete(cacheKey), ttl);
-  });
+  const newPromise = (async () => {
+    try {
+      const result = await executionFunction();
+      // On success, schedule deletion after TTL from the time of resolution
+      setTimeout(() => requestCache.delete(cacheKey), ttl);
+      return result;
+    } catch (error) {
+      // On error, remove from cache immediately to allow retries
+      requestCache.delete(cacheKey);
+      throw error;
+    }
+  })();
 
   requestCache.set(cacheKey, {
-    promise: requestPromise,
+    promise: newPromise,
     timestamp: Date.now(),
     ttl,
   });
 
-  return requestPromise;
+  return newPromise;
 }

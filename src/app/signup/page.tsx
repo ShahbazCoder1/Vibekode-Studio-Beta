@@ -131,114 +131,52 @@ const AuthPanel = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Check if running in mobile app mode
   const isMobileApp = searchParams.get("mode") === "mobileapp";
 
-  // Unified Auth Handling
+  // FIRST useEffect: Handle redirect result ONLY - runs ONCE on mount
+  useEffect(() => {
+    handleGoogleRedirectResult()
+      .then((result) => {
+        if (result) {
+          // Get destination from localStorage or default to /project
+          const dest =
+            localStorage.getItem("auth_redirect_destination") || "/project";
+          localStorage.removeItem("auth_redirect_destination");
+          localStorage.removeItem("auth_mobile_mode");
+          console.log("Redirect successful, navigating to:", dest);
+          window.location.href = dest;
+        }
+      })
+      .catch((error) => {
+        console.error("Redirect result error:", error);
+        localStorage.removeItem("auth_redirect_destination");
+        localStorage.removeItem("auth_mobile_mode");
+      });
+  }, []); // Empty dependency array - runs ONCE
+
+  // SECOND useEffect: Handle normal auth state for popup and immediate checks
   useEffect(() => {
     let mounted = true;
-    let redirectCheckComplete = false;
-    let authInitialized = false;
-    const runAuthFlow = async () => {
-      // 1. Recover mobile mode
-      const storedMobileMode =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("auth_mobile_mode")
-          : null;
-      const redirectStarted =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("auth_redirect_started")
-          : null;
 
-      const isMobileContext = isMobileApp || storedMobileMode === "true";
-      const dest = isMobileContext ? "/project?mode=mobileapp" : "/project";
+    // Check if user is already authenticated (for popup flow or page refresh)
+    if (auth.currentUser && mounted) {
+      console.log("User already authenticated, redirecting...");
+      router.push("/project");
+      return;
+    }
 
-      // 2. Immediate Check
-      if (auth.currentUser) {
-        if (mounted) {
-          console.log("User found immediately. Redirecting.");
-          if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
-          if (redirectStarted)
-            sessionStorage.removeItem("auth_redirect_started");
-          router.push(dest);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-
-      // 3. Process potential redirect result
-      try {
-        const redirectUser = await handleGoogleRedirectResult();
-        if (redirectUser) {
-          if (mounted) {
-            console.log("Redirect auth successful, redirecting...");
-            if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
-            router.push(dest);
-          }
-          return;
-        }
-      } catch (e: unknown) {
-        console.error("Redirect check failed:", e);
-
-        let errorMessage = "Sign-up failed";
-
-        if (e instanceof Error) {
-          errorMessage = e.message;
-        }
-
-        if (mounted && isMobileContext) {
-          setError(errorMessage);
-        }
-
-        if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
-        if (redirectStarted) sessionStorage.removeItem("auth_redirect_started");
-      } finally {
-        redirectCheckComplete = true;
-        // Check if we should stop loading (if auth listener already ran and found no user)
-        // AND check if we had a silent failure (redirect started but no user found)
-        if (mounted && authInitialized && !auth.currentUser) {
-          if (redirectStarted) {
-            // Silent failure detection
-            setError(
-              "Authentication failed. Please disable 'Tracking Prevention' or allow cookies for this site."
-            );
-            sessionStorage.removeItem("auth_redirect_started");
-          }
-          setIsLoading(false);
-        }
-      }
-    };
-
-    runAuthFlow();
-
+    // Listen for auth state changes (popup flow)
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
-      authInitialized = true; // Mark that auth has reported at least once
-
-      const storedMobileMode =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("auth_mobile_mode")
-          : null;
-      const isMobileContext = isMobileApp || storedMobileMode === "true";
-      const dest = isMobileContext ? "/project?mode=mobileapp" : "/project";
 
       if (user) {
+        console.log("Auth state changed - user found:", user.email);
         try {
-          // Ensure doc exists
           await createUserDocument(user);
-          if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
-          console.log("Auth listener found user. Redirecting.");
-          router.push(dest);
+          router.push("/project");
         } catch (e) {
-          console.error("User setup error", e);
-          setIsLoading(false);
-        }
-      } else {
-        // User is null.
-        // ONLY set loading false if redirect check is ALSO complete.
-        if (redirectCheckComplete) {
-          setIsLoading(false);
+          console.error("User setup error:", e);
+          setError("Failed to set up user account. Please try again.");
         }
       }
     });
@@ -255,9 +193,11 @@ const AuthPanel = () => {
 
     try {
       if (isMobileApp) {
-        // Set flag for mobile redirect
-        sessionStorage.setItem("auth_mobile_mode", "true");
-        sessionStorage.setItem("auth_redirect_started", "true");
+        // Store redirect destination and mobile mode flag
+        localStorage.setItem("auth_redirect_destination", "/project");
+        localStorage.setItem("auth_mobile_mode", "true");
+        console.log("Starting mobile redirect flow...");
+
         // Use redirect flow for mobile app
         await signInWithGoogleMobile();
         // User will be redirected, no further action needed here
@@ -271,7 +211,6 @@ const AuthPanel = () => {
       const firebaseError = error as { code?: string };
 
       if (isMobileApp) {
-        // Mobile app specific error messages
         switch (firebaseError.code) {
           case "auth/network-request-failed":
             setError("Network error. Please check your connection.");
@@ -280,7 +219,6 @@ const AuthPanel = () => {
             setError("Failed to sign up. Please try again.");
         }
       } else {
-        // Web specific error messages
         switch (firebaseError.code) {
           case "auth/popup-closed-by-user":
             setError("Sign-up was cancelled.");
@@ -296,6 +234,8 @@ const AuthPanel = () => {
         }
       }
       setIsLoading(false);
+      localStorage.removeItem("auth_redirect_destination");
+      localStorage.removeItem("auth_mobile_mode");
     }
   };
 

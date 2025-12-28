@@ -90,7 +90,7 @@ function ProjectPageContent() {
   }, []);
 
   useEffect(() => {
-    fetch("https://keypulselive.onrender.com/stats").catch(() => { });
+    fetch("https://keypulselive.onrender.com/stats").catch(() => {});
   }, []);
 
   const loadUserProjects = async (userId: string) => {

@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { signInWithGoogle, auth } from "@/lib/firebase";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  signInWithGoogle,
+  signInWithGoogleMobile,
+  handleGoogleRedirectResult,
+  createUserDocument,
+  auth,
+} from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 // --- Google Icon Component ---
@@ -34,7 +40,6 @@ const GoogleIcon = ({ className }: { className?: string }) => (
     />
   </svg>
 );
-
 
 // --- Right-Side Auto-Scrolling Showcase Panel ---
 const ShowcasePanel = () => {
@@ -118,50 +123,178 @@ const ShowcasePanel = () => {
   );
 };
 
-
 // --- Left-Side Authentication Panel ---
 const AuthPanel = () => {
   const [mode] = useState<"signup" | "signin">("signup");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Check if user is already authenticated
+  // Check if running in mobile app mode
+  const isMobileApp = searchParams.get("mode") === "mobileapp";
+
+  // Unified Auth Handling
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let mounted = true;
+    let redirectCheckComplete = false;
+    let authInitialized = false;
+    const runAuthFlow = async () => {
+      // 1. Recover mobile mode
+      const storedMobileMode =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("auth_mobile_mode")
+          : null;
+      const redirectStarted =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("auth_redirect_started")
+          : null;
+
+      const isMobileContext = isMobileApp || storedMobileMode === "true";
+      const dest = isMobileContext ? "/project?mode=mobileapp" : "/project";
+
+      // 2. Immediate Check
+      if (auth.currentUser) {
+        if (mounted) {
+          console.log("User found immediately. Redirecting.");
+          if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
+          if (redirectStarted)
+            sessionStorage.removeItem("auth_redirect_started");
+          router.push(dest);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+
+      // 3. Process potential redirect result
+      try {
+        const redirectUser = await handleGoogleRedirectResult();
+        if (redirectUser) {
+          if (mounted) {
+            console.log("Redirect auth successful, redirecting...");
+            if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
+            router.push(dest);
+          }
+          return;
+        }
+      } catch (e: unknown) {
+        console.error("Redirect check failed:", e);
+
+        let errorMessage = "Sign-up failed";
+
+        if (e instanceof Error) {
+          errorMessage = e.message;
+        }
+
+        if (mounted && isMobileContext) {
+          setError(errorMessage);
+        }
+
+        if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
+        if (redirectStarted) sessionStorage.removeItem("auth_redirect_started");
+      } finally {
+        redirectCheckComplete = true;
+        // Check if we should stop loading (if auth listener already ran and found no user)
+        // AND check if we had a silent failure (redirect started but no user found)
+        if (mounted && authInitialized && !auth.currentUser) {
+          if (redirectStarted) {
+            // Silent failure detection
+            setError(
+              "Authentication failed. Please disable 'Tracking Prevention' or allow cookies for this site."
+            );
+            sessionStorage.removeItem("auth_redirect_started");
+          }
+          setIsLoading(false);
+        }
+      }
+    };
+
+    runAuthFlow();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!mounted) return;
+      authInitialized = true; // Mark that auth has reported at least once
+
+      const storedMobileMode =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("auth_mobile_mode")
+          : null;
+      const isMobileContext = isMobileApp || storedMobileMode === "true";
+      const dest = isMobileContext ? "/project?mode=mobileapp" : "/project";
+
       if (user) {
-        // User is already signed in, redirect to project page
-        router.push("/project");
+        try {
+          // Ensure doc exists
+          await createUserDocument(user);
+          if (storedMobileMode) sessionStorage.removeItem("auth_mobile_mode");
+          console.log("Auth listener found user. Redirecting.");
+          router.push(dest);
+        } catch (e) {
+          console.error("User setup error", e);
+          setIsLoading(false);
+        }
+      } else {
+        // User is null.
+        // ONLY set loading false if redirect check is ALSO complete.
+        if (redirectCheckComplete) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return () => unsubscribe();
-  }, [router]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [router, isMobileApp]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      await signInWithGoogle();
-      router.push("/project");
+      if (isMobileApp) {
+        // Set flag for mobile redirect
+        sessionStorage.setItem("auth_mobile_mode", "true");
+        sessionStorage.setItem("auth_redirect_started", "true");
+        // Use redirect flow for mobile app
+        await signInWithGoogleMobile();
+        // User will be redirected, no further action needed here
+      } else {
+        // Use popup flow for web
+        await signInWithGoogle();
+        router.push("/project");
+      }
     } catch (error: unknown) {
       console.error("Authentication error:", error);
       const firebaseError = error as { code?: string };
-      switch (firebaseError.code) {
-        case "auth/popup-closed-by-user":
-          setError("Sign-up was cancelled.");
-          break;
-        case "auth/popup-blocked":
-          setError("Popup was blocked. Please allow popups and try again.");
-          break;
-        case "auth/network-request-failed":
-          setError("Network error. Please check your connection.");
-          break;
-        default:
-          setError("Failed to sign up. Please try again.");
+
+      if (isMobileApp) {
+        // Mobile app specific error messages
+        switch (firebaseError.code) {
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError("Failed to sign up. Please try again.");
+        }
+      } else {
+        // Web specific error messages
+        switch (firebaseError.code) {
+          case "auth/popup-closed-by-user":
+            setError("Sign-up was cancelled.");
+            break;
+          case "auth/popup-blocked":
+            setError("Popup was blocked. Please allow popups and try again.");
+            break;
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError("Failed to sign up. Please try again.");
+        }
       }
-    } finally {
       setIsLoading(false);
     }
   };
@@ -251,7 +384,9 @@ const AuthPanel = () => {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-950 rounded-full animate-spin"></div>
-                    <span>Creating account...</span>
+                    <span>
+                      {isMobileApp ? "Redirecting..." : "Creating account..."}
+                    </span>
                   </>
                 ) : (
                   <>
@@ -271,7 +406,11 @@ const AuthPanel = () => {
               ? "Already have an account?"
               : "Don't have an account?"}
             <Link
-              href={mode === "signup" ? "/login" : "/signup"}
+              href={
+                mode === "signup"
+                  ? `/login${isMobileApp ? "?mode=mobileapp" : ""}`
+                  : `/signup${isMobileApp ? "?mode=mobileapp" : ""}`
+              }
               className="font-medium text-white underline decoration-zinc-700 underline-offset-4 hover:decoration-white transition-all focus:outline-none"
             >
               {mode === "signup" ? "Sign in" : "Sign up"}
@@ -288,12 +427,27 @@ const AuthPanel = () => {
   );
 };
 
-// --- Main Page Component ---
-export default function LoginPage() {
+// Wrapper component with Suspense boundary
+function SignupPageContent() {
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2 bg-zinc-950 text-white">
       <AuthPanel />
       <ShowcasePanel />
     </div>
+  );
+}
+
+// --- Main Page Component ---
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-zinc-950">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+        </div>
+      }
+    >
+      <SignupPageContent />
+    </Suspense>
   );
 }

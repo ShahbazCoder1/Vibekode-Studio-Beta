@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Users,
   Settings,
@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // Local Component Imports
@@ -65,7 +65,7 @@ const mobileSidebarVariants = {
 };
 
 // Main Page Component
-export default function ProjectPage() {
+function ProjectPageContent() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<ProjectDocument[]>([]);
@@ -75,6 +75,10 @@ export default function ProjectPage() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if running in mobile app mode
+  const isMobileApp = searchParams.get("mode") === "mobileapp";
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges((authUser) => {
@@ -86,7 +90,7 @@ export default function ProjectPage() {
   }, []);
 
   useEffect(() => {
-    fetch("https://keypulselive.onrender.com/stats").catch(() => {});
+    fetch("https://keypulselive.onrender.com/stats").catch(() => { });
   }, []);
 
   const loadUserProjects = async (userId: string) => {
@@ -104,7 +108,8 @@ export default function ProjectPage() {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push("/");
+      const redirectUrl = isMobileApp ? "/login?mode=mobileapp" : "/";
+      router.push(redirectUrl);
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -141,6 +146,15 @@ export default function ProjectPage() {
     },
   ];
 
+  // Handle redirection for unauthenticated users
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log("No user found on project page, redirecting to login...");
+      const loginUrl = isMobileApp ? "/login?mode=mobileapp" : "/login";
+      router.push(loginUrl);
+    }
+  }, [user, loading, isMobileApp, router]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#18181b]">
@@ -150,7 +164,11 @@ export default function ProjectPage() {
   }
 
   if (!user) {
-    redirect("/login");
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#18181b]">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -216,5 +234,20 @@ export default function ProjectPage() {
         />
       </div>
     </SmoothScroll>
+  );
+}
+
+// Wrapped export with Suspense boundary
+export default function ProjectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-[#18181b]">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+        </div>
+      }
+    >
+      <ProjectPageContent />
+    </Suspense>
   );
 }

@@ -23,14 +23,23 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
 import { auth, db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, increment } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 // --- TYPES ---
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  projectId?: string; // Optional: if provided, show project-specific options
+}
+
+interface Project {
+  id: string;
+  name: string;
+  visibility: "public" | "private";
 }
 
 interface UserData {
@@ -46,12 +55,16 @@ interface UserData {
   creditsUsed?: number;
   nextBillingDate?: string;
   paypalSubscriptionId?: string;
+  subscriptionStatus?: "active" | "cancelled" | "expired" | "suspended";
+  subscriptionEndDate?: string;
+  privateProjectsCount?: number;
 }
 
-type Tab = "profile" | "usage" | "about";
+
+type Tab = "profile" | "usage" | "about" | "projects";
 
 // --- CONSTANTS ---
-const FREE_DAILY_LIMIT = 5;
+// Removed unused FREE_DAILY_LIMIT
 
 // --- REUSABLE COMPONENTS ---
 
@@ -204,9 +217,11 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
               {userData.photoURL ? (
-                <img
+                <Image
                   src={userData.photoURL}
                   alt={userData.displayName || "User"}
+                  width={96}
+                  height={96}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -276,38 +291,44 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
   if (!userData) return null;
 
   const today = new Date().toISOString().split("T")[0];
-  const isFree = userData.subscriptionType === 'free';
+  const subscriptionType = userData.subscriptionType || 'free';
+  const isFree = subscriptionType === 'free';
+  const isGo = subscriptionType === 'go';
+  const subscriptionStatus = userData.subscriptionStatus || 'active';
+  const isCancelled = subscriptionStatus === 'cancelled';
+  const isExpired = subscriptionStatus === 'expired';
+  const isSuspended = subscriptionStatus === 'suspended';
 
-  // Calculate limits based on plan
-  let limit = FREE_DAILY_LIMIT;
-  let usage = userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
-  let label = "Daily Credits";
+  // Constants
+  const FREE_DAILY_MAX = 5;
+  const FREE_MONTHLY_MAX = 30;
+  const GO_MONTHLY_MAX = 50;
+  const PRO_MONTHLY_MAX = 150;
+  const GO_PRIVATE_LIMIT = 5;
 
-  if (userData.subscriptionType === 'go') {
-    limit = userData.monthlyCredits || 50;
-    usage = userData.creditsUsed || 0;
-    label = "Monthly Credits";
-  } else if (userData.subscriptionType === 'pro') {
-    limit = Infinity;
-    usage = 0; // Or track total usage if available
-    label = "Unlimited Credits";
-  }
+  // Usage Data
+  const dailyUsage = userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
+  const monthlyUsage = userData.creditsUsed || 0;
 
-  const percentage = limit === Infinity ? 0 : Math.min((usage / limit) * 100, 100);
-  const remaining = limit === Infinity ? "∞" : Math.max(limit - usage, 0);
-
-  // Calculate reset time
+  // Calculate Refresh Times
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
-  const hoursUntilReset = Math.floor(
-    (tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60)
-  );
+  const hoursUntilDailyReset = Math.floor((tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+  let nextBillingDateStr = userData.nextBillingDate;
+  if (!nextBillingDateStr && isFree) {
+    // Estimate for free users based on simple monthly cycle if not present
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(1);
+    nextBillingDateStr = d.toISOString();
+  }
 
   const handleCancelClick = async () => {
     if (!userData.paypalSubscriptionId) return;
-    if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features at the end of the billing period.")) return;
+    if (!confirm("Are you sure you want to cancel your subscription? You will keep premium access until the end of the billing period.")) return;
 
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -318,7 +339,7 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Subscription cancelled successfully.");
+        alert("Subscription cancelled successfully. You will retain access until the end of your billing period.");
       } else {
         alert("Failed to cancel: " + data.error);
       }
@@ -328,38 +349,141 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
     }
   };
 
+  // Render Progress Bar Helper
+  const ProgressBar = ({ 
+    label, 
+    used, 
+    total, 
+    resetText, 
+    colorClass = "bg-emerald-500" 
+  }: { 
+    label: string; 
+    used: number; 
+    total: number; 
+    resetText?: string; 
+    colorClass?: string;
+  }) => {
+    const pct = Math.min((used / total) * 100, 100);
+    return (
+      <div className="mb-6 last:mb-0">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            {label}
+          </h4>
+          {resetText && <span className="text-xs text-zinc-500">{resetText}</span>}
+        </div>
+        <div className="mb-2 flex justify-between text-xs text-zinc-400">
+          <span>{used} used</span>
+          <span>{total} total</span>
+        </div>
+        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className={cn("h-full rounded-full relative", pct > 90 ? "bg-red-500" : colorClass)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Get status display info
+  const getStatusInfo = () => {
+    if (isFree) return null;
+
+    if (isSuspended) {
+      return {
+        icon: AlertCircle,
+        text: "Payment Failed",
+        description: "Your subscription has been suspended due to payment failure. Please update your payment method.",
+        color: "text-red-400",
+        bgColor: "bg-red-500/10",
+        borderColor: "border-red-500/20"
+      };
+    }
+
+    if (isExpired) {
+      return {
+        icon: AlertCircle,
+        text: "Subscription Expired",
+        description: "Your subscription has ended. Upgrade to continue enjoying premium features.",
+        color: "text-amber-400",
+        bgColor: "bg-amber-500/10",
+        borderColor: "border-amber-500/20"
+      };
+    }
+
+    if (isCancelled) {
+      const endDate = userData.subscriptionEndDate || userData.nextBillingDate;
+      return {
+        icon: CheckCircle2,
+        text: "Subscription Cancelled",
+        description: `You'll keep premium access until ${endDate ? new Date(endDate).toLocaleDateString() : 'the end of the billing period'}. After that, you'll be downgraded to the Free plan.`,
+        color: "text-amber-400",
+        bgColor: "bg-amber-500/10",
+        borderColor: "border-amber-500/20"
+      };
+    }
+
+    return null;
+  };
+
+  const statusInfo = getStatusInfo();
+
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6">
         <div className="flex items-start justify-between relative z-10">
           <div>
             <h3 className="text-white font-bold text-lg flex items-center gap-2 capitalize">
-              <Sparkles className="w-4 h-4 text-[#7c3aed]" /> {userData.subscriptionType} Plan
+              <Sparkles className="w-4 h-4 text-[#7c3aed]" /> {subscriptionType} Plan
             </h3>
             <p className="text-zinc-400 text-sm mt-1 max-w-sm">
-              {isFree ? "You are using the free tier." : `You are subscribed to the ${userData.subscriptionType} plan.`}
+              {isFree ? "You are currently on the Free tier." : `You are subscribed to the ${subscriptionType} plan.`}
             </p>
-            {userData.nextBillingDate && (
+            {!isFree && userData.nextBillingDate && !isCancelled && !isExpired && (
               <p className="text-xs text-zinc-500 mt-2">
                 Next billing: {new Date(userData.nextBillingDate).toLocaleDateString()}
               </p>
             )}
+            {isFree && (
+              <p className="text-xs text-zinc-500 mt-2">
+                Monthly limit resets: {new Date(nextBillingDateStr!).toLocaleDateString()}
+              </p>
+            )}
           </div>
+
+          {/* Main Big Number Display */}
           <div className="text-right">
-            <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
-              {remaining}
-            </span>
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
-              Credits Left
-            </span>
+            {isFree ? (
+              <>
+                <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-400">
+                  {Math.max(0, FREE_DAILY_MAX - dailyUsage)}
+                </span>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+                  Daily Chats Left
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
+                  {Math.max(0, (subscriptionType === 'go' ? GO_MONTHLY_MAX : PRO_MONTHLY_MAX) - monthlyUsage)}
+                </span>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+                  Credits Left
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {!isFree && (
+        {/* Show cancel button only if active subscription */}
+        {!isFree && subscriptionStatus === 'active' && userData.paypalSubscriptionId && (
           <div className="mt-4 pt-4 border-t border-zinc-700/50 flex justify-end">
             <button
               onClick={handleCancelClick}
-              className="text-xs text-red-400 hover:text-red-300 transition-colors"
+              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5"
             >
               Cancel Subscription
             </button>
@@ -367,59 +491,92 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
         )}
       </div>
 
-      <SectionCard>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-zinc-500" />
-            {label}
-          </h4>
-          {isFree && (
-            <span className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
-              Resets in {hoursUntilReset}h
-            </span>
+      {/* Status Messages */}
+      {statusInfo && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "p-4 rounded-xl border flex items-start gap-3",
+            statusInfo.bgColor,
+            statusInfo.borderColor
           )}
-        </div>
+        >
+          <div className={cn("p-2 rounded-lg shrink-0", statusInfo.bgColor)}>
+            <statusInfo.icon className={cn("w-5 h-5", statusInfo.color)} />
+          </div>
+          <div className="flex-1">
+            <p className={cn("text-sm font-semibold", statusInfo.color)}>
+              {statusInfo.text}
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">
+              {statusInfo.description}
+            </p>
+            {(isExpired || isSuspended) && (
+              <a
+                href="/pricing"
+                className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-[#5b21b6] hover:bg-[#6d28d9] text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                {isSuspended ? "Update Payment" : "Resubscribe"}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </motion.div>
+      )}
 
-        {limit !== Infinity && (
+      <SectionCard>
+        <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-zinc-500" />
+          Usage Statistics
+        </h4>
+
+        {isFree && (
           <>
-            <div className="mb-3 flex justify-between text-sm">
-              <span className="text-zinc-300 font-medium">{usage} used</span>
-              <span className="text-zinc-500">{limit} total</span>
-            </div>
-
-            <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${percentage}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className={cn(
-                  "h-full rounded-full relative",
-                  percentage > 85
-                    ? "bg-red-500"
-                    : "bg-gradient-to-r from-[#5b21b6] to-[#1e40af]"
-                )}
-              ></motion.div>
-            </div>
+            <ProgressBar
+              label="Daily Chats"
+              used={dailyUsage}
+              total={FREE_DAILY_MAX}
+              resetText={`Resets in ${hoursUntilDailyReset}h`}
+              colorClass="bg-blue-500"
+            />
+            <ProgressBar
+              label="Monthly Credits"
+              used={monthlyUsage}
+              total={FREE_MONTHLY_MAX}
+              resetText="Resets monthly"
+              colorClass="bg-purple-500"
+            />
           </>
         )}
 
-        {limit === Infinity && (
-          <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 text-sm text-emerald-400">
-            You have unlimited credits! Enjoy building.
-          </div>
+        {isGo && (
+          <>
+            <ProgressBar
+              label="Monthly Credits"
+              used={monthlyUsage}
+              total={GO_MONTHLY_MAX}
+              resetText={`Resets ${new Date(userData.nextBillingDate || Date.now()).toLocaleDateString()}`}
+              colorClass="bg-purple-500"
+            />
+            <ProgressBar
+              label="Private Projects"
+              used={userData.privateProjectsCount || 0}
+              total={GO_PRIVATE_LIMIT}
+              resetText="Lifetime limit"
+              colorClass="bg-amber-500"
+            />
+          </>
         )}
 
-        {percentage > 85 && limit !== Infinity && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20 flex gap-3 items-start"
-          >
-            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-red-300 leading-relaxed">
-              You are running low on credits.
-            </p>
-          </motion.div>
+        {subscriptionType === 'pro' && (
+          <ProgressBar
+            label="Monthly Credits"
+            used={monthlyUsage}
+            total={PRO_MONTHLY_MAX}
+            resetText={`Resets ${new Date(userData.nextBillingDate || Date.now()).toLocaleDateString()}`}
+            colorClass="bg-gradient-to-r from-[#5b21b6] to-[#1e40af]"
+          />
         )}
       </SectionCard>
 
@@ -434,8 +591,7 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
               </h4>
             </div>
             <p className="text-sm text-zinc-500 mb-6">
-              Unlock unlimited chats, faster generation speeds, and priority
-              support.
+              Unlock 150 monthly credits, unlimited daily chats, and priority support.
             </p>
             <a
               href="/pricing"
@@ -454,10 +610,12 @@ const AboutView = () => (
   <div className="space-y-6">
     <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
       <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
-        <img
+        <Image
           src="/logo.png"
           alt="VibeKode Studio Logo"
-          className="w-16 h-16 object-contain"
+          width={64}
+          height={64}
+          className="object-contain"
         />
       </div>
 
@@ -541,10 +699,203 @@ const AboutView = () => (
   </div>
 );
 
+// New component for single project visibility editing
+const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | null; projectId: string }) => {
+  const [project, setProject] = useState<Partial<Project> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+    
+    const projectRef = doc(db, "projects", projectId);
+    const unsubscribe = onSnapshot(projectRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setProject({ id: docSnap.id, ...docSnap.data() });
+      }
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, [projectId]);
+
+  const handleToggleVisibility = async () => {
+    if (!userData || !auth.currentUser || !project) return;
+
+    const newVisibility = project.visibility === 'public' ? 'private' : 'public';
+    setUpdating(true);
+
+    try {
+      // Limit Check
+      if (newVisibility === 'private') {
+        const subType = userData.subscriptionType || 'free';
+        const currentPrivate = userData.privateProjectsCount || 0;
+
+        if (subType === 'free') {
+          alert("Upgrade to Go or Pro to create private projects.");
+          setUpdating(false);
+          return;
+        }
+        if (subType === 'go' && currentPrivate >= 5) {
+          alert("You have reached the limit of 5 private projects. Upgrade to Pro for unlimited.");
+          setUpdating(false);
+          return;
+        }
+      }
+
+      // Update Project
+      await updateDoc(doc(db, "projects", projectId), { visibility: newVisibility });
+
+      // Update User Count
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const incrementValue = newVisibility === 'private' ? 1 : -1;
+      await updateDoc(userRef, { privateProjectsCount: increment(incrementValue) });
+
+    } catch (e) {
+      console.error("Error updating visibility", e);
+      alert("Failed to update project visibility");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-6 h-6 rounded-full border-2 border-zinc-800 border-t-[#5b21b6] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-zinc-500 text-sm">Project not found</p>
+      </div>
+    );
+  }
+
+  const isPrivate = project.visibility === 'private';
+  const canMakePrivate = userData?.subscriptionType !== 'free';
+
+  return (
+    <div className="space-y-6">
+      <SectionCard>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-zinc-800/50 rounded-lg">
+            {isPrivate ? (
+              <EyeOff className="w-6 h-6 text-amber-500" />
+            ) : (
+              <Eye className="w-6 h-6 text-blue-500" />
+            )}
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-1">
+              Project Privacy
+            </h3>
+            <p className="text-sm text-zinc-400 mb-4">
+              {project.name}
+            </p>
+            
+            <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50">
+              <div>
+                <p className="text-sm font-medium text-white mb-1">
+                  Current Status
+                </p>
+                <span className={cn(
+                  "text-xs uppercase font-bold px-2 py-1 rounded-full border inline-block",
+                  isPrivate
+                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                    : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                )}>
+                  {isPrivate ? 'Private' : 'Public'}
+                </span>
+              </div>
+              
+              <button
+                onClick={handleToggleVisibility}
+                disabled={updating || (!canMakePrivate && !isPrivate)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  updating
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                    : isPrivate
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : canMakePrivate
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                )}
+              >
+                {updating ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />
+                    Updating...
+                  </span>
+                ) : isPrivate ? (
+                  "Make Public"
+                ) : (
+                  "Make Private"
+                )}
+              </button>
+            </div>
+
+            {!canMakePrivate && !isPrivate && (
+              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <p className="text-xs text-amber-400 flex items-start gap-2">
+                  <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                    Upgrade to Go or Pro to create private projects. 
+                    <a href="/pricing" className="underline ml-1 hover:text-amber-300">
+                      View Plans
+                    </a>
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard>
+        <h4 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+          <Info className="w-4 h-4 text-zinc-500" />
+          Privacy Information
+        </h4>
+        <div className="space-y-3 text-sm text-zinc-400">
+          <div className="flex gap-3">
+            <Eye className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-zinc-300 mb-1">Public Projects</p>
+              <p className="text-xs">Visible to everyone and featured in the community showcase</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <EyeOff className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-zinc-300 mb-1">Private Projects</p>
+              <p className="text-xs">Only visible to you. Perfect for personal or client work</p>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {userData && (
+        <div className="p-4 bg-zinc-900/40 border border-zinc-800/60 rounded-xl">
+          <p className="text-xs text-zinc-500 text-center">
+            {userData.subscriptionType === 'free' && "Free: 0 Private Projects"}
+            {userData.subscriptionType === 'go' && `Go: ${userData.privateProjectsCount || 0}/5 Private Projects Used`}
+            {userData.subscriptionType === 'pro' && "Pro: Unlimited Private Projects"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- MAIN COMPONENT ---
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("usage");
+export default function SettingsModal({ isOpen, onClose, projectId }: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(projectId ? "usage" : "usage");
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -574,11 +925,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               lastCheckedDate: new Date().toISOString().split("T")[0],
             },
             subscriptionType: data.subscriptionType || "free",
-            // New fields
             monthlyCredits: data.monthlyCredits,
             creditsUsed: data.creditsUsed,
             nextBillingDate: data.nextBillingDate,
             paypalSubscriptionId: data.paypalSubscriptionId,
+            subscriptionStatus: data.subscriptionStatus || "active",
+            subscriptionEndDate: data.subscriptionEndDate,
+            privateProjectsCount: data.privateProjectsCount,
           });
           setError(null);
         } else {
@@ -609,6 +962,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       } else if (e.key === "2" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setActiveTab("usage");
+      } else if ((e.key === "p" || e.key === "P") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setActiveTab("projects");
       } else if (e.key === "3" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setActiveTab("about");
@@ -631,6 +987,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setShowLogoutConfirm(false);
     }
   };
+
+  // Determine which tabs to show
+  const showProjectPrivacy = !!projectId; // Only show Project Privacy tab when projectId exists
 
   return (
     <>
@@ -681,6 +1040,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           icon={BarChart3}
                           onClick={() => setActiveTab("usage")}
                         />
+                        {showProjectPrivacy && (
+                          <TabButton
+                            active={activeTab === "projects"}
+                            id="projects"
+                            label="Project Privacy"
+                            icon={Lock}
+                            onClick={() => setActiveTab("projects")}
+                          />
+                        )}
                         <TabButton
                           active={activeTab === "profile"}
                           id="profile"
@@ -706,13 +1074,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <div className="flex justify-between items-center">
                             <span>Usage</span>
                             <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
-                              ⌘2
+                              ⌘U
                             </kbd>
                           </div>
                           <div className="flex justify-between items-center">
                             <span>Profile</span>
                             <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
                               ⌘1
+                            </kbd>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Projects</span>
+                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
+                              ⌘P
                             </kbd>
                           </div>
                           <div className="flex justify-between items-center">
@@ -745,6 +1119,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <h1 className="text-2xl font-bold text-white">
                           {activeTab === "profile" && "My Profile"}
                           {activeTab === "usage" && "Usage & Plan"}
+                          {activeTab === "projects" && "Project Privacy"}
                           {activeTab === "about" && "About VibeKode"}
                         </h1>
 
@@ -798,6 +1173,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               >
                                 {activeTab === "profile" && (
                                   <ProfileView userData={userData} />
+                                )}
+                                {activeTab === "projects" && projectId && (
+                                  <ProjectVisibilityView userData={userData} projectId={projectId} />
                                 )}
                                 {activeTab === "usage" && (
                                   <UsageView userData={userData} />

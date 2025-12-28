@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   setPersistence,
   browserLocalPersistence,
   Auth,
@@ -29,6 +31,7 @@ import {
   orderBy,
   getDocs,
   deleteDoc,
+  DocumentReference,
 } from 'firebase/firestore';
 
 // --- INTERFACES ---
@@ -51,6 +54,9 @@ export interface UserDocument {
     count: number;
     lastCheckedDate: string; // Format: YYYY-MM-DD
   };
+  billingCycleStartDate?: string;
+  lastResetDate?: string;
+  privateProjectsCount?: number; // Tracks lifetime private projects created
 }
 
 export interface AppUser {
@@ -161,8 +167,10 @@ export const createUserDocument = async (user: FirebaseUser): Promise<void> => {
       lastLogin: serverTimestamp() as Timestamp,
       subscriptionType: 'free',
       subscriptionStatus: 'active', // Free is always active
-      monthlyCredits: 0,
+      monthlyCredits: 30, // Default for free
       creditsUsed: 0,
+      billingCycleStartDate: new Date().toISOString(), // Start billing cycle now
+      lastResetDate: new Date().toISOString(),
     };
     await setDoc(userDocRef, { ...newUser, projects: [] });
   } else {
@@ -177,6 +185,32 @@ export const signInWithGoogle = async (): Promise<FirebaseUser> => {
     return result.user;
   } catch (error) {
     console.error("Google sign-in error:", error);
+    throw error;
+  }
+};
+
+// New function for mobile app authentication using redirect
+export const signInWithGoogleMobile = async (): Promise<void> => {
+  try {
+    await signInWithRedirect(auth, googleProvider);
+    // Note: The actual user will be available after redirect via getRedirectResult
+  } catch (error) {
+    console.error("Google sign-in redirect error:", error);
+    throw error;
+  }
+};
+
+// Helper function to handle redirect result (call this on page load)
+export const handleGoogleRedirectResult = async (): Promise<FirebaseUser | null> => {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      await createUserDocument(result.user);
+      return result.user;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error handling redirect result:", error);
     throw error;
   }
 };
@@ -283,6 +317,30 @@ export const createProject = async (
   const user = auth.currentUser;
   if (!user) throw new Error('User must be authenticated to create a project');
 
+  // Check Chat/Credit Limits
+  const limitStatus = await checkAndUpdateChatLimit(user.uid);
+  if (!limitStatus.canSendMessage) {
+    throw new Error("Daily or monthly limit reached. Please upgrade to create more projects.");
+  }
+
+  // --- PRIVATE PROJECT LIMIT CHECKS ---
+  if (visibility === 'private') {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userDocRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as UserDocument;
+      const subType = userData.subscriptionType || 'free';
+      const privateCount = userData.privateProjectsCount || 0;
+
+      if (subType === 'free') {
+        throw new Error("Private projects are not available on the Free plan.");
+      }
+      if (subType === 'go' && privateCount >= 5) {
+        throw new Error("You have reached the limit of 5 private projects on the Go plan.");
+      }
+    }
+  }
+
   const cacheKey = createFirebaseCacheKey('createProject', user.uid, prompt, visibility, mode);
 
   return executeFirebaseWithDeduplication(cacheKey, async () => {
@@ -304,9 +362,21 @@ export const createProject = async (
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
-        const currentProjects = userDoc.data().projects || [];
-        await updateDoc(userDocRef, { projects: [...currentProjects, docRef.id] });
+        const data = userDoc.data() as UserDocument;
+        const currentProjects = data.projects || [];
+
+        const updates:Partial<UserDocument> = { projects: [...currentProjects, docRef.id] };
+
+        // Increment private count if private
+        if (visibility === 'private') {
+          updates.privateProjectsCount = (data.privateProjectsCount || 0) + 1;
+        }
+
+        await updateDoc(userDocRef, updates);
       }
+
+      // Note: Credit deduction is now handled in the component (Prompt-Box.tsx)
+      // to allow for better UI feedback and error handling sequences.
 
       return docRef.id;
     } catch (error) {
@@ -539,6 +609,60 @@ function getTomorrowMidnight(): Date {
   return tomorrow;
 }
 
+
+const FREE_TIER_MONTHLY_LIMIT = 30;
+
+
+
+function getNextBillingDate(startDate: string): Date {
+  if (!startDate) {
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    nextMonth.setDate(1);
+    nextMonth.setHours(0, 0, 0, 0);
+    return nextMonth;
+  }
+
+  const start = new Date(startDate);
+  const now = new Date();
+  const next = new Date(start);
+
+  while (next <= now) {
+    next.setMonth(next.getMonth() + 1);
+  }
+
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+const checkAndResetMonthlyCredits = async (
+  userDocRef: DocumentReference,
+  userData: UserDocument,
+): Promise<UserDocument> => {
+  // Paid subscriptions (Go/Pro) are reset by the billing API webhooks (PAYMENT.SALE.COMPLETED)
+  // So we SHOULD NOT reset them here client-side.
+  if (userData.subscriptionType === 'go' || userData.subscriptionType === 'pro') {
+    return userData;
+  }
+
+  // Free users don't have billing events, so we handle their monthly reset here
+  const lastReset = userData.lastResetDate ? new Date(userData.lastResetDate) : new Date(0);
+  const nextBilling = getNextBillingDate(userData.billingCycleStartDate || userData.createdAt.toDate().toISOString());
+
+  const currentPeriodStart = new Date(nextBilling);
+  currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 1);
+
+  if (lastReset < currentPeriodStart) {
+    const updates = {
+      creditsUsed: 0,
+      lastResetDate: new Date().toISOString(),
+    };
+    await updateDoc(userDocRef, updates);
+    return { ...userData, ...updates };
+  }
+  return userData;
+};
+
 export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimitStatus> => {
   if (!userId) throw new Error("User ID is required to check chat limit.");
 
@@ -550,29 +674,25 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
       throw new Error("User document not found.");
     }
 
-    const userData = userDoc.data() as UserDocument;
+    let userData = userDoc.data() as UserDocument;
     const today = getTodayDateString();
 
-    // Initialize defaults for existing users without these fields
+    // Check and Reset Monthly Credits
+    userData = await checkAndResetMonthlyCredits(userDocRef, userData);
+
     const subscriptionType = userData.subscriptionType || 'free';
     let chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
 
-    // Pro users have unlimited access
-    if (subscriptionType === 'pro') {
-      return {
-        canSendMessage: true,
-        remaining: Infinity,
-        total: Infinity,
-        isPremium: true,
-        resetsAt: getTomorrowMidnight(),
-      };
+    if (chatUsage.lastCheckedDate !== today) {
+      chatUsage = { count: 0, lastCheckedDate: today };
+      await updateDoc(userDocRef, { chatUsage });
+      userData.chatUsage = chatUsage;
     }
 
-    // Go users have monthly credits
-    if (subscriptionType === 'go') {
-      // Monthly credits are managed via webhooks/payments, but we track usage here
-      // Assuming monthlyCredits is set on user doc, default to 50 if missing
-      const monthlyLimit = userData.monthlyCredits || 50;
+    const nextBillingDate = getNextBillingDate(userData.billingCycleStartDate || userData.createdAt.toDate().toISOString());
+
+    if (subscriptionType === 'pro') {
+      const monthlyLimit = 150;
       const used = userData.creditsUsed || 0;
 
       return {
@@ -580,28 +700,42 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
         remaining: Math.max(0, monthlyLimit - used),
         total: monthlyLimit,
         isPremium: true,
-        resetsAt: getTomorrowMidnight(), // Technically resets on billing date, but showing midnight is fine for UI
+        resetsAt: nextBillingDate,
       };
     }
 
-    // If user doesn't have subscription fields, ensure defaults (legacy support)
-    if (!userData.subscriptionType) {
-      // ... existing lazy init logic if needed, or just proceed as free
+    if (subscriptionType === 'go') {
+      const monthlyLimit = 50;
+      const used = userData.creditsUsed || 0;
+
+      return {
+        canSendMessage: used < monthlyLimit,
+        remaining: Math.max(0, monthlyLimit - used),
+        total: monthlyLimit,
+        isPremium: true,
+        resetsAt: nextBillingDate,
+      };
     }
 
-    // Check if it's a new day - auto reset if yes
-    if (chatUsage.lastCheckedDate !== today) {
-      chatUsage = { count: 0, lastCheckedDate: today };
-      await updateDoc(userDocRef, { chatUsage });
+    const monthlyLimit = FREE_TIER_MONTHLY_LIMIT; // 30
+    const used = userData.creditsUsed || 0;
+
+    if (used >= monthlyLimit) {
+      return {
+        canSendMessage: false,
+        remaining: 0,
+        total: monthlyLimit,
+        isPremium: false,
+        resetsAt: nextBillingDate,
+      };
     }
 
-    // Check free tier limit
     const canSendMessage = chatUsage.count < FREE_TIER_DAILY_LIMIT;
-    const remaining = Math.max(0, FREE_TIER_DAILY_LIMIT - chatUsage.count);
+    const remainingDaily = Math.max(0, FREE_TIER_DAILY_LIMIT - chatUsage.count);
 
     return {
       canSendMessage,
-      remaining,
+      remaining: remainingDaily,
       total: FREE_TIER_DAILY_LIMIT,
       isPremium: false,
       resetsAt: getTomorrowMidnight(),
@@ -626,32 +760,26 @@ export const incrementChatCount = async (userId: string): Promise<void> => {
     const userData = userDoc.data() as UserDocument;
     const today = getTodayDateString();
 
-    // Skip increment for Pro users (unlimited)
-    if (userData.subscriptionType === 'pro') {
-      return;
+    // Increment monthly credits used for ALL plans (Free, Go, Pro)
+    // For Free users, this tracks the 30/month limit
+    const currentUsed = userData.creditsUsed || 0;
+    const updates: Partial<UserDocument> = {
+      creditsUsed: currentUsed + 1
+    };
+
+    // For Free users, also handle daily limit
+    if (!userData.subscriptionType || userData.subscriptionType === 'free') {
+      const chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
+
+      if (chatUsage.lastCheckedDate !== today) {
+        updates.chatUsage = { count: 1, lastCheckedDate: today };
+      } else {
+        updates.chatUsage = { count: chatUsage.count + 1, lastCheckedDate: today };
+      }
     }
 
-    // For Go users, increment monthly usage
-    if (userData.subscriptionType === 'go') {
-      const currentUsed = userData.creditsUsed || 0;
-      await updateDoc(userDocRef, {
-        creditsUsed: currentUsed + 1
-      });
-      return;
-    }
+    await updateDoc(userDocRef, updates);
 
-    const chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
-
-    // Ensure we're incrementing for the correct day
-    if (chatUsage.lastCheckedDate !== today) {
-      await updateDoc(userDocRef, {
-        chatUsage: { count: 1, lastCheckedDate: today }
-      });
-    } else {
-      await updateDoc(userDocRef, {
-        chatUsage: { count: chatUsage.count + 1, lastCheckedDate: today }
-      });
-    }
   } catch (error) {
     console.error('Error incrementing chat count:', error);
     throw error;

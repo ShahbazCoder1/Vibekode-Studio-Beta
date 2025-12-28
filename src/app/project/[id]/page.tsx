@@ -314,6 +314,7 @@ export default function ChatPage() {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        projectId={projectId}
       />
     </div>
   );

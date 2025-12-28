@@ -89,9 +89,9 @@ const ProgressTrackerComponent = ({
               className={cn(
                 "relative w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500",
                 isCompleted &&
-                  "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30",
+                "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30",
                 isActive &&
-                  "bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30",
+                "bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30",
                 isPending && "bg-zinc-800 border border-zinc-700"
               )}
             >
@@ -189,16 +189,16 @@ export default function Chat({
       const tasks: Task[] =
         chatMessage.version === 1
           ? [
-              { id: "1", label: "Analyzing Requirements" },
-              { id: "2", label: "Setting up Project Structure" },
-              { id: "3", label: "Writing the code" },
-              { id: "4", label: "Finalizing Application" },
-            ]
+            { id: "1", label: "Analyzing Requirements" },
+            { id: "2", label: "Setting up Project Structure" },
+            { id: "3", label: "Writing the code" },
+            { id: "4", label: "Finalizing Application" },
+          ]
           : [
-              { id: "1", label: "Analyzing Requirements" },
-              { id: "2", label: "Writing the code" },
-              { id: "3", label: "Finalizing Application" },
-            ];
+            { id: "1", label: "Analyzing Requirements" },
+            { id: "2", label: "Writing the code" },
+            { id: "3", label: "Finalizing Application" },
+          ];
 
       message.hasProgressTracker = true;
       message.progressTasks = tasks;
@@ -482,11 +482,11 @@ export default function Chat({
     const checkLimit = async () => {
       const user = auth.currentUser;
       if (!user) return;
-      
+
       try {
         const status = await checkAndUpdateChatLimit(user.uid);
         setChatLimitStatus(status);
-        
+
         // Show warning when user has 2 or fewer chats remaining (and not premium)
         if (!status.isPremium && status.remaining <= 2 && status.remaining > 0) {
           setShowLimitWarning(true);
@@ -495,7 +495,7 @@ export default function Chat({
         console.error('Error checking chat limit:', error);
       }
     };
-    
+
     if (!isLoadingProject) {
       checkLimit();
     }
@@ -514,24 +514,54 @@ export default function Chat({
     // Check chat limit before proceeding
     try {
       const limitStatus = await checkAndUpdateChatLimit(user.uid);
-      
+
       if (!limitStatus.canSendMessage) {
-        const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit', 
-          hour12: true 
+        const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
         });
-        toast.error("Daily chat limit reached", {
-          description: `You've used all ${limitStatus.total} free chats today. Limit resets at midnight (${resetTime}). Upgrade to Premium for unlimited chats!`,
-          duration: 6000,
-          action: {
-            label: "Upgrade",
-            onClick: () => {
-              // TODO: Navigate to pricing/subscription page
-              console.log("Navigate to upgrade page");
+
+        if (limitStatus.isPremium) {
+          toast.error("Monthly credit limit reached", {
+            description: `You've used all ${limitStatus.total} monthly credits. Credits will reset on your next billing date.`,
+            duration: 6000,
+            action: {
+              label: "Manage Subscription",
+              onClick: () => {
+                // TODO: Navigate to subscription settings
+                console.log("Navigate to settings");
+              },
             },
-          },
-        });
+          });
+        } else {
+         
+          if (limitStatus.total > 10) { // Assuming daily is 5, monthly is 30
+            toast.error("Monthly free limit reached", {
+              description: `You've used all ${limitStatus.total} free credits for this month. Upgrade to Go or Pro for more!`,
+              duration: 6000,
+              action: {
+                label: "Upgrade",
+                onClick: () => {
+                  // TODO: Navigate to pricing
+                  console.log("Navigate to upgrade");
+                },
+              },
+            });
+          } else {
+            toast.error("Daily chat limit reached", {
+              description: `You've used all ${limitStatus.total} free chats today. Limit resets at midnight (${resetTime}). Upgrade to Premium for unlimited daily chats!`,
+              duration: 6000,
+              action: {
+                label: "Upgrade",
+                onClick: () => {
+                  // TODO: Navigate to pricing
+                  console.log("Navigate to upgrade");
+                },
+              },
+            });
+          }
+        }
         return;
       }
     } catch (error) {
@@ -565,7 +595,7 @@ export default function Chat({
     try {
       // Increment chat count for free users
       await incrementChatCount(user.uid);
-      
+
       // Update limit status after increment
       const newStatus = await checkAndUpdateChatLimit(user.uid);
       setChatLimitStatus(newStatus);
@@ -653,11 +683,12 @@ export default function Chat({
       );
 
       handleTrackerCompletion(botMessageId);
-      
+
+      // Show appropriate success message based on remaining chats
       // Show appropriate success message based on remaining chats
       if (newStatus.isPremium) {
         toast.success("Code updated successfully!", {
-          description: "Premium: Unlimited chats available",
+          description: `${newStatus.remaining} credits remaining this month`,
           duration: 3000,
         });
       } else if (newStatus.remaining > 0) {
@@ -737,7 +768,7 @@ export default function Chat({
               <div className={cn(
                 "w-2 h-2 rounded-full",
                 chatLimitStatus.remaining > 2 ? "bg-emerald-500" :
-                chatLimitStatus.remaining > 0 ? "bg-yellow-500" : "bg-red-500"
+                  chatLimitStatus.remaining > 0 ? "bg-yellow-500" : "bg-red-500"
               )} />
               <span className="text-xs font-medium text-gray-300">
                 {chatLimitStatus.remaining}/{chatLimitStatus.total} chats left
@@ -746,11 +777,13 @@ export default function Chat({
           )}
           {chatLimitStatus?.isPremium && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full border border-purple-500/30">
-              <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                chatLimitStatus.remaining > 10 ? "bg-emerald-500" :
+                  chatLimitStatus.remaining > 0 ? "bg-yellow-500" : "bg-red-500"
+              )} />
               <span className="text-xs font-semibold text-purple-300">
-                Premium
+                {chatLimitStatus.remaining}/{chatLimitStatus.total} credits left
               </span>
             </div>
           )}

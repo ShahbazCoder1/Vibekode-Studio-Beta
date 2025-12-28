@@ -7,6 +7,7 @@ import React, {
   useCallback,
   RefObject,
 } from "react";
+import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -20,7 +21,14 @@ import {
   Pause, // Import the Pause icon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createProject } from "@/lib/firebase";
+import { toast } from "sonner";
+import {
+  createProject,
+  auth,
+  checkAndUpdateChatLimit,
+  incrementChatCount,
+  db,
+} from "@/lib/firebase";
 import { generateAppIdea } from "@/backend/backend";
 
 // --- Declarations & Constants ---
@@ -220,6 +228,43 @@ const PromptBox: React.FC<PromptBoxProps> = ({
 
   const typingPlaceholder = useTypewriter(typingIdeas, isFocused, !!prompt);
 
+  // Subscription State
+  const [subscriptionType, setSubscriptionType] = useState<
+    "free" | "go" | "pro"
+  >("free");
+  const [privateCount, setPrivateCount] = useState(0);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    const fetchUserData = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", auth.currentUser!.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          setSubscriptionType(data.subscriptionType || "free");
+          setPrivateCount(data.privateProjectsCount || 0);
+        }
+      } catch (e) {
+        console.error("Error fetching user stats", e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  const canCreatePrivate = (() => {
+    if (subscriptionType === "free") return false;
+    if (subscriptionType === "go") return privateCount < 5;
+    return true; // Pro
+  })();
+
+  const getPrivateTooltip = () => {
+    if (subscriptionType === "free")
+      return "Upgrade to create private projects";
+    if (subscriptionType === "go" && !canCreatePrivate)
+      return "Private project limit reached (5/5). Upgrade to Pro.";
+    return "";
+  };
+
   // Cast to the expected non-nullable type
   useAutosizeTextArea(textareaRef as RefObject<HTMLTextAreaElement>, prompt);
   useClickOutside(dropdownRef as RefObject<HTMLElement>, () =>
@@ -289,13 +334,73 @@ const PromptBox: React.FC<PromptBoxProps> = ({
       setError(null);
 
       try {
+        const user = auth.currentUser;
+        if (!user) {
+          toast.error("Please sign in to create a project");
+          return;
+        }
+
+        const status = await checkAndUpdateChatLimit(user.uid);
+        if (!status.canSendMessage) {
+          const resetTime = status.resetsAt.toLocaleDateString();
+          if (!status.isPremium && status.total <= 5) {
+            toast.error("Daily chat limit reached", {
+              description:
+                "Daily chat limit reached (5/5). Resets at midnight. Upgrade for unlimited daily chats!",
+              action: {
+                label: "Upgrade",
+                onClick: () => console.log("Upgrade clicked"),
+              },
+            });
+          } else {
+            toast.error("Monthly credit limit reached", {
+              description: `Monthly credit limit reached (${status.total}/${status.total}). Resets on ${resetTime}. Upgrade for more credits!`,
+              action: {
+                label: "Upgrade",
+                onClick: () => console.log("Upgrade clicked"),
+              },
+            });
+          }
+          return;
+        }
         if (onSend) onSend(prompt);
         const projectId = await createProject(prompt, visibility, "sketch");
+
+        // 2. Deduct Credit AFTER success
+        if (auth.currentUser) {
+          await incrementChatCount(auth.currentUser.uid);
+
+          // 3. Show success status
+          const updatedStatus = await checkAndUpdateChatLimit(
+            auth.currentUser.uid
+          );
+          const remainingText = updatedStatus.isPremium
+            ? `${updatedStatus.remaining} credits remaining this month`
+            : `${updatedStatus.remaining} chats remaining today`;
+
+          toast.success(`Project created! ${remainingText}`);
+        }
         setPrompt("");
         router.push(`/project/${projectId}`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error creating project:", error);
-        setError("Failed to create project. Redirecting...");
+
+        let errorMessage = "Failed to create project. Redirecting...";
+
+        if (error instanceof Error) {
+          errorMessage = error.message;
+
+          if (
+            error.message.includes("limit reached") ||
+            error.message.includes("Upgrade")
+          ) {
+            setError(error.message);
+            return;
+          }
+        }
+
+        setError(errorMessage);
+
         const randomId = Math.random().toString(36).substring(2, 15);
         setTimeout(() => {
           router.push(`/project/${randomId}?fallback=true`);
@@ -494,12 +599,15 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                         />
                         <DropdownItem
                           onClick={() => {
+                            if (!canCreatePrivate) return;
                             setVisibility("private");
                             setShowDropdown(false);
                           }}
                           icon={<Lock className="w-4 h-4" />}
                           text="Private"
                           isActive={visibility === "private"}
+                          disabled={!canCreatePrivate}
+                          tooltip={getPrivateTooltip()}
                         />
                       </motion.div>
                     )}
@@ -608,12 +716,18 @@ const DropdownItem: React.FC<{
   icon: React.ReactNode;
   text: string;
   isActive?: boolean;
-}> = ({ onClick, icon, text, isActive }) => (
+  disabled?: boolean;
+  tooltip?: string;
+}> = ({ onClick, icon, text, isActive, disabled, tooltip }) => (
   <button
     onClick={onClick}
+    disabled={disabled}
+    title={tooltip}
     className={`w-full px-3 py-2.5 text-left transition-all flex items-center gap-2 text-sm capitalize ${
       isActive
         ? "bg-blue-500/20 text-blue-400"
+        : disabled
+        ? "opacity-50 cursor-not-allowed text-zinc-500"
         : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
     }`}
   >

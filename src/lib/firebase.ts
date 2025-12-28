@@ -786,4 +786,23 @@ export const incrementChatCount = async (userId: string): Promise<void> => {
   }
 };
 
+export const isUserPremium = async (): Promise<boolean> => {
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  const subscriptionsRef = collection(db, 'users', user.uid, 'subscriptions');
+  const q = query(subscriptionsRef);
+  const querySnapshot = await getDocs(q);
+
+  let isActive = false;
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.status === 'active') {
+      isActive = true;
+    }
+  });
+
+  return isActive;
+};
+
 export { auth, db };

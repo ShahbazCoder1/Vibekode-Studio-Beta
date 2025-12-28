@@ -1,0 +1,21 @@
+
+> vibekode_studio@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3002 instead.
+   ▲ Next.js 15.5.9
+   - Local:        http://localhost:3002
+   - Network:      http://192.168.0.2:3002
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ○ Compiling /login ...
+ ✓ Compiled /login in 14s (1668 modules)
+ GET /login 200 in 16487ms
+ GET /login 200 in 668ms
+ GET /login 200 in 405ms
+ GET /login 200 in 189ms
+ ✓ Compiled in 1378ms (669 modules)

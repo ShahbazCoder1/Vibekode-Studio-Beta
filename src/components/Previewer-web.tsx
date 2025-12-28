@@ -28,6 +28,7 @@ import {
   DeploymentInfo,
   getProject,
   getLatestGeneratedCode,
+  isUserPremium,
 } from "@/lib/firebase";
 
 // Define the types for our component props
@@ -108,6 +109,16 @@ export default function Previewer({
   const [hasNewVersion, setHasNewVersion] = useState<boolean>(false);
   const [lastDeployedCode, setLastDeployedCode] = useState<string>("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      const premium = await isUserPremium();
+      setIsPremium(premium);
+    };
+
+    checkPremiumStatus();
+  }, []);
 
   const contentRef = useRef<string>(htmlContent);
 
@@ -242,6 +253,29 @@ export default function Previewer({
     });
   };
 
+  const downloadProject = async () => {
+    if (!projectId) return;
+
+    try {
+      const project = await getProject(projectId);
+      const html = await getLatestGeneratedCode(projectId);
+
+      if (project && html) {
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${project.name}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error("Error downloading project:", error);
+    }
+  };
+
   const sandboxAttributes =
     "allow-downloads allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation allow-top-navigation-to-custom-protocols";
 
@@ -285,8 +319,9 @@ export default function Previewer({
         </div>
         <div className="flex items-center gap-2">
           <motion.button
-            disabled
-            className="bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-2 font-medium opacity-50 cursor-not-allowed"
+            onClick={downloadProject}
+            disabled={!isPremium}
+            className="bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

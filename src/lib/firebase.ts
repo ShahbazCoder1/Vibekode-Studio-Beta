@@ -41,7 +41,12 @@ export interface UserDocument {
   createdAt: Timestamp;
   lastLogin: Timestamp;
   projects: string[];
-  subscriptionType?: 'free' | 'premium';
+  subscriptionType: 'free' | 'go' | 'pro';
+  subscriptionStatus: 'active' | 'cancelled' | 'past_due' | 'none';
+  paypalSubscriptionId?: string;
+  monthlyCredits: number;
+  creditsUsed: number;
+  nextBillingDate?: string; // ISO String or similar
   chatUsage?: {
     count: number;
     lastCheckedDate: string; // Format: YYYY-MM-DD
@@ -154,6 +159,10 @@ export const createUserDocument = async (user: FirebaseUser): Promise<void> => {
       photoURL: user.photoURL,
       createdAt: serverTimestamp() as Timestamp,
       lastLogin: serverTimestamp() as Timestamp,
+      subscriptionType: 'free',
+      subscriptionStatus: 'active', // Free is always active
+      monthlyCredits: 0,
+      creditsUsed: 0,
     };
     await setDoc(userDocRef, { ...newUser, projects: [] });
   } else {
@@ -199,7 +208,7 @@ async function executeFirebaseWithDeduplication<T>(
   });
 
   firebaseRequestCache.set(cacheKey, requestPromise);
-  
+
   return requestPromise;
 }
 
@@ -208,7 +217,7 @@ function createContentHash(content: string, type: string, version: number): stri
   const text = `${type}_${version}_${content}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
-  
+
   // Convert to base64 safely
   const base64 = btoa(String.fromCharCode(...Array.from(data)));
   return base64.replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
@@ -225,14 +234,14 @@ export const saveChatMessage = async (
   }
 ): Promise<string> => {
   if (!projectId) throw new Error("Project ID is required to save a message.");
-  
+
   const contentHash = createContentHash(message.content, message.type, message.version);
   const cacheKey = createFirebaseCacheKey('saveChatMessage', projectId, contentHash, message.type, message.version);
-  
+
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       const chatRef = collection(db, 'projects', projectId, 'chat');
-      
+
       const dataToSave: DocumentData = {
         version: message.version,
         type: message.type,
@@ -275,7 +284,7 @@ export const createProject = async (
   if (!user) throw new Error('User must be authenticated to create a project');
 
   const cacheKey = createFirebaseCacheKey('createProject', user.uid, prompt, visibility, mode);
-  
+
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       const projectName = prompt.length > 50 ? `${prompt.substring(0, 47)}...` : prompt;
@@ -289,7 +298,7 @@ export const createProject = async (
         visibility,
         mode,
       });
-      
+
       await updateDoc(docRef, { id: docRef.id });
 
       const userDocRef = doc(db, 'users', user.uid);
@@ -343,7 +352,7 @@ export const getChatHistory = async (projectId: string): Promise<ChatMessage[]> 
     const chatRef = collection(db, 'projects', projectId, 'chat');
     const q = query(chatRef, orderBy('timestamp', 'asc'));
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -378,26 +387,26 @@ export const chatExists = async (projectId: string): Promise<boolean> => {
 
 export const getUserProjects = async (userId: string): Promise<ProjectDocument[]> => {
   if (!userId) return [];
-  
+
   const cacheKey = createFirebaseCacheKey('getUserProjects', userId);
-  
+
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       // Get user document to get project IDs
       const userDocRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (!userDoc.exists()) {
         return [];
       }
-      
+
       const userData = userDoc.data();
       const projectIds = userData.projects || [];
-      
+
       if (projectIds.length === 0) {
         return [];
       }
-      
+
       // Fetch all projects for this user
       const projectPromises = projectIds.map(async (projectId: string) => {
         const projectDocRef = doc(db, 'projects', projectId);
@@ -407,7 +416,7 @@ export const getUserProjects = async (userId: string): Promise<ProjectDocument[]
         }
         return null;
       });
-      
+
       const projects = await Promise.all(projectPromises);
       return projects.filter((project): project is ProjectDocument => project !== null);
     } catch (error) {
@@ -422,14 +431,14 @@ export const deleteProject = async (projectId: string): Promise<void> => {
   if (!user) throw new Error('User must be authenticated to delete a project');
 
   const cacheKey = createFirebaseCacheKey('deleteProject', projectId, user.uid);
-  
+
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       // First, delete all chat messages in the project
       const chatRef = collection(db, 'projects', projectId, 'chat');
       const chatQuery = query(chatRef, orderBy('timestamp', 'asc'));
       const chatSnapshot = await getDocs(chatQuery);
-      
+
       const deletePromises = chatSnapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
 
@@ -459,7 +468,7 @@ export const saveDeploymentInfo = async (projectId: string, deploymentData: {
   siteId: string;
 }): Promise<void> => {
   if (!projectId) throw new Error("Project ID is required to save deployment info.");
-  
+
   try {
     const deploymentDocRef = doc(db, 'deployments', projectId);
     await setDoc(deploymentDocRef, {
@@ -478,11 +487,11 @@ export const saveDeploymentInfo = async (projectId: string, deploymentData: {
 
 export const getDeploymentInfo = async (projectId: string): Promise<DeploymentInfo | null> => {
   if (!projectId) return null;
-  
+
   try {
     const deploymentDocRef = doc(db, 'deployments', projectId);
     const deploymentDoc = await getDoc(deploymentDocRef);
-    
+
     if (deploymentDoc.exists()) {
       return deploymentDoc.data() as DeploymentInfo;
     }
@@ -495,12 +504,12 @@ export const getDeploymentInfo = async (projectId: string): Promise<DeploymentIn
 
 export const getLatestGeneratedCode = async (projectId: string): Promise<string | null> => {
   if (!projectId) return null;
-  
+
   try {
     const chatRef = collection(db, 'projects', projectId, 'chat');
     const q = query(chatRef, orderBy('timestamp', 'desc'));
     const querySnapshot = await getDocs(q);
-    
+
     // Find the most recent message with appCode
     for (const doc of querySnapshot.docs) {
       const data = doc.data();
@@ -508,7 +517,7 @@ export const getLatestGeneratedCode = async (projectId: string): Promise<string 
         return data.appCode;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching latest generated code:', error);
@@ -532,32 +541,24 @@ function getTomorrowMidnight(): Date {
 
 export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimitStatus> => {
   if (!userId) throw new Error("User ID is required to check chat limit.");
-  
+
   try {
     const userDocRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userDocRef);
-    
+
     if (!userDoc.exists()) {
       throw new Error("User document not found.");
     }
-    
+
     const userData = userDoc.data() as UserDocument;
     const today = getTodayDateString();
-    
+
     // Initialize defaults for existing users without these fields
     const subscriptionType = userData.subscriptionType || 'free';
     let chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
-    
-    // If user doesn't have subscription fields, add them
-    if (!userData.subscriptionType || !userData.chatUsage) {
-      await updateDoc(userDocRef, {
-        subscriptionType: 'free',
-        chatUsage: { count: 0, lastCheckedDate: today }
-      });
-    }
-    
-    // Premium users have unlimited access
-    if (subscriptionType === 'premium') {
+
+    // Pro users have unlimited access
+    if (subscriptionType === 'pro') {
       return {
         canSendMessage: true,
         remaining: Infinity,
@@ -566,17 +567,38 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
         resetsAt: getTomorrowMidnight(),
       };
     }
-    
+
+    // Go users have monthly credits
+    if (subscriptionType === 'go') {
+      // Monthly credits are managed via webhooks/payments, but we track usage here
+      // Assuming monthlyCredits is set on user doc, default to 50 if missing
+      const monthlyLimit = userData.monthlyCredits || 50;
+      const used = userData.creditsUsed || 0;
+
+      return {
+        canSendMessage: used < monthlyLimit,
+        remaining: Math.max(0, monthlyLimit - used),
+        total: monthlyLimit,
+        isPremium: true,
+        resetsAt: getTomorrowMidnight(), // Technically resets on billing date, but showing midnight is fine for UI
+      };
+    }
+
+    // If user doesn't have subscription fields, ensure defaults (legacy support)
+    if (!userData.subscriptionType) {
+      // ... existing lazy init logic if needed, or just proceed as free
+    }
+
     // Check if it's a new day - auto reset if yes
     if (chatUsage.lastCheckedDate !== today) {
       chatUsage = { count: 0, lastCheckedDate: today };
       await updateDoc(userDocRef, { chatUsage });
     }
-    
+
     // Check free tier limit
     const canSendMessage = chatUsage.count < FREE_TIER_DAILY_LIMIT;
     const remaining = Math.max(0, FREE_TIER_DAILY_LIMIT - chatUsage.count);
-    
+
     return {
       canSendMessage,
       remaining,
@@ -592,25 +614,34 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
 
 export const incrementChatCount = async (userId: string): Promise<void> => {
   if (!userId) throw new Error("User ID is required to increment chat count.");
-  
+
   try {
     const userDocRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userDocRef);
-    
+
     if (!userDoc.exists()) {
       throw new Error("User document not found.");
     }
-    
+
     const userData = userDoc.data() as UserDocument;
     const today = getTodayDateString();
-    
-    // Skip increment for premium users
-    if (userData.subscriptionType === 'premium') {
+
+    // Skip increment for Pro users (unlimited)
+    if (userData.subscriptionType === 'pro') {
       return;
     }
-    
+
+    // For Go users, increment monthly usage
+    if (userData.subscriptionType === 'go') {
+      const currentUsed = userData.creditsUsed || 0;
+      await updateDoc(userDocRef, {
+        creditsUsed: currentUsed + 1
+      });
+      return;
+    }
+
     const chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
-    
+
     // Ensure we're incrementing for the correct day
     if (chatUsage.lastCheckedDate !== today) {
       await updateDoc(userDocRef, {

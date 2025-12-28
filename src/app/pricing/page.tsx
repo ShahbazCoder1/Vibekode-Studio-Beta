@@ -2,12 +2,12 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Check, 
-  Zap, 
-  Crown, 
-  Rocket, 
-  Shield, 
+import {
+  Check,
+  Zap,
+  Crown,
+  Rocket,
+  Shield,
   ChevronDown,
   Sparkles,
   Infinity,
@@ -20,6 +20,9 @@ import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import PersistentBetaBanner from "@/components/ScrollingBetaBanner";
 import SmoothScroll from "@/components/ui/SmoothScroll";
+import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // --- TYPES ---
 interface PricingTier {
@@ -66,7 +69,7 @@ const pricingTiers: PricingTier[] = [
       "5 Private projects",
       "1-click deployment"
     ],
-    cta: "Join Waitlist",
+    cta: "Get Started",
     ctaLink: "#",
     comingSoon: true,
   },
@@ -82,7 +85,7 @@ const pricingTiers: PricingTier[] = [
       "unlimited Private projects",
       "1-click deployment"
     ],
-    cta: "Join Waitlist",
+    cta: "Get Started",
     ctaLink: "#",
     comingSoon: true,
   },
@@ -121,7 +124,7 @@ const GradientText = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-const PricingCard = ({ tier, index }: { tier: PricingTier; index: number }) => {
+const PricingCard = ({ tier, index, onSubscribe }: { tier: PricingTier; index: number; onSubscribe: (tierName: string) => void }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -130,8 +133,8 @@ const PricingCard = ({ tier, index }: { tier: PricingTier; index: number }) => {
       viewport={{ once: true }}
       className={cn(
         "relative flex flex-col p-8 rounded-2xl transition-all duration-300 h-full",
-        tier.highlighted 
-          ? "bg-[#0f0f12] border border-[#5b21b6]/50 shadow-2xl shadow-[#5b21b6]/10" 
+        tier.highlighted
+          ? "bg-[#0f0f12] border border-[#5b21b6]/50 shadow-2xl shadow-[#5b21b6]/10"
           : "bg-[#09090b]/40 border border-zinc-800/50 border-dashed hover:border-zinc-700",
         tier.comingSoon && "opacity-80"
       )}
@@ -192,8 +195,9 @@ const PricingCard = ({ tier, index }: { tier: PricingTier; index: number }) => {
         </ul>
       </div>
 
-      <Link href={tier.ctaLink} className={cn("mt-auto block", tier.comingSoon && "pointer-events-none")}>
+      <div className={cn("mt-auto block", tier.comingSoon && "pointer-events-none")}>
         <motion.button
+          onClick={() => !tier.comingSoon && tier.price !== "$0" ? onSubscribe(tier.name) : null}
           whileHover={!tier.comingSoon ? { scale: 1.02 } : {}}
           whileTap={!tier.comingSoon ? { scale: 0.98 } : {}}
           className={cn(
@@ -201,18 +205,25 @@ const PricingCard = ({ tier, index }: { tier: PricingTier; index: number }) => {
             tier.highlighted
               ? "bg-gradient-to-r from-[#5b21b6] to-[#1e40af] text-white hover:shadow-lg hover:shadow-[#5b21b6]/25"
               : "bg-zinc-900 border border-zinc-800 text-zinc-400",
-            tier.comingSoon && "opacity-50 cursor-not-allowed"
+            tier.comingSoon && "opacity-50 cursor-not-allowed",
+            tier.price === "$0" && "bg-zinc-800 hover:bg-zinc-700 text-white"
           )}
         >
-          {tier.cta}
+          {tier.price === "$0" ? (
+            <Link href={tier.ctaLink} className="w-full h-full flex items-center justify-center">
+              {tier.cta}
+            </Link>
+          ) : (
+            tier.cta
+          )}
         </motion.button>
-      </Link>
+      </div>
     </motion.div>
   );
 };
 
 const AccordionItem = ({ faq, isOpen, onClick }: { faq: { question: string, answer: string }, isOpen: boolean, onClick: () => void }) => (
-  <motion.div 
+  <motion.div
     initial={false}
     className="border-b border-zinc-800 last:border-0"
   >
@@ -255,6 +266,38 @@ const AccordionItem = ({ faq, isOpen, onClick }: { faq: { question: string, answ
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const router = useRouter();
+
+  const handleSubscribe = async (tierName: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Please log in to subscribe");
+      router.push("/login"); // Or trigger login modal
+      return;
+    }
+
+    try {
+      toast.loading("Processing subscription...");
+      const idToken = await user.getIdToken();
+      // Send tierName directly to server; server handles plan ID mapping securely.
+      const response = await fetch("/api/paypal/create-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tierName, idToken }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      if (data.approvalUrl) {
+        window.location.href = data.approvalUrl;
+      }
+    } catch (error: unknown) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to start subscription: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
 
   return (
     <SmoothScroll>
@@ -270,7 +313,7 @@ export default function PricingPage() {
         </div>
 
         <main className="relative z-10 pt-24 pb-20">
-          
+
           {/* Hero Section */}
           <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-20 text-center">
             <motion.div
@@ -283,12 +326,12 @@ export default function PricingPage() {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Limited Free Beta Access</span>
               </div>
-              
+
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
                 Simple pricing, <br className="hidden md:block" />
                 <GradientText>Unlimited Potential</GradientText>
               </h1>
-              
+
               <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10">
                 Start building today with our generous free tier. Upgrade later for unlimited power as you scale your applications.
               </p>
@@ -299,7 +342,7 @@ export default function PricingPage() {
           <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-32">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
               {pricingTiers.map((tier, index) => (
-                <PricingCard key={tier.name} tier={tier} index={index} />
+                <PricingCard key={tier.name} tier={tier} index={index} onSubscribe={handleSubscribe} />
               ))}
             </div>
           </section>
@@ -310,7 +353,7 @@ export default function PricingPage() {
               <h2 className="text-3xl font-bold text-white mb-4">Everything you need to ship</h2>
               <p className="text-zinc-400">Built for speed, designed for quality.</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
               {[
                 {
@@ -360,14 +403,14 @@ export default function PricingPage() {
                   Frequently Asked <GradientText>Questions</GradientText>
                 </SectionTitle>
               </div>
-              
+
               <div className="bg-[#0f0f12]/50 border border-zinc-800/50 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
                 {faqs.map((faq, index) => (
-                  <AccordionItem 
-                    key={index} 
-                    faq={faq} 
-                    isOpen={openFaq === index} 
-                    onClick={() => setOpenFaq(openFaq === index ? null : index)} 
+                  <AccordionItem
+                    key={index}
+                    faq={faq}
+                    isOpen={openFaq === index}
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   />
                 ))}
               </div>
@@ -375,7 +418,7 @@ export default function PricingPage() {
           </section>
 
         </main>
-        
+
         <Footer />
       </div>
     </SmoothScroll>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ComponentType } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   User,
@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
   Settings,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,7 +41,11 @@ interface UserData {
     count: number;
     lastCheckedDate: string;
   };
-  subscriptionType: "free" | "premium";
+  subscriptionType: "free" | "go" | "pro";
+  monthlyCredits?: number;
+  creditsUsed?: number;
+  nextBillingDate?: string;
+  paypalSubscriptionId?: string;
 }
 
 type Tab = "profile" | "usage" | "about";
@@ -59,7 +64,7 @@ const TabButton = ({
   active: boolean;
   id: Tab;
   label: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   onClick: () => void;
 }) => (
   <button
@@ -105,7 +110,7 @@ const RedditIcon = ({ className }: { className?: string }) => (
     fill="currentColor"
     className={className}
   >
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
   </svg>
 );
 
@@ -139,7 +144,6 @@ const LogoutConfirmDialog = ({
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative bg-[#09090b] border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl"
               >
-                {/* Accessibility Title for Logout */}
                 <Dialog.Title className="text-lg font-semibold text-white mb-2">
                   Sign Out?
                 </Dialog.Title>
@@ -178,6 +182,365 @@ const LogoutConfirmDialog = ({
   </AnimatePresence>
 );
 
+// --- VIEW COMPONENTS ---
+
+const ProfileView = ({ userData }: { userData: UserData | null }) => {
+  const [copied, setCopied] = useState(false);
+
+  if (!userData) return null;
+
+  const handleCopyEmail = () => {
+    if (userData.email) {
+      navigator.clipboard.writeText(userData.email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionCard>
+        <div className="flex items-start gap-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
+              {userData.photoURL ? (
+                <img
+                  src={userData.photoURL}
+                  alt={userData.displayName || "User"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-10 h-10 text-zinc-600" />
+              )}
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-full border-4 border-[#09090b] flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+            </div>
+          </div>
+          <div className="flex-1 pt-2">
+            <h3 className="text-2xl font-bold text-white">
+              {userData.displayName}
+            </h3>
+            <div className="flex items-center gap-2 mt-1.5">
+              <p className="text-zinc-400 font-medium">{userData.email}</p>
+              <button
+                onClick={handleCopyEmail}
+                className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white"
+                title="Copy email"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-semibold bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
+              <Sparkles className="w-3 h-3" />
+              Beta User
+            </span>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard>
+        <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+          <Info className="w-4 h-4 text-zinc-500" />
+          Account Details
+        </h4>
+        <div className="space-y-0 divide-y divide-zinc-800">
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Status</span>
+            <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active
+            </span>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Member Since</span>
+            <span className="text-sm text-zinc-300">Beta 2025</span>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-sm text-zinc-500">Plan Type</span>
+            <span className="text-sm text-white capitalize font-medium">
+              {userData.subscriptionType} Plan
+            </span>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
+};
+
+const UsageView = ({ userData }: { userData: UserData | null }) => {
+  if (!userData) return null;
+
+  const today = new Date().toISOString().split("T")[0];
+  const isFree = userData.subscriptionType === 'free';
+
+  // Calculate limits based on plan
+  let limit = FREE_DAILY_LIMIT;
+  let usage = userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
+  let label = "Daily Credits";
+
+  if (userData.subscriptionType === 'go') {
+    limit = userData.monthlyCredits || 50;
+    usage = userData.creditsUsed || 0;
+    label = "Monthly Credits";
+  } else if (userData.subscriptionType === 'pro') {
+    limit = Infinity;
+    usage = 0; // Or track total usage if available
+    label = "Unlimited Credits";
+  }
+
+  const percentage = limit === Infinity ? 0 : Math.min((usage / limit) * 100, 100);
+  const remaining = limit === Infinity ? "∞" : Math.max(limit - usage, 0);
+
+  // Calculate reset time
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const hoursUntilReset = Math.floor(
+    (tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60)
+  );
+
+  const handleCancelClick = async () => {
+    if (!userData.paypalSubscriptionId) return;
+    if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features at the end of the billing period.")) return;
+
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/paypal/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: userData.paypalSubscriptionId, idToken })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Subscription cancelled successfully.");
+      } else {
+        alert("Failed to cancel: " + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error cancelling subscription");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6">
+        <div className="flex items-start justify-between relative z-10">
+          <div>
+            <h3 className="text-white font-bold text-lg flex items-center gap-2 capitalize">
+              <Sparkles className="w-4 h-4 text-[#7c3aed]" /> {userData.subscriptionType} Plan
+            </h3>
+            <p className="text-zinc-400 text-sm mt-1 max-w-sm">
+              {isFree ? "You are using the free tier." : `You are subscribed to the ${userData.subscriptionType} plan.`}
+            </p>
+            {userData.nextBillingDate && (
+              <p className="text-xs text-zinc-500 mt-2">
+                Next billing: {new Date(userData.nextBillingDate).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+          <div className="text-right">
+            <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
+              {remaining}
+            </span>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+              Credits Left
+            </span>
+          </div>
+        </div>
+
+        {!isFree && (
+          <div className="mt-4 pt-4 border-t border-zinc-700/50 flex justify-end">
+            <button
+              onClick={handleCancelClick}
+              className="text-xs text-red-400 hover:text-red-300 transition-colors"
+            >
+              Cancel Subscription
+            </button>
+          </div>
+        )}
+      </div>
+
+      <SectionCard>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-zinc-500" />
+            {label}
+          </h4>
+          {isFree && (
+            <span className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
+              Resets in {hoursUntilReset}h
+            </span>
+          )}
+        </div>
+
+        {limit !== Infinity && (
+          <>
+            <div className="mb-3 flex justify-between text-sm">
+              <span className="text-zinc-300 font-medium">{usage} used</span>
+              <span className="text-zinc-500">{limit} total</span>
+            </div>
+
+            <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className={cn(
+                  "h-full rounded-full relative",
+                  percentage > 85
+                    ? "bg-red-500"
+                    : "bg-gradient-to-r from-[#5b21b6] to-[#1e40af]"
+                )}
+              ></motion.div>
+            </div>
+          </>
+        )}
+
+        {limit === Infinity && (
+          <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 text-sm text-emerald-400">
+            You have unlimited credits! Enjoy building.
+          </div>
+        )}
+
+        {percentage > 85 && limit !== Infinity && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20 flex gap-3 items-start"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-red-300 leading-relaxed">
+              You are running low on credits.
+            </p>
+          </motion.div>
+        )}
+      </SectionCard>
+
+      {isFree && (
+        <div className="border border-dashed border-zinc-800 rounded-xl p-6 relative overflow-hidden group hover:border-[#5b21b6]/30 transition-colors">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#5b21b6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-zinc-500" />
+                Upgrade to Pro
+              </h4>
+            </div>
+            <p className="text-sm text-zinc-500 mb-6">
+              Unlock unlimited chats, faster generation speeds, and priority
+              support.
+            </p>
+            <a
+              href="/pricing"
+              className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium rounded-lg hover:text-white hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
+            >
+              View Plans
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AboutView = () => (
+  <div className="space-y-6">
+    <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
+      <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
+        <img
+          src="/logo.png"
+          alt="VibeKode Studio Logo"
+          className="w-16 h-16 object-contain"
+        />
+      </div>
+
+      <h3 className="text-xl font-bold text-white">VibeKode Studio</h3>
+      <p className="text-sm text-[#7c3aed] font-medium mt-1">
+        Beta Release v0.1
+      </p>
+      <p className="text-xs text-zinc-500 mt-2 max-w-sm">
+        Empowering creators with AI-powered code generation.
+      </p>
+    </div>
+
+    <SectionCard>
+      <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <MessageSquare className="w-4 h-4 text-zinc-500" />
+        Community
+      </h4>
+      <div className="space-y-2">
+        <a
+          href="https://www.reddit.com/r/VibeKode/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#FF4500]/10 rounded-md group-hover:bg-[#FF4500]/20 transition-colors">
+              <RedditIcon className="w-5 h-5 text-[#FF4500]" />
+            </div>
+            <div>
+              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
+                Join our Subreddit
+              </span>
+              <span className="text-xs text-zinc-500">r/VibeKode</span>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+        </a>
+
+        <a
+          href="https://www.linkedin.com/company/vibekode-studio"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#0A66C2]/10 rounded-md group-hover:bg-[#0A66C2]/20 transition-colors">
+              <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            </div>
+            <div>
+              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
+                Connect on LinkedIn
+              </span>
+              <span className="text-xs text-zinc-500">Follow for updates</span>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+        </a>
+      </div>
+    </SectionCard>
+
+    <div className="grid grid-cols-2 gap-4">
+      <a
+        href="#"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+      >
+        Documentation <ExternalLink className="w-3 h-3" />
+      </a>
+      <a
+        href="/legal/privacy"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+      >
+        Privacy Policy <ExternalLink className="w-3 h-3" />
+      </a>
+    </div>
+
+    <div className="text-center pt-6 border-t border-zinc-800">
+      <p className="text-xs text-zinc-600">
+        © 2025 VibeKode Inc. All rights reserved.
+      </p>
+    </div>
+  </div>
+);
+
 // --- MAIN COMPONENT ---
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
@@ -211,6 +574,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               lastCheckedDate: new Date().toISOString().split("T")[0],
             },
             subscriptionType: data.subscriptionType || "free",
+            // New fields
+            monthlyCredits: data.monthlyCredits,
+            creditsUsed: data.creditsUsed,
+            nextBillingDate: data.nextBillingDate,
+            paypalSubscriptionId: data.paypalSubscriptionId,
           });
           setError(null);
         } else {
@@ -290,11 +658,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
                     className="w-full max-w-4xl h-[650px] bg-[#09090b] border border-zinc-800 rounded-2xl shadow-2xl flex overflow-hidden relative"
                   >
-                    {/* 
-                        ACCESSIBILITY FIX: 
-                        Dialog.Title must be a child of Dialog.Content. 
-                        We use sr-only (screen reader only) to hide it visually but keep it accessible.
-                     */}
                     <Dialog.Title className="sr-only">
                       Settings Menu
                     </Dialog.Title>
@@ -308,9 +671,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                           Settings
                         </div>
-                        {/* <p className="text-xs text-zinc-500 mt-2 pl-1">
-                          Manage your account preferences
-                        </p> */}
                       </div>
 
                       <nav className="space-y-1 flex-1">
@@ -466,300 +826,3 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     </>
   );
 }
-
-// --- SUB-VIEWS ---
-
-const ProfileView = ({ userData }: { userData: UserData | null }) => {
-  const [copied, setCopied] = useState(false);
-
-  if (!userData) return null;
-
-  const handleCopyEmail = () => {
-    if (userData.email) {
-      navigator.clipboard.writeText(userData.email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <SectionCard>
-        <div className="flex items-start gap-6">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
-              {userData.photoURL ? (
-                <img
-                  src={userData.photoURL}
-                  alt={userData.displayName || "User"}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-10 h-10 text-zinc-600" />
-              )}
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-full border-4 border-[#09090b] flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-            </div>
-          </div>
-          <div className="flex-1 pt-2">
-            <h3 className="text-2xl font-bold text-white">
-              {userData.displayName}
-            </h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <p className="text-zinc-400 font-medium">{userData.email}</p>
-              <button
-                onClick={handleCopyEmail}
-                className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white"
-                title="Copy email"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
-            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-semibold bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
-              <Sparkles className="w-3 h-3" />
-              Beta User
-            </span>
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard>
-        <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-          <Info className="w-4 h-4 text-zinc-500" />
-          Account Details
-        </h4>
-        <div className="space-y-0 divide-y divide-zinc-800">
-          <div className="flex justify-between py-3">
-            <span className="text-sm text-zinc-500">Status</span>
-            <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Active
-            </span>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-sm text-zinc-500">Member Since</span>
-            <span className="text-sm text-zinc-300">Beta 2025</span>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-sm text-zinc-500">Plan Type</span>
-            <span className="text-sm text-white capitalize font-medium">
-              {userData.subscriptionType} Plan
-            </span>
-          </div>
-        </div>
-      </SectionCard>
-    </div>
-  );
-};
-
-const UsageView = ({ userData }: { userData: UserData | null }) => {
-  if (!userData) return null;
-
-  const today = new Date().toISOString().split("T")[0];
-  const currentCount =
-    userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
-  const percentage = Math.min((currentCount / FREE_DAILY_LIMIT) * 100, 100);
-  const remaining = Math.max(FREE_DAILY_LIMIT - currentCount, 0);
-
-  // Calculate reset time
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  const hoursUntilReset = Math.floor(
-    (tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60)
-  );
-
-  return (
-    <div className="space-y-6">
-      {/* Current Plan Card */}
-      <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6">
-        <div className="flex items-start justify-between relative z-10">
-          <div>
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#7c3aed]" /> Free Beta Plan
-            </h3>
-            <p className="text-zinc-400 text-sm mt-1 max-w-sm">
-              You are currently using the free tier during our beta period.
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
-              {remaining}
-            </span>
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
-              Credits Left
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Usage Progress */}
-      <SectionCard>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-zinc-500" />
-            Daily Chat Usage
-          </h4>
-          <span className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
-            Resets in {hoursUntilReset}h
-          </span>
-        </div>
-
-        <div className="mb-3 flex justify-between text-sm">
-          <span className="text-zinc-300 font-medium">{currentCount} used</span>
-          <span className="text-zinc-500">{FREE_DAILY_LIMIT} total</span>
-        </div>
-
-        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className={cn(
-              "h-full rounded-full relative",
-              percentage > 85
-                ? "bg-red-500"
-                : "bg-gradient-to-r from-[#5b21b6] to-[#1e40af]"
-            )}
-          ></motion.div>
-        </div>
-
-        {percentage > 85 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20 flex gap-3 items-start"
-          >
-            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-red-300 leading-relaxed">
-              You are running low on daily credits.
-            </p>
-          </motion.div>
-        )}
-      </SectionCard>
-
-      {/* Premium Teaser */}
-      <div className="border border-dashed border-zinc-800 rounded-xl p-6 relative overflow-hidden group hover:border-[#5b21b6]/30 transition-colors">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#5b21b6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-zinc-500" />
-              VibeKode Premium
-            </h4>
-            <span className="px-2 py-0.5 rounded text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 font-bold uppercase tracking-wide">
-              Coming Soon
-            </span>
-          </div>
-          <p className="text-sm text-zinc-500 mb-6">
-            Unlock unlimited chats, faster generation speeds, and priority
-            support.
-          </p>
-          <button
-            disabled
-            className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-600 text-sm font-medium rounded-lg cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            Upgrade (Coming Soon)
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AboutView = () => (
-  <div className="space-y-6">
-    <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
-      <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
-        <img
-          src="/logo.png"
-          alt="VibeKode Studio Logo"
-          className="w-16 h-16 object-contain"
-        />
-      </div>
-
-      <h3 className="text-xl font-bold text-white">VibeKode Studio</h3>
-      <p className="text-sm text-[#7c3aed] font-medium mt-1">
-        Beta Release v0.1
-      </p>
-      <p className="text-xs text-zinc-500 mt-2 max-w-sm">
-        Empowering creators with AI-powered code generation.
-      </p>
-    </div>
-
-    <SectionCard>
-      <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-        <MessageSquare className="w-4 h-4 text-zinc-500" />
-        Community
-      </h4>
-      <div className="space-y-2">
-        <a
-          href="https://www.reddit.com/r/VibeKode/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#FF4500]/10 rounded-md group-hover:bg-[#FF4500]/20 transition-colors">
-              <RedditIcon className="w-5 h-5 text-[#FF4500]" />
-            </div>
-            <div>
-              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
-                Join our Subreddit
-              </span>
-              <span className="text-xs text-zinc-500">r/VibeKode</span>
-            </div>
-          </div>
-          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
-        </a>
-
-        <a
-          href="https://www.linkedin.com/company/vibekode-studio"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#0A66C2]/10 rounded-md group-hover:bg-[#0A66C2]/20 transition-colors">
-              <Linkedin className="w-5 h-5 text-[#0A66C2]" />
-            </div>
-            <div>
-              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors block font-medium">
-                Connect on LinkedIn
-              </span>
-              <span className="text-xs text-zinc-500">Follow for updates</span>
-            </div>
-          </div>
-          <ExternalLink className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
-        </a>
-      </div>
-    </SectionCard>
-
-    <div className="grid grid-cols-2 gap-4">
-      <a
-        href="#"
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
-      >
-        Documentation <ExternalLink className="w-3 h-3" />
-      </a>
-      <a
-        href="/legal/privacy"
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
-      >
-        Privacy Policy <ExternalLink className="w-3 h-3" />
-      </a>
-    </div>
-
-    <div className="text-center pt-6 border-t border-zinc-800">
-      <p className="text-xs text-zinc-600">
-        © 2025 VibeKode Inc. All rights reserved.
-      </p>
-    </div>
-  </div>
-);

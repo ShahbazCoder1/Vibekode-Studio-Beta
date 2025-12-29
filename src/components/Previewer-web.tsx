@@ -28,7 +28,10 @@ import {
   DeploymentInfo,
   getProject,
   getLatestGeneratedCode,
+  getUserSubscriptionType,
 } from "@/lib/firebase";
+import { cn } from "@/lib/utils";
+
 
 // Define the types for our component props
 interface PreviewerProps {
@@ -108,6 +111,18 @@ export default function Previewer({
   const [hasNewVersion, setHasNewVersion] = useState<boolean>(false);
   const [lastDeployedCode, setLastDeployedCode] = useState<string>("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [subscriptionType, setSubscriptionType] = useState<'free' | 'go' | 'pro'>('free');
+
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      const subType = await getUserSubscriptionType();
+      setSubscriptionType(subType);
+      setIsPremium(subType === 'go' || subType === 'pro');
+    };
+
+    checkPremiumStatus();
+  }, []);
 
   const contentRef = useRef<string>(htmlContent);
 
@@ -242,6 +257,39 @@ export default function Previewer({
     });
   };
 
+  const downloadProject = async () => {
+    if (!projectId) return;
+
+    // Check if user has Go or Pro subscription
+    if (subscriptionType === 'free') {
+      setToastMessage("Code download is only available for Go and Pro plan users. Upgrade to download!");
+      return;
+    }
+
+    try {
+      const project = await getProject(projectId);
+      const html = await getLatestGeneratedCode(projectId);
+
+      if (project && html) {
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${project.name}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setToastMessage("Project downloaded successfully!");
+      } else {
+        setToastMessage("No generated code found. Please generate code first.");
+      }
+    } catch (error) {
+      console.error("Error downloading project:", error);
+      setToastMessage("Failed to download project. Please try again.");
+    }
+  };
+
   const sandboxAttributes =
     "allow-downloads allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation allow-top-navigation-to-custom-protocols";
 
@@ -284,15 +332,29 @@ export default function Previewer({
           })}
         </div>
         <div className="flex items-center gap-2">
-          <motion.button
-            disabled
-            className="bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-2 font-medium opacity-50 cursor-not-allowed"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Download size={16} />
-            <span className="hidden sm:inline">Download</span>
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              onClick={downloadProject}
+              disabled={!isPremium}
+              className={cn(
+                "px-3 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-all",
+                isPremium
+                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  : "bg-gray-700/50 text-gray-500 cursor-not-allowed"
+              )}
+              whileHover={isPremium ? { scale: 1.05 } : {}}
+              whileTap={isPremium ? { scale: 0.95 } : {}}
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">Download</span>
+            </motion.button>
+            {!isPremium && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                Upgrade to Go or Pro to download code
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-800"></div>
+              </div>
+            )}
+          </div>
           <motion.button
             onClick={handlePublish}
             disabled={isPublishing || isUpdating || !hasGeneratedCode}

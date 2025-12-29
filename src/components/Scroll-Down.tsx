@@ -92,8 +92,8 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
   return (
     <div
       className={cn(
-        "absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2",
-        "flex flex-col items-center gap-1 sm:gap-2",
+        "absolute bottom-8 left-1/2 -translate-x-1/2 z-20",
+        "flex flex-col items-center gap-3",
         className
       )}
     >
@@ -101,92 +101,88 @@ const ScrollDown: React.FC<ScrollDownProps> = ({
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 3, duration: 0.8, ease: "easeInOut" }}
-        className="text-white/50 text-xs font-medium tracking-wide pointer-events-none"
+        transition={{ delay: 3, duration: 0.8, ease: "easeOut" }}
+        className="text-zinc-400 text-[10px] uppercase tracking-[0.2em] font-medium pointer-events-none select-none whitespace-nowrap text-center"
       >
         {text}
       </motion.p>
 
-      {/* Animated scroll button */}
-      <motion.button
-        onClick={handleClick}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 3.5, duration: 0.8, ease: "easeInOut" }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        aria-label={text}
-        className={cn(
-          "group relative",
-          "w-9 h-14 sm:w-10 sm:h-16",
-          "border-2 border-white/20 rounded-full",
-          "bg-black/10 backdrop-blur-sm",
-          "hover:border-white/40 hover:bg-black/20",
-          "transition-all duration-300",
-          "focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent",
-          isPulsing && "animate-pulse"
-        )}
-      >
-        {/* Animated dot inside the scroll indicator */}
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+      {/* Container for Button and Ring to ensure perfect stacking */}
+      <div className="relative flex items-center justify-center">
+        {/* Animated scroll button */}
+        <motion.button
+          onClick={handleClick}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3.5, duration: 0.8, ease: "easeOut" }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          aria-label={text}
           className={cn(
-            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-            "w-1 h-3.5 sm:w-1.5 sm:h-4",
-            "bg-gradient-to-b from-[#00ccb1] to-[#1ca0fb]",
-            "rounded-full",
-            "group-hover:from-[#7b61ff] group-hover:to-[#00ccb1]",
-            "transition-all duration-300"
+            "relative z-10",
+            "w-[34px] h-[54px] sm:w-[38px] sm:h-[60px]", // Refined sizing
+            "border border-white/20 rounded-full",
+            "bg-black/20 backdrop-blur-sm",
+            "hover:border-white/40 hover:bg-black/30",
+            "transition-all duration-500 ease-out",
+            "cursor-pointer",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ccb1] focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+            isPulsing && "animate-pulse"
           )}
-        />
-
-        {/* Animated chevron icon */}
-        <motion.div
-          animate={{ y: [0, 3, 0] }}
-          transition={{
-            duration: 2.2,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2"
         >
-          <ChevronDown
+          {/* Animated dot inside the scroll indicator */}
+          <motion.div
+            animate={{ y: [0, 8, 0], opacity: [1, 0.5, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             className={cn(
-              "w-4 h-4 sm:w-5 sm:h-5",
-              "text-white/60 group-hover:text-white/80",
-              "transition-colors duration-300"
+              "absolute top-2 left-1/2 -translate-x-1/2",
+              "w-1 h-2 sm:w-1.5 sm:h-2.5",
+              "bg-gradient-to-b from-[#00ccb1] to-[#1ca0fb]",
+              "rounded-full shadow-[0_0_8px_rgba(28,160,251,0.5)]"
             )}
           />
-        </motion.div>
 
-        {/* Hover effect background */}
+          {/* Animated chevron icon */}
+          <motion.div
+            animate={{ y: [0, 2, 0], opacity: [0.5, 1, 0.5] }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.2,
+            }}
+            className="absolute bottom-1.5 left-1/2 -translate-x-1/2"
+          >
+            <ChevronDown
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70"
+              strokeWidth={2.5}
+            />
+          </motion.div>
+
+          {/* Hover effect background fill */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileHover={{ opacity: 0.1 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 rounded-full bg-gradient-to-b from-[#00ccb1] via-[#7b61ff] to-[#1ca0fb]"
+          />
+        </motion.button>
+
+        {/* Pulsing ring animation - Positioned absolutely to align with button */}
         <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1, opacity: 0.08 }}
-          transition={{ duration: 0.2 }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0, 0.3, 0],
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className={cn(
-            "absolute inset-0 rounded-full",
-            "bg-gradient-to-b from-[#00ccb1] to-[#1ca0fb]"
+            "absolute inset-0 z-0",
+            "w-full h-full",
+            "border border-white/20 rounded-full",
+            "pointer-events-none"
           )}
         />
-      </motion.button>
-
-      {/* Pulsing ring animation */}
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0, 0.2],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className={cn(
-          "absolute top-5 sm:top-6",
-          "w-9 h-14 sm:w-10 sm:h-16",
-          "border-2 border-white/10 rounded-full",
-          "pointer-events-none"
-        )}
-      />
+      </div>
     </div>
   );
 };

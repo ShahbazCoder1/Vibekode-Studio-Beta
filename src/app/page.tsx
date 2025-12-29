@@ -35,7 +35,7 @@ export default function Home() {
           </div>
         </AuroraBackground>
 
-        <div id="community-showcase" className="bg-[#18181b]">
+        <div id="community-showcase" className="bg-[#09090b]">
           <CommunityProject />
         </div>
         <Footer />

@@ -14,7 +14,8 @@ interface PersistentBetaBannerProps {
 }
 
 const PersistentBetaBanner = ({
-  message = "Currently in BETA - 100% FREE to use",
+  // Updated message to drive sales while acknowledging Beta status
+  message = "Premium Plans Now LIVE! 🚀 Start Free or Upgrade for Power",
   repeatCount = 8,
   scrollDuration = 25,
 }: PersistentBetaBannerProps) => {

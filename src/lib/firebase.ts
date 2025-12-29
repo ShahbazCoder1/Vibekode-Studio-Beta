@@ -786,4 +786,43 @@ export const incrementChatCount = async (userId: string): Promise<void> => {
   }
 };
 
+export const isUserPremium = async (): Promise<boolean> => {
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  const subscriptionsRef = collection(db, 'users', user.uid, 'subscriptions');
+  const q = query(subscriptionsRef);
+  const querySnapshot = await getDocs(q);
+
+  let isActive = false;
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.status === 'active') {
+      isActive = true;
+    }
+  });
+
+  return isActive;
+};
+
+// Add new function to check subscription type
+export const getUserSubscriptionType = async (): Promise<'free' | 'go' | 'pro'> => {
+  const user = auth.currentUser;
+  if (!user) return 'free';
+
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as UserDocument;
+      return userData.subscriptionType || 'free';
+    }
+    return 'free';
+  } catch (error) {
+    console.error('Error fetching user subscription type:', error);
+    return 'free';
+  }
+};
+
 export { auth, db };

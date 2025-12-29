@@ -157,7 +157,7 @@ function ProjectPageContent() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#18181b]">
+      <div className="flex h-screen items-center justify-center bg-[#09090b]">
         <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
       </div>
     );

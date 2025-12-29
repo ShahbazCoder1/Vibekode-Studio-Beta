@@ -18,7 +18,7 @@ import {
   Send,
   LoaderCircle,
   X,
-  Pause, // Import the Pause icon
+  Pause,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -107,7 +107,6 @@ const useTypewriter = (
   return placeholder;
 };
 
-// FIX: Modified to cap the textarea height at 3 lines
 const useAutosizeTextArea = (
   textAreaRef: React.RefObject<HTMLTextAreaElement>,
   value: string
@@ -115,20 +114,17 @@ const useAutosizeTextArea = (
   useEffect(() => {
     if (textAreaRef.current) {
       const textArea = textAreaRef.current;
-      // Reset height to auto to get the correct scrollHeight
       textArea.style.height = "auto";
       const scrollHeight = textArea.scrollHeight;
 
-      // Calculate the height of 3 lines
       const style = window.getComputedStyle(textArea);
-      // Use line-height for calculation. Fallback to font-size for robustness.
       const lineHeight =
         parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
       const paddingTop = parseFloat(style.paddingTop);
       const paddingBottom = parseFloat(style.paddingBottom);
-      const maxHeight = 3 * lineHeight + paddingTop + paddingBottom;
+      // Cap at roughly 3-4 lines for better visibility before scrolling
+      const maxHeight = 4 * lineHeight + paddingTop + paddingBottom;
 
-      // If scrollHeight exceeds maxHeight, cap the height and show a scrollbar
       if (scrollHeight > maxHeight) {
         textArea.style.height = `${maxHeight}px`;
         textArea.style.overflowY = "auto";
@@ -265,7 +261,6 @@ const PromptBox: React.FC<PromptBoxProps> = ({
     return "";
   };
 
-  // Cast to the expected non-nullable type
   useAutosizeTextArea(textareaRef as RefObject<HTMLTextAreaElement>, prompt);
   useClickOutside(dropdownRef as RefObject<HTMLElement>, () =>
     setShowDropdown(false)
@@ -366,11 +361,8 @@ const PromptBox: React.FC<PromptBoxProps> = ({
         if (onSend) onSend(prompt);
         const projectId = await createProject(prompt, visibility, "sketch");
 
-        // 2. Deduct Credit AFTER success
         if (auth.currentUser) {
           await incrementChatCount(auth.currentUser.uid);
-
-          // 3. Show success status
           const updatedStatus = await checkAndUpdateChatLimit(
             auth.currentUser.uid
           );
@@ -384,12 +376,10 @@ const PromptBox: React.FC<PromptBoxProps> = ({
         router.push(`/project/${projectId}`);
       } catch (error: unknown) {
         console.error("Error creating project:", error);
-
         let errorMessage = "Failed to create project. Redirecting...";
 
         if (error instanceof Error) {
           errorMessage = error.message;
-
           if (
             error.message.includes("limit reached") ||
             error.message.includes("Upgrade")
@@ -398,9 +388,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
             return;
           }
         }
-
         setError(errorMessage);
-
         const randomId = Math.random().toString(36).substring(2, 15);
         setTimeout(() => {
           router.push(`/project/${randomId}?fallback=true`);
@@ -429,7 +417,6 @@ const PromptBox: React.FC<PromptBoxProps> = ({
     setError(null);
     try {
       const generatedText = await generateAppIdea();
-
       setPrompt(
         generatedText ||
           typingIdeas[Math.floor(Math.random() * typingIdeas.length)]
@@ -453,6 +440,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
   const box = (
     <div className={`w-full max-w-3xl ${className}`}>
       <motion.div
+        layout // Smoothly animates size changes
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0, scale: isFocused ? 1.01 : 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -464,7 +452,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
             className="p-4 sm:p-5 flex flex-col gap-4"
           >
             {/* Textarea Container */}
-            <div className="relative">
+            <motion.div layout className="relative">
               <textarea
                 ref={textareaRef}
                 value={prompt}
@@ -474,6 +462,10 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder={typingPlaceholder}
                 rows={1}
+                // --- LENIS PREVENT SCROLL FIXES ---
+                data-lenis-prevent
+                onWheel={(e) => e.stopPropagation()} 
+                // ----------------------------------
                 className="w-full bg-transparent resize-none outline-none placeholder:text-zinc-500 text-white text-base sm:text-lg leading-relaxed transition-all duration-300 min-h-[28px] pr-10 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent"
                 aria-label="Project idea prompt"
                 maxLength={1000}
@@ -494,7 +486,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   </motion.button>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
 
             {/* Character Count */}
             <AnimatePresence>
@@ -525,7 +517,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
             </AnimatePresence>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between gap-2">
+            <motion.div layout className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <IconButton
                   onClick={handleMagicClick}
@@ -545,9 +537,8 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   onClick={toggleVoice}
                   tooltip={isListening ? "Stop listening" : "Use voice input"}
                   isActive={isListening}
-                  activeColor="red" // Set active color to red
+                  activeColor="red"
                 >
-                  {/* FIX: Change icon based on listening state */}
                   {isListening ? (
                     <Pause className="w-4 h-4" />
                   ) : (
@@ -562,7 +553,7 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="px-3 py-2 rounded-lg border border-zinc-700/80 bg-zinc-800/50 text-zinc-300 hover:border-zinc-600 hover:text-white hover:bg-zinc-800/70 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium"
+                    className="h-10 px-3 rounded-lg border border-zinc-700/80 bg-zinc-800/50 text-zinc-300 hover:border-zinc-600 hover:text-white hover:bg-zinc-800/70 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium"
                     aria-label="Change project visibility"
                   >
                     {visibility === "public" ? (
@@ -620,14 +611,14 @@ const PromptBox: React.FC<PromptBoxProps> = ({
                   disabled={!prompt.trim() || isMagicLoading}
                   whileHover={{ scale: prompt.trim() ? 1.05 : 1 }}
                   whileTap={{ scale: prompt.trim() ? 0.95 : 1 }}
-                  className="bg-gradient-to-br from-blue-500 to-purple-600 text-white disabled:opacity-40 disabled:cursor-not-allowed p-2.5 rounded-lg shadow-md hover:shadow-lg hover:shadow-blue-500/30 transition-all disabled:hover:shadow-md relative overflow-hidden group"
+                  className="h-10 bg-gradient-to-br from-blue-500 to-purple-600 text-white disabled:opacity-40 disabled:cursor-not-allowed p-2.5 rounded-lg shadow-md hover:shadow-lg hover:shadow-blue-500/30 transition-all disabled:hover:shadow-md relative overflow-hidden group flex items-center justify-center"
                   aria-label="Submit prompt"
                 >
                   <Send className="w-5 h-5 relative z-10" />
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </motion.button>
               </div>
-            </div>
+            </motion.div>
           </form>
         </div>
       </motion.div>
@@ -664,7 +655,6 @@ const PromptBox: React.FC<PromptBoxProps> = ({
 
 // --- Helper Sub-components ---
 
-// FIX: Added activeColor prop for dynamic active state styling
 const IconButton: React.FC<{
   onClick: () => void;
   disabled?: boolean;
@@ -694,7 +684,7 @@ const IconButton: React.FC<{
       disabled={disabled}
       whileHover={{ scale: disabled ? 1 : 1.05 }}
       whileTap={{ scale: disabled ? 1 : 0.95 }}
-      className={`group relative px-3 py-2 rounded-lg border transition-all flex items-center gap-2 text-xs sm:text-sm font-medium ${
+      className={`group relative h-10 px-3 rounded-lg border transition-all flex items-center gap-2 text-xs sm:text-sm font-medium ${
         isActive ? activeClasses[activeColor] : inactiveClasses
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >

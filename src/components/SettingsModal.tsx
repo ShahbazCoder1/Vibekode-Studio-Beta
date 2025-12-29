@@ -18,6 +18,8 @@ import {
   Check,
   Settings,
   LucideIcon,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,7 +27,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, increment } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
 // --- TYPES ---
@@ -63,9 +64,6 @@ interface UserData {
 
 type Tab = "profile" | "usage" | "about" | "projects";
 
-// --- CONSTANTS ---
-// Removed unused FREE_DAILY_LIMIT
-
 // --- REUSABLE COMPONENTS ---
 
 const TabButton = ({
@@ -83,16 +81,16 @@ const TabButton = ({
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group",
+      "flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group mb-1",
       active
-        ? "bg-zinc-800/80 text-white shadow-sm ring-1 ring-zinc-700"
-        : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+        ? "bg-zinc-800 text-white shadow-sm ring-1 ring-zinc-700/50"
+        : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
     )}
   >
     <Icon
       className={cn(
         "w-4 h-4 transition-colors",
-        active ? "text-[#5b21b6]" : "text-zinc-500 group-hover:text-zinc-400"
+        active ? "text-[#7c3aed]" : "text-zinc-500 group-hover:text-zinc-400"
       )}
     />
     {label}
@@ -108,7 +106,7 @@ const SectionCard = ({
 }) => (
   <div
     className={cn(
-      "bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-5 hover:border-zinc-700/50 transition-colors",
+      "bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-6 backdrop-blur-sm hover:border-zinc-700/50 transition-colors",
       className
     )}
   >
@@ -123,7 +121,7 @@ const RedditIcon = ({ className }: { className?: string }) => (
     fill="currentColor"
     className={className}
   >
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
   </svg>
 );
 
@@ -213,8 +211,8 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
   return (
     <div className="space-y-6">
       <SectionCard>
-        <div className="flex items-start gap-6">
-          <div className="relative">
+        <div className="flex items-center gap-6">
+          <div className="relative shrink-0">
             <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
               {userData.photoURL ? (
                 <Image
@@ -232,15 +230,22 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
               <CheckCircle2 className="w-3.5 h-3.5 text-white" />
             </div>
           </div>
-          <div className="flex-1 pt-2">
-            <h3 className="text-2xl font-bold text-white">
-              {userData.displayName}
-            </h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <p className="text-zinc-400 font-medium">{userData.email}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+               <h3 className="text-2xl font-bold text-white truncate">
+                {userData.displayName}
+               </h3>
+               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
+                <Sparkles className="w-3 h-3" />
+                Beta
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-zinc-400 font-medium truncate">{userData.email}</p>
               <button
                 onClick={handleCopyEmail}
-                className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white"
+                className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white shrink-0"
                 title="Copy email"
               >
                 {copied ? (
@@ -250,10 +255,6 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
                 )}
               </button>
             </div>
-            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-semibold bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
-              <Sparkles className="w-3 h-3" />
-              Beta User
-            </span>
           </div>
         </div>
       </SectionCard>
@@ -263,21 +264,21 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
           <Info className="w-4 h-4 text-zinc-500" />
           Account Details
         </h4>
-        <div className="space-y-0 divide-y divide-zinc-800">
-          <div className="flex justify-between py-3">
+        <div className="space-y-0 divide-y divide-zinc-800/60">
+          <div className="flex justify-between py-3.5 items-center">
             <span className="text-sm text-zinc-500">Status</span>
             <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Active
             </span>
           </div>
-          <div className="flex justify-between py-3">
+          <div className="flex justify-between py-3.5 items-center">
             <span className="text-sm text-zinc-500">Member Since</span>
             <span className="text-sm text-zinc-300">Beta 2025</span>
           </div>
-          <div className="flex justify-between py-3">
+          <div className="flex justify-between py-3.5 items-center">
             <span className="text-sm text-zinc-500">Plan Type</span>
-            <span className="text-sm text-white capitalize font-medium">
+            <span className="text-sm text-white capitalize font-medium px-2 py-1 rounded bg-zinc-800 border border-zinc-700">
               {userData.subscriptionType} Plan
             </span>
           </div>
@@ -365,24 +366,26 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
   }) => {
     const pct = Math.min((used / total) * 100, 100);
     return (
-      <div className="mb-6 last:mb-0">
+      <div className="mb-8 last:mb-0">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
             {label}
           </h4>
-          {resetText && <span className="text-xs text-zinc-500">{resetText}</span>}
+          {resetText && <span className="text-xs text-zinc-500 font-medium">{resetText}</span>}
         </div>
-        <div className="mb-2 flex justify-between text-xs text-zinc-400">
-          <span>{used} used</span>
-          <span>{total} total</span>
-        </div>
-        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+        
+        <div className="h-2.5 w-full bg-zinc-800 rounded-full overflow-hidden mb-2">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
             className={cn("h-full rounded-full relative", pct > 90 ? "bg-red-500" : colorClass)}
           />
+        </div>
+        
+        <div className="flex justify-between text-xs text-zinc-400 font-medium">
+          <span>{used} used</span>
+          <span>{total} total</span>
         </div>
       </div>
     );
@@ -433,22 +436,22 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6">
+      <div className="relative overflow-hidden rounded-xl border border-[#5b21b6]/30 bg-gradient-to-br from-[#5b21b6]/10 via-[#1e40af]/5 to-transparent p-6 shadow-xl shadow-[#5b21b6]/5">
         <div className="flex items-start justify-between relative z-10">
           <div>
             <h3 className="text-white font-bold text-lg flex items-center gap-2 capitalize">
               <Sparkles className="w-4 h-4 text-[#7c3aed]" /> {subscriptionType} Plan
             </h3>
-            <p className="text-zinc-400 text-sm mt-1 max-w-sm">
+            <p className="text-zinc-400 text-sm mt-1 max-w-sm leading-relaxed">
               {isFree ? "You are currently on the Free tier." : `You are subscribed to the ${subscriptionType} plan.`}
             </p>
             {!isFree && userData.nextBillingDate && !isCancelled && !isExpired && (
-              <p className="text-xs text-zinc-500 mt-2">
+              <p className="text-xs text-zinc-500 mt-3 font-medium">
                 Next billing: {new Date(userData.nextBillingDate).toLocaleDateString()}
               </p>
             )}
             {isFree && (
-              <p className="text-xs text-zinc-500 mt-2">
+              <p className="text-xs text-zinc-500 mt-3 font-medium">
                 Monthly limit resets: {new Date(nextBillingDateStr!).toLocaleDateString()}
               </p>
             )}
@@ -458,19 +461,19 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
           <div className="text-right">
             {isFree ? (
               <>
-                <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-400">
+                <span className="block text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight">
                   {Math.max(0, FREE_DAILY_MAX - dailyUsage)}
                 </span>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 block">
                   Daily Chats Left
                 </span>
               </>
             ) : (
               <>
-                <span className="block text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af]">
+                <span className="block text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af] tracking-tight">
                   {Math.max(0, (subscriptionType === 'go' ? GO_MONTHLY_MAX : PRO_MONTHLY_MAX) - monthlyUsage)}
                 </span>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 block">
                   Credits Left
                 </span>
               </>
@@ -480,10 +483,10 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
 
         {/* Show cancel button only if active subscription */}
         {!isFree && subscriptionStatus === 'active' && userData.paypalSubscriptionId && (
-          <div className="mt-4 pt-4 border-t border-zinc-700/50 flex justify-end">
+          <div className="mt-4 pt-4 border-t border-zinc-700/30 flex justify-end">
             <button
               onClick={handleCancelClick}
-              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5"
+              className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 font-medium hover:underline"
             >
               Cancel Subscription
             </button>
@@ -526,8 +529,8 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
       )}
 
       <SectionCard>
-        <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-zinc-500" />
+        <h4 className="text-sm font-semibold text-zinc-200 mb-6 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-zinc-500" />
           Usage Statistics
         </h4>
 
@@ -583,19 +586,19 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
       {isFree && (
         <div className="border border-dashed border-zinc-800 rounded-xl p-6 relative overflow-hidden group hover:border-[#5b21b6]/30 transition-colors">
           <div className="absolute inset-0 bg-gradient-to-br from-[#5b21b6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="pr-4">
+              <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2 mb-1">
                 <Lock className="w-4 h-4 text-zinc-500" />
-                Upgrade to Pro
+                Unlock Pro Features
               </h4>
+              <p className="text-xs text-zinc-500">
+                Get 150 credits, unlimited daily chats & priority support.
+              </p>
             </div>
-            <p className="text-sm text-zinc-500 mb-6">
-              Unlock 150 monthly credits, unlimited daily chats, and priority support.
-            </p>
             <a
               href="/pricing"
-              className="w-full py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium rounded-lg hover:text-white hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
+              className="px-4 py-2 bg-zinc-100 text-zinc-900 text-xs font-bold rounded-lg hover:bg-white hover:scale-105 transition-all flex items-center gap-2"
             >
               View Plans
             </a>
@@ -608,37 +611,39 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
 
 const AboutView = () => (
   <div className="space-y-6">
-    <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
-      <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
+    <div className="flex flex-col items-center justify-center py-10 text-center bg-zinc-900/20 rounded-xl border border-zinc-800/50">
+      <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-xl">
         <Image
           src="/logo.png"
           alt="VibeKode Studio Logo"
-          width={64}
-          height={64}
+          width={80}
+          height={80}
           className="object-contain"
         />
       </div>
 
-      <h3 className="text-xl font-bold text-white">VibeKode Studio</h3>
-      <p className="text-sm text-[#7c3aed] font-medium mt-1">
-        Beta Release v0.1
-      </p>
-      <p className="text-xs text-zinc-500 mt-2 max-w-sm">
-        Empowering creators with AI-powered code generation.
+      <h3 className="text-xl font-bold text-white tracking-tight">VibeKode Studio</h3>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20">
+            v0.1.0 Beta
+        </span>
+      </div>
+      <p className="text-sm text-zinc-500 mt-3 max-w-sm px-4">
+        Empowering creators with AI-powered code generation. Build faster, ship sooner.
       </p>
     </div>
 
     <SectionCard>
       <h4 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
         <MessageSquare className="w-4 h-4 text-zinc-500" />
-        Community
+        Community & Socials
       </h4>
-      <div className="space-y-2">
+      <div className="grid gap-3">
         <a
           href="https://www.reddit.com/r/VibeKode/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+          className="flex items-center justify-between p-3.5 rounded-lg bg-zinc-900/30 border border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all group"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#FF4500]/10 rounded-md group-hover:bg-[#FF4500]/20 transition-colors">
@@ -658,7 +663,7 @@ const AboutView = () => (
           href="https://www.linkedin.com/company/vibekode-studio"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-800"
+          className="flex items-center justify-between p-3.5 rounded-lg bg-zinc-900/30 border border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all group"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#0A66C2]/10 rounded-md group-hover:bg-[#0A66C2]/20 transition-colors">
@@ -679,20 +684,20 @@ const AboutView = () => (
     <div className="grid grid-cols-2 gap-4">
       <a
         href="#"
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/30 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
       >
         Documentation <ExternalLink className="w-3 h-3" />
       </a>
       <a
         href="/legal/privacy"
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900/30 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all text-xs font-medium"
       >
         Privacy Policy <ExternalLink className="w-3 h-3" />
       </a>
     </div>
 
-    <div className="text-center pt-6 border-t border-zinc-800">
-      <p className="text-xs text-zinc-600">
+    <div className="text-center pt-4">
+      <p className="text-[10px] text-zinc-600">
         © 2025 VibeKode Inc. All rights reserved.
       </p>
     </div>
@@ -781,29 +786,29 @@ const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | n
   return (
     <div className="space-y-6">
       <SectionCard>
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-zinc-800/50 rounded-lg">
+        <div className="flex items-start gap-5">
+          <div className="p-3 bg-zinc-800/50 rounded-xl shrink-0">
             {isPrivate ? (
               <EyeOff className="w-6 h-6 text-amber-500" />
             ) : (
               <Eye className="w-6 h-6 text-blue-500" />
             )}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-white mb-1">
               Project Privacy
             </h3>
-            <p className="text-sm text-zinc-400 mb-4">
+            <p className="text-sm text-zinc-400 mb-5 truncate">
               {project.name}
             </p>
             
-            <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50">
+            <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
               <div>
-                <p className="text-sm font-medium text-white mb-1">
+                <p className="text-sm font-medium text-white mb-1.5">
                   Current Status
                 </p>
                 <span className={cn(
-                  "text-xs uppercase font-bold px-2 py-1 rounded-full border inline-block",
+                  "text-[10px] uppercase font-bold px-2.5 py-1 rounded-full border inline-block tracking-wide",
                   isPrivate
                     ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                     : "bg-blue-500/10 text-blue-500 border-blue-500/20"
@@ -816,20 +821,20 @@ const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | n
                 onClick={handleToggleVisibility}
                 disabled={updating || (!canMakePrivate && !isPrivate)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg",
                   updating
                     ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                     : isPrivate
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
                     : canMakePrivate
-                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
                     : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                 )}
               >
                 {updating ? (
                   <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />
-                    Updating...
+                    <div className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                    Updating
                   </span>
                 ) : isPrivate ? (
                   "Make Public"
@@ -840,12 +845,12 @@ const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | n
             </div>
 
             {!canMakePrivate && !isPrivate && (
-              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                <p className="text-xs text-amber-400 flex items-start gap-2">
-                  <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="mt-4 p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg">
+                <p className="text-xs text-amber-500/80 flex items-start gap-2">
+                  <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>
                     Upgrade to Go or Pro to create private projects. 
-                    <a href="/pricing" className="underline ml-1 hover:text-amber-300">
+                    <a href="/pricing" className="underline ml-1 hover:text-amber-400 font-medium">
                       View Plans
                     </a>
                   </span>
@@ -865,15 +870,15 @@ const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | n
           <div className="flex gap-3">
             <Eye className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-zinc-300 mb-1">Public Projects</p>
-              <p className="text-xs">Visible to everyone and featured in the community showcase</p>
+              <p className="font-medium text-zinc-300 mb-0.5">Public Projects</p>
+              <p className="text-xs leading-relaxed text-zinc-500">Visible to everyone. Can be shared via link and featured in the community showcase.</p>
             </div>
           </div>
           <div className="flex gap-3">
             <EyeOff className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-zinc-300 mb-1">Private Projects</p>
-              <p className="text-xs">Only visible to you. Perfect for personal or client work</p>
+              <p className="font-medium text-zinc-300 mb-0.5">Private Projects</p>
+              <p className="text-xs leading-relaxed text-zinc-500">Only visible to you. Secure and perfect for personal IP or client work.</p>
             </div>
           </div>
         </div>
@@ -881,11 +886,14 @@ const ProjectVisibilityView = ({ userData, projectId }: { userData: UserData | n
 
       {userData && (
         <div className="p-4 bg-zinc-900/40 border border-zinc-800/60 rounded-xl">
-          <p className="text-xs text-zinc-500 text-center">
-            {userData.subscriptionType === 'free' && "Free: 0 Private Projects"}
-            {userData.subscriptionType === 'go' && `Go: ${userData.privateProjectsCount || 0}/5 Private Projects Used`}
-            {userData.subscriptionType === 'pro' && "Pro: Unlimited Private Projects"}
-          </p>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-zinc-500">Private Usage</span>
+            <span className="text-zinc-300 font-medium">
+                {userData.subscriptionType === 'free' && "0 Allowed"}
+                {userData.subscriptionType === 'go' && `${userData.privateProjectsCount || 0} / 5 Used`}
+                {userData.subscriptionType === 'pro' && "Unlimited"}
+            </span>
+          </div>
         </div>
       )}
     </div>
@@ -949,7 +957,7 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
     return () => unsubscribe();
   }, [isOpen]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (UI removed, but logic kept as per instructions to not change code logic excessively)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -1003,7 +1011,7 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm"
+                  className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-md"
                 />
               </Dialog.Overlay>
 
@@ -1015,20 +1023,20 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                    className="w-full max-w-4xl h-[650px] bg-[#09090b] border border-zinc-800 rounded-2xl shadow-2xl flex overflow-hidden relative"
+                    className="w-full max-w-4xl h-[650px] bg-[#09090b] border border-zinc-800/80 rounded-2xl shadow-2xl flex overflow-hidden relative"
                   >
                     <Dialog.Title className="sr-only">
                       Settings Menu
                     </Dialog.Title>
 
                     {/* LEFT SIDEBAR */}
-                    <aside className="w-64 bg-zinc-900/20 border-r border-zinc-800 flex flex-col p-6">
-                      <div className="mb-8 pl-2">
-                        <div className="flex items-center gap-2 text-white font-bold text-lg">
-                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5b21b6] to-[#1e40af]">
+                    <aside className="w-64 bg-zinc-900/30 border-r border-zinc-800 flex flex-col p-5">
+                      <div className="mb-8 pl-1">
+                        <div className="flex items-center gap-2.5 text-white font-bold text-lg">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5b21b6] to-[#1e40af] shadow-lg shadow-[#5b21b6]/20">
                             <Settings className="w-4 h-4 text-white" />
                           </div>
-                          Settings
+                          <span className="tracking-tight">Settings</span>
                         </div>
                       </div>
 
@@ -1065,45 +1073,14 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                         />
                       </nav>
 
-                      {/* Keyboard Shortcuts Hint */}
-                      <div className="mt-4 px-3 py-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
-                          Shortcuts
-                        </p>
-                        <div className="space-y-1.5 text-xs text-zinc-500">
-                          <div className="flex justify-between items-center">
-                            <span>Usage</span>
-                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
-                              ⌘U
-                            </kbd>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Profile</span>
-                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
-                              ⌘1
-                            </kbd>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Projects</span>
-                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
-                              ⌘P
-                            </kbd>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>About</span>
-                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[10px] font-mono border border-zinc-700 text-zinc-400">
-                              ⌘3
-                            </kbd>
-                          </div>
-                        </div>
-                      </div>
+                      {/* REMOVED SHORTCUTS UI SECTION HERE */}
 
-                      <div className="mt-6 pt-6 border-t border-zinc-800">
+                      <div className="mt-auto pt-6 border-t border-zinc-800/50">
                         <button
                           onClick={() => setShowLogoutConfirm(true)}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors group"
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors group"
                         >
-                          <LogOut className="w-4 h-4 group-hover:text-red-400" />
+                          <LogOut className="w-4 h-4 group-hover:text-red-400 transition-colors" />
                           Sign Out
                         </button>
                       </div>
@@ -1112,11 +1089,11 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                     {/* RIGHT CONTENT AREA */}
                     <main
                       data-lenis-prevent="true"
-                      className="flex-1 overflow-y-auto bg-[#09090b] relative custom-scrollbar"
+                      className="flex-1 overflow-y-auto bg-[#09090b] relative custom-scrollbar scroll-smooth"
                     >
                       {/* Top Header inside scroll area */}
-                      <div className="sticky top-0 z-20 bg-[#09090b]/95 backdrop-blur-md px-8 py-6 border-b border-zinc-800 flex items-center justify-between">
-                        <h1 className="text-2xl font-bold text-white">
+                      <div className="sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-xl px-8 py-6 border-b border-zinc-800/60 flex items-center justify-between">
+                        <h1 className="text-xl font-bold text-white tracking-tight">
                           {activeTab === "profile" && "My Profile"}
                           {activeTab === "usage" && "Usage & Plan"}
                           {activeTab === "projects" && "Project Privacy"}
@@ -1126,10 +1103,10 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                         <Dialog.Close asChild>
                           <button
                             onClick={onClose}
-                            className="group p-2 rounded-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95"
+                            className="group p-2 rounded-full bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95"
                             aria-label="Close settings"
                           >
-                            <X className="w-5 h-5 text-zinc-400 group-hover:text-white" />
+                            <X className="w-4 h-4 text-zinc-400 group-hover:text-white" />
                           </button>
                         </Dialog.Close>
                       </div>
@@ -1157,7 +1134,7 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                         {loading ? (
                           <div className="flex flex-col items-center justify-center h-40">
                             <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-[#5b21b6] animate-spin" />
-                            <p className="text-sm text-zinc-500 mt-4">
+                            <p className="text-sm text-zinc-500 mt-4 animate-pulse">
                               Loading your data...
                             </p>
                           </div>
@@ -1169,7 +1146,7 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.3 }}
+                                transition={{ duration: 0.2 }}
                               >
                                 {activeTab === "profile" && (
                                   <ProfileView userData={userData} />
@@ -1201,6 +1178,33 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogout}
       />
+      {/* GLOBAL SCROLLBAR STYLE FOR MODAL */}
+      <style jsx global>{`
+        /* Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #27272a transparent;
+        }
+
+        /* Chrome, Edge, Safari */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #27272a; /* zinc-800 */
+          border-radius: 9999px;
+          border: 1px solid transparent; 
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #3f3f46; /* zinc-700 */
+        }
+      `}</style>
     </>
   );
 }

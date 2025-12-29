@@ -2,6 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /project/
 Disallow: /project/*
+Disallow: /api/
+Disallow: /api/*
+Disallow: /subscription/
 
 # Sitemap location
 Sitemap: https://vibekode.studio/sitemap.xml

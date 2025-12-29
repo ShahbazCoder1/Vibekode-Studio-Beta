@@ -268,7 +268,7 @@ const CommunityProject: React.FC<CommunityProjectProps> = ({
       <Toaster position="bottom-right" richColors theme="dark" />
 
       <section
-        className={cn("py-16 sm:py-20 lg:py-24 bg-[#18181b]", className)}
+        className={cn("py-16 sm:py-20 lg:py-24 bg-[#09090b]", className)}
         aria-labelledby="community-showcase-title"
       >
         <div className="container mx-auto px-4 sm:px-6 lg:py-8 max-w-7xl">

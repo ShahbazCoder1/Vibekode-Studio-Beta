@@ -23,7 +23,7 @@ if (!PAYPAL_PLAN_IDS.GO || !PAYPAL_PLAN_IDS.PRO) {
 }
 
 const environment =
-    process.env.NEXT_PUBLIC_PAYPAL_ENV === "production"
+    process.env.NEXT_PUBLIC_PAYPAL_MODE === "production"
         ? Environment.Production
         : Environment.Sandbox;
 
@@ -147,7 +147,7 @@ export async function getPayPalAccessToken(): Promise<string> {
     // Sandbox: https://api-m.sandbox.paypal.com
     // Production: https://api-m.paypal.com
     // Defaulting to Sandbox for safety as requested
-    const baseUrl = process.env.NEXT_PUBLIC_PAYPAL_ENV === "production"
+    const baseUrl = process.env.NEXT_PUBLIC_PAYPAL_MODE === "production"
         ? "https://api-m.paypal.com"
         : "https://api-m.sandbox.paypal.com";
 
@@ -167,6 +167,6 @@ export async function getPayPalAccessToken(): Promise<string> {
     return data.access_token;
 }
 
-export const PAYPAL_API_URL = process.env.NEXT_PUBLIC_PAYPAL_MODE === "live"
+export const PAYPAL_API_URL = process.env.NEXT_PUBLIC_PAYPAL_MODE === "production"
     ? "https://api-m.paypal.com"
     : "https://api-m.sandbox.paypal.com";

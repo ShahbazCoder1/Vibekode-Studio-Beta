@@ -67,14 +67,14 @@ const ShowcasePanel = () => {
   const slides = [...projectImages, ...projectImages];
 
   return (
-    <aside className="relative hidden h-screen w-full overflow-hidden bg-zinc-950 border-l border-white/5 lg:block">
+    <aside className="relative hidden h-screen w-full overflow-hidden bg-[#09090b] border-l border-white/5 lg:block">
       {/* Ambient background glow */}
-      <div className="absolute top-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-[120px]" />
+      <div className="absolute top-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#5b21b6]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-[#1e40af]/10 blur-[120px] pointer-events-none" />
 
       {/* Top and Bottom Fade Masks */}
-      <div className="absolute inset-x-0 top-0 z-20 h-32 bg-gradient-to-b from-zinc-950 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 z-20 h-32 bg-gradient-to-t from-zinc-950 to-transparent" />
+      <div className="absolute inset-x-0 top-0 z-20 h-40 bg-gradient-to-b from-[#09090b] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 z-20 h-40 bg-gradient-to-t from-[#09090b] to-transparent pointer-events-none" />
 
       <div className="flex h-full items-center justify-center">
         {/* Framer Motion for guaranteed smooth scrolling */}
@@ -82,29 +82,28 @@ const ShowcasePanel = () => {
           initial={{ y: 0 }}
           animate={{ y: "-50%" }}
           transition={{
-            duration: 30,
+            duration: 40,
             ease: "linear",
             repeat: Infinity,
             repeatType: "loop",
           }}
-          className="flex flex-col gap-8 w-full max-w-xl px-8"
+          className="flex flex-col gap-6 w-full max-w-lg px-8 py-8"
         >
           {slides.map((project, index) => (
             <div
               key={index}
               className={cn(
-                "group relative w-full overflow-hidden rounded-2xl border border-white/5 bg-zinc-900/40 p-4 backdrop-blur-sm transition-all duration-500 hover:border-white/10 hover:bg-zinc-800/60",
-                "shadow-2xl shadow-black/50"
+                "group relative w-full overflow-hidden rounded-xl border border-white/5 bg-zinc-900/40 p-3 backdrop-blur-sm transition-all duration-500 hover:border-white/10 hover:bg-zinc-800/60 hover:shadow-2xl hover:shadow-[#5b21b6]/10",
               )}
             >
-              {/* Card Header Dots (Browser look) */}
-              <div className="mb-3 flex gap-1.5 opacity-40 group-hover:opacity-70 transition-opacity">
-                <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-                <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              {/* Card Header Dots */}
+              <div className="mb-3 flex gap-1.5 opacity-30 group-hover:opacity-60 transition-opacity px-1">
+                <div className="h-2 w-2 rounded-full bg-zinc-500" />
+                <div className="h-2 w-2 rounded-full bg-zinc-500" />
+                <div className="h-2 w-2 rounded-full bg-zinc-500" />
               </div>
 
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-zinc-950">
+              <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg bg-zinc-950 shadow-inner">
                 <Image
                   src={`/community/${project.file}`}
                   alt={`${project.name} Preview`}
@@ -112,8 +111,6 @@ const ShowcasePanel = () => {
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
-                {/* Inner Shadow for depth */}
-                <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-lg" />
               </div>
             </div>
           ))}
@@ -133,14 +130,11 @@ const AuthPanel = () => {
 
   const isMobileApp = searchParams.get("mode") === "mobileapp";
 
-  // FIRST useEffect: Handle redirect result ONLY - runs ONCE on mount
   useEffect(() => {
     handleGoogleRedirectResult()
       .then((result) => {
         if (result) {
-          // Get destination from localStorage or default to /project
-          const dest =
-            localStorage.getItem("auth_redirect_destination") || "/project";
+          const dest = localStorage.getItem("auth_redirect_destination") || "/project";
           localStorage.removeItem("auth_redirect_destination");
           localStorage.removeItem("auth_mobile_mode");
           console.log("Redirect successful, navigating to:", dest);
@@ -152,20 +146,16 @@ const AuthPanel = () => {
         localStorage.removeItem("auth_redirect_destination");
         localStorage.removeItem("auth_mobile_mode");
       });
-  }, []); // Empty dependency array - runs ONCE
+  }, []);
 
-  // SECOND useEffect: Handle normal auth state for popup and immediate checks
   useEffect(() => {
     let mounted = true;
-
-    // Check if user is already authenticated (for popup flow or page refresh)
     if (auth.currentUser && mounted) {
       console.log("User already authenticated, redirecting...");
       router.push("/project");
       return;
     }
 
-    // Listen for auth state changes (popup flow)
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
 
@@ -193,16 +183,11 @@ const AuthPanel = () => {
 
     try {
       if (isMobileApp) {
-        // Store redirect destination and mobile mode flag
         localStorage.setItem("auth_redirect_destination", "/project");
         localStorage.setItem("auth_mobile_mode", "true");
         console.log("Starting mobile redirect flow...");
-
-        // Use redirect flow for mobile app
         await signInWithGoogleMobile();
-        // User will be redirected, no further action needed here
       } else {
-        // Use popup flow for web
         await signInWithGoogle();
         router.push("/project");
       }
@@ -250,117 +235,111 @@ const AuthPanel = () => {
   };
 
   return (
-    <main className="relative flex h-full w-full flex-col items-center justify-center bg-zinc-950 p-8 text-white selection:bg-white/20">
+    <main className="relative flex h-screen w-full flex-col bg-[#09090b] text-white overflow-hidden">
       {/* Subtle Gradient Spotlights */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-[25%] -left-[10%] h-[50vh] w-[50vh] rounded-full bg-white/5 blur-[100px]" />
-        <div className="absolute top-[30%] left-[20%] h-[30vh] w-[30vh] rounded-full bg-blue-500/5 blur-[80px]" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[25%] -left-[10%] h-[50vh] w-[50vh] rounded-full bg-[#5b21b6]/10 blur-[100px]" />
+        <div className="absolute top-[30%] right-[20%] h-[30vh] w-[30vh] rounded-full bg-[#1e40af]/10 blur-[80px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-[360px]">
-        <motion.div
-          key={mode} // Triggers animation on mode switch
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.08 } },
-          }}
-          initial="hidden"
-          animate="show"
-          className="flex flex-col items-center text-center"
-        >
-          {/* Logo with Glow */}
-          <motion.div variants={FADE_IN_VARIANTS} className="relative mb-8">
-            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full" />
-            <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-white/10 shadow-xl">
-              <Image
-                src="/logo.png"
-                alt="VibeKode Logo"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          </motion.div>
-
-          <motion.h1
-            variants={FADE_IN_VARIANTS}
-            className="mb-3 text-3xl font-semibold tracking-tight text-white"
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 z-10">
+        <div className="w-full max-w-[380px]">
+          <motion.div
+            key={mode}
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.08 } },
+            }}
+            initial="hidden"
+            animate="show"
+            className="flex flex-col items-center text-center"
           >
-            {mode === "signup" ? "Start creating today" : "Welcome back"}
-          </motion.h1>
+            {/* Logo with Glow */}
+            <motion.div variants={FADE_IN_VARIANTS} className="relative mb-10 group">
+              <div className="absolute inset-0 bg-[#5b21b6]/20 blur-xl rounded-full group-hover:bg-[#5b21b6]/30 transition-all duration-500" />
+              <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-zinc-900/50 backdrop-blur-sm">
+                <Image
+                  src="/logo.png"
+                  alt="VibeKode Logo"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </motion.div>
 
-          <motion.p
-            variants={FADE_IN_VARIANTS}
-            className="mb-10 text-zinc-400 text-sm leading-relaxed max-w-[280px]"
-          >
-            {mode === "signup"
-              ? "Join thousands of developers sharing their best work on VibeKode."
-              : "Enter your credentials to access your projects and settings."}
-          </motion.p>
+            <motion.h1
+              variants={FADE_IN_VARIANTS}
+              className="mb-3 text-3xl font-bold tracking-tight text-white sm:text-4xl"
+            >
+              Welcome back
+            </motion.h1>
 
-          {error && (
+            <motion.p
+              variants={FADE_IN_VARIANTS}
+              className="mb-10 text-zinc-400 text-sm leading-relaxed max-w-[300px]"
+            >
+              Enter your credentials to access your projects and settings.
+            </motion.p>
+
+            {error && (
+              <motion.div
+                variants={FADE_IN_VARIANTS}
+                className="mb-6 w-full p-4 bg-red-500/10 border border-red-500/20 rounded-xl"
+              >
+                <p className="text-sm text-red-400 text-center font-medium">
+                  {error}
+                </p>
+              </motion.div>
+            )}
+
+            <motion.div variants={FADE_IN_VARIANTS} className="w-full">
+              <div className="group relative rounded-xl bg-gradient-to-b from-white/10 to-transparent p-[1px] transition-all duration-300 hover:from-white/20">
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-3 rounded-[11px] bg-zinc-900 px-4 py-4",
+                    "text-sm font-semibold text-white transition-all duration-200 border border-zinc-800",
+                    "hover:bg-zinc-800 hover:border-zinc-700 active:scale-[0.98]",
+                    "disabled:opacity-60 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-zinc-500 border-t-white rounded-full animate-spin"></div>
+                      <span className="text-zinc-300">
+                        {isMobileApp ? "Redirecting..." : "Signing in..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <GoogleIcon className="h-5 w-5" />
+                      <span>Continue with Google</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+
             <motion.div
               variants={FADE_IN_VARIANTS}
-              className="mb-6 w-full p-4 bg-red-900/20 border border-red-800/50 rounded-xl"
+              className="mt-8 flex items-center gap-2 text-sm text-zinc-500"
             >
-              <p className="text-sm text-red-300 text-center font-medium">
-                {error}
-              </p>
-            </motion.div>
-          )}
-
-          <motion.div variants={FADE_IN_VARIANTS} className="w-full">
-            <div className="group relative rounded-xl bg-white p-0.5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                className={cn(
-                  "flex w-full items-center justify-center gap-3 rounded-[10px] bg-white px-4 py-3.5",
-                  "text-sm font-medium text-zinc-950 transition-all duration-200",
-                  "hover:bg-zinc-50 active:scale-[0.99]",
-                  "disabled:opacity-60 disabled:cursor-not-allowed"
-                )}
+              Don&apos;t have an account?
+              <Link
+                href={`/signup${isMobileApp ? "?mode=mobileapp" : ""}`}
+                className="font-medium text-white hover:text-[#7c3aed] transition-colors focus:outline-none"
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-950 rounded-full animate-spin"></div>
-                    <span>
-                      {isMobileApp ? "Redirecting..." : "Signing in..."}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <GoogleIcon className="h-5 w-5" />
-                    <span>Continue with Google</span>
-                  </>
-                )}
-              </button>
-            </div>
+                Sign up
+              </Link>
+            </motion.div>
           </motion.div>
-
-          <motion.div
-            variants={FADE_IN_VARIANTS}
-            className="mt-8 flex items-center gap-2 text-sm text-zinc-500"
-          >
-            {mode === "signup"
-              ? "Already have an account?"
-              : "Don't have an account?"}
-            <Link
-              href={
-                mode === "signup"
-                  ? `/login${isMobileApp ? "?mode=mobileapp" : ""}`
-                  : `/signup${isMobileApp ? "?mode=mobileapp" : ""}`
-              }
-              className="font-medium text-white underline decoration-zinc-700 underline-offset-4 hover:decoration-white transition-all focus:outline-none"
-            >
-              {mode === "signup" ? "Sign in" : "Sign up"}
-            </Link>
-          </motion.div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Footer / Copyright */}
-      <div className="absolute bottom-8 text-xs text-zinc-700">
+      {/* Footer / Copyright - Pinned nicely */}
+      <div className="w-full py-6 text-center text-[11px] text-zinc-600 font-medium z-10">
         &copy; 2025 VibeKode. All rights reserved.
       </div>
     </main>
@@ -370,7 +349,7 @@ const AuthPanel = () => {
 // Wrapper component with Suspense boundary
 function LoginPageContent() {
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-2 bg-zinc-950 text-white">
+    <div className="grid min-h-screen w-full lg:grid-cols-2 bg-[#09090b] text-white">
       <AuthPanel />
       <ShowcasePanel />
     </div>
@@ -382,8 +361,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center bg-zinc-950">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+        <div className="flex h-screen items-center justify-center bg-[#09090b]">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-800 border-t-[#7c3aed]"></div>
         </div>
       }
     >

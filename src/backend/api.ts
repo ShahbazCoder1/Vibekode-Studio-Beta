@@ -155,7 +155,7 @@ export async function generateAppArchitecture(
         timeout: 360000,
       });
 
-      const prompt = GENERATE_APP_ARCHITECTURE_PROMPT(appName);
+      const prompt = GENERATE_APP_ARCHITECTURE_PROMPT(appName, appIdea);
 
       const completion = await client.chat.completions.create({
         model: "grok-4-1-fast-reasoning",

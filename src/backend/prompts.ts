@@ -51,7 +51,11 @@ Now respond naturally:
 
 export const GENERATE_APP_ARCHITECTURE_PROMPT = (
   appName: string,
+  appIdea: string,
 ) => `# Single-File App Architecture: ${appName}
+
+## App Idea
+${appIdea}
 
 ## Core User Needs
 1. [Primary problem being solved]

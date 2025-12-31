@@ -34,7 +34,7 @@ import Image from "next/image";
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId?: string; // Optional: if provided, show project-specific options
+  projectId?: string;
 }
 
 interface Project {
@@ -81,7 +81,7 @@ const TabButton = ({
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group mb-1",
+      "flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 group shrink-0 whitespace-nowrap",
       active
         ? "bg-zinc-800 text-white shadow-sm ring-1 ring-zinc-700/50"
         : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
@@ -93,7 +93,7 @@ const TabButton = ({
         active ? "text-[#7c3aed]" : "text-zinc-500 group-hover:text-zinc-400"
       )}
     />
-    {label}
+    <span>{label}</span>
   </button>
 );
 
@@ -106,7 +106,7 @@ const SectionCard = ({
 }) => (
   <div
     className={cn(
-      "bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-6 backdrop-blur-sm hover:border-zinc-700/50 transition-colors",
+      "bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4 md:p-6 backdrop-blur-sm hover:border-zinc-700/50 transition-colors",
       className
     )}
   >
@@ -121,7 +121,7 @@ const RedditIcon = ({ className }: { className?: string }) => (
     fill="currentColor"
     className={className}
   >
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
   </svg>
 );
 
@@ -194,7 +194,7 @@ const LogoutConfirmDialog = ({
 );
 
 // --- VIEW COMPONENTS ---
-
+// (ProfileView, UsageView, AboutView, ProjectVisibilityView remain unchanged for brevity, functionality is preserved)
 const ProfileView = ({ userData }: { userData: UserData | null }) => {
   const [copied, setCopied] = useState(false);
 
@@ -211,9 +211,9 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
   return (
     <div className="space-y-6">
       <SectionCard>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
           <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
+            <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
               {userData.photoURL ? (
                 <Image
                   src={userData.photoURL}
@@ -223,16 +223,16 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-10 h-10 text-zinc-600" />
+                <User className="w-8 h-8 md:w-10 md:h-10 text-zinc-600" />
               )}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-full border-4 border-[#09090b] flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 md:w-8 md:h-8 bg-gradient-to-r from-[#5b21b6] to-[#1e40af] rounded-full border-4 border-[#09090b] flex items-center justify-center">
+              <CheckCircle2 className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-               <h3 className="text-2xl font-bold text-white truncate">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+               <h3 className="text-xl md:text-2xl font-bold text-white truncate">
                 {userData.displayName}
                </h3>
                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-[#5b21b6]/10 text-[#7c3aed] border border-[#5b21b6]/20">
@@ -242,7 +242,7 @@ const ProfileView = ({ userData }: { userData: UserData | null }) => {
             </div>
             
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-zinc-400 font-medium truncate">{userData.email}</p>
+              <p className="text-zinc-400 font-medium truncate text-sm md:text-base">{userData.email}</p>
               <button
                 onClick={handleCopyEmail}
                 className="p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-white shrink-0"
@@ -300,18 +300,15 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
   const isExpired = subscriptionStatus === 'expired';
   const isSuspended = subscriptionStatus === 'suspended';
 
-  // Constants
   const FREE_DAILY_MAX = 5;
   const FREE_MONTHLY_MAX = 30;
   const GO_MONTHLY_MAX = 50;
   const PRO_MONTHLY_MAX = 150;
   const GO_PRIVATE_LIMIT = 5;
 
-  // Usage Data
   const dailyUsage = userData.chatUsage.lastCheckedDate === today ? userData.chatUsage.count : 0;
   const monthlyUsage = userData.creditsUsed || 0;
 
-  // Calculate Refresh Times
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -320,7 +317,6 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
 
   let nextBillingDateStr = userData.nextBillingDate;
   if (!nextBillingDateStr && isFree) {
-    // Estimate for free users based on simple monthly cycle if not present
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
     d.setDate(1);
@@ -350,7 +346,6 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
     }
   };
 
-  // Render Progress Bar Helper
   const ProgressBar = ({ 
     label, 
     used, 
@@ -391,7 +386,6 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
     );
   }
 
-  // Get status display info
   const getStatusInfo = () => {
     if (isFree) return null;
 
@@ -457,11 +451,10 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
             )}
           </div>
 
-          {/* Main Big Number Display */}
           <div className="text-right">
             {isFree ? (
               <>
-                <span className="block text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight">
+                <span className="block text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight">
                   {Math.max(0, FREE_DAILY_MAX - dailyUsage)}
                 </span>
                 <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 block">
@@ -470,7 +463,7 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
               </>
             ) : (
               <>
-                <span className="block text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af] tracking-tight">
+                <span className="block text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#5b21b6] to-[#1e40af] tracking-tight">
                   {Math.max(0, (subscriptionType === 'go' ? GO_MONTHLY_MAX : PRO_MONTHLY_MAX) - monthlyUsage)}
                 </span>
                 <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 block">
@@ -481,7 +474,6 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
           </div>
         </div>
 
-        {/* Show cancel button only if active subscription */}
         {!isFree && subscriptionStatus === 'active' && userData.paypalSubscriptionId && (
           <div className="mt-4 pt-4 border-t border-zinc-700/30 flex justify-end">
             <button
@@ -494,7 +486,6 @@ const UsageView = ({ userData }: { userData: UserData | null }) => {
         )}
       </div>
 
-      {/* Status Messages */}
       {statusInfo && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -1023,15 +1014,27 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                    className="w-full max-w-4xl h-[650px] bg-[#09090b] border border-zinc-800/80 rounded-2xl shadow-2xl flex overflow-hidden relative"
+                    className="w-full max-w-4xl h-[85vh] md:h-[650px] bg-[#09090b] border border-zinc-800/80 rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative"
                   >
                     <Dialog.Title className="sr-only">
                       Settings Menu
                     </Dialog.Title>
 
-                    {/* LEFT SIDEBAR */}
-                    <aside className="w-64 bg-zinc-900/30 border-r border-zinc-800 flex flex-col p-5">
-                      <div className="mb-8 pl-1">
+                    {/* ABSOLUTE CLOSE BUTTON - VISIBLE ON TOP */}
+                    <Dialog.Close asChild>
+                      <button
+                        onClick={onClose}
+                        className="absolute top-3 right-3 md:top-4 md:right-4 z-50 p-2 rounded-full bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95"
+                        aria-label="Close settings"
+                      >
+                        <X className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                      </button>
+                    </Dialog.Close>
+
+                    {/* SIDEBAR: Horizontal on mobile, Vertical on desktop */}
+                    <aside className="w-full md:w-64 bg-zinc-900/30 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-row md:flex-col items-center md:items-stretch p-3 md:p-5 shrink-0 h-auto md:h-full gap-2 md:gap-0 overflow-x-auto md:overflow-visible no-scrollbar pr-14 md:pr-5">
+                      {/* Settings Title - Hidden on Mobile to save space for horizontal tabs */}
+                      <div className="hidden md:block mb-8 pl-1">
                         <div className="flex items-center gap-2.5 text-white font-bold text-lg">
                           <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5b21b6] to-[#1e40af] shadow-lg shadow-[#5b21b6]/20">
                             <Settings className="w-4 h-4 text-white" />
@@ -1040,7 +1043,8 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                         </div>
                       </div>
 
-                      <nav className="space-y-1 flex-1">
+                      {/* Navigation Tabs - Horizontal Row on Mobile */}
+                      <nav className="flex flex-row md:flex-col gap-2 md:gap-0 md:space-y-1 flex-1 md:flex-none">
                         <TabButton
                           active={activeTab === "usage"}
                           id="usage"
@@ -1073,15 +1077,15 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                         />
                       </nav>
 
-                      {/* REMOVED SHORTCUTS UI SECTION HERE */}
-
-                      <div className="mt-auto pt-6 border-t border-zinc-800/50">
+                      {/* Sign Out - Icon on mobile, Button on desktop */}
+                      <div className="md:mt-auto md:pt-6 md:border-t md:border-zinc-800/50">
                         <button
                           onClick={() => setShowLogoutConfirm(true)}
-                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors group"
+                          className="flex items-center justify-center md:justify-start gap-3 w-auto md:w-full px-3 py-2 md:px-4 md:py-2.5 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors group"
+                          title="Sign Out"
                         >
                           <LogOut className="w-4 h-4 group-hover:text-red-400 transition-colors" />
-                          Sign Out
+                          <span className="hidden md:inline">Sign Out</span>
                         </button>
                       </div>
                     </aside>
@@ -1091,27 +1095,18 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                       data-lenis-prevent="true"
                       className="flex-1 overflow-y-auto bg-[#09090b] relative custom-scrollbar scroll-smooth"
                     >
-                      {/* Top Header inside scroll area */}
-                      <div className="sticky top-0 z-20 bg-[#09090b]/80 backdrop-blur-xl px-8 py-6 border-b border-zinc-800/60 flex items-center justify-between">
-                        <h1 className="text-xl font-bold text-white tracking-tight">
+                      {/* Top Header inside scroll area - Title Only */}
+                      <div className="sticky top-0 z-20 bg-[#09090b]/90 backdrop-blur-xl px-6 py-4 md:px-8 md:py-6 border-b border-zinc-800/60 flex items-center justify-between">
+                        <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">
                           {activeTab === "profile" && "My Profile"}
                           {activeTab === "usage" && "Usage & Plan"}
                           {activeTab === "projects" && "Project Privacy"}
                           {activeTab === "about" && "About VibeKode"}
                         </h1>
-
-                        <Dialog.Close asChild>
-                          <button
-                            onClick={onClose}
-                            className="group p-2 rounded-full bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95"
-                            aria-label="Close settings"
-                          >
-                            <X className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                          </button>
-                        </Dialog.Close>
+                        {/* Removed Close button from here, it's now global */}
                       </div>
 
-                      <div className="p-8 max-w-2xl mx-auto">
+                      <div className="p-4 md:p-8 max-w-2xl mx-auto pb-20 md:pb-8">
                         {/* Error State */}
                         {error && (
                           <motion.div
@@ -1139,7 +1134,7 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
                             </p>
                           </div>
                         ) : (
-                          <div className="space-y-6 pb-8">
+                          <div className="space-y-6">
                             <AnimatePresence mode="wait">
                               <motion.div
                                 key={activeTab}
@@ -1180,6 +1175,13 @@ export default function SettingsModal({ isOpen, onClose, projectId }: SettingsMo
       />
       {/* GLOBAL SCROLLBAR STYLE FOR MODAL */}
       <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
         /* Firefox */
         .custom-scrollbar {
           scrollbar-width: thin;

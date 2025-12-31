@@ -57,11 +57,11 @@ export async function POST(request: Request) {
       },
     };
 
-    console.log("Creating PayPal subscription with:", {
-      tierName,
-      planId,
-      userId,
-    });
+    // console.log("Creating PayPal subscription with:", {
+    //   tierName,
+    //   planId,
+    //   userId,
+    // });
 
     const response = await fetch(`${PAYPAL_API_URL}/v1/billing/subscriptions`, {
       method: "POST",
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       throw new Error("No approval link found in PayPal response");
     }
 
-    console.log("Subscription created successfully:", data.id);
+    // console.log("Subscription created successfully:", data.id);
 
     return NextResponse.json({
       approvalUrl: approvalLink.href,

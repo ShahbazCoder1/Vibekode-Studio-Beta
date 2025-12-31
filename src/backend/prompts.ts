@@ -51,7 +51,11 @@ Now respond naturally:
 
 export const GENERATE_APP_ARCHITECTURE_PROMPT = (
   appName: string,
+  appIdea: string,
 ) => `# Single-File App Architecture: ${appName}
+
+## App Idea
+${appIdea}
 
 ## Core User Needs
 1. [Primary problem being solved]
@@ -148,33 +152,30 @@ export const GENERATE_IMPROVE_CODE_PROMPT = (
   existingCode: string,
   improvementPrompt: string,
   appName: string,
+  appIdea: string,
   attempt: number,
   maxRetries: number
-) => `You are a surgical code editor. Modify ONLY what's requested.
+) => `You are an expert senior developer specializing in single-file HTML applications. Your task is to implement a user's requested change into their existing code.
 
-App: ${appName}
-Request: "${improvementPrompt}"
+**CONTEXT:**
+- App Name: ${appName}
+- Original App Idea: ${appIdea}
+- User's Change Request: "${improvementPrompt}"
 
-${attempt > 1 ? `RETRY ${attempt}/${maxRetries}: PREVIOUS OUTPUT TRUNCATED. Return COMPLETE HTML FILE.` : ''}
+${attempt > 1 ? `**ATTEMPT ${attempt}/${maxRetries} - The previous attempt failed, likely due to incomplete output. You MUST return the complete, runnable HTML file.**` : ''}
 
----
+**CRITICAL INSTRUCTIONS:**
+1.  **RETURN THE ENTIRE FILE:** You must return the complete, original HTML file with the requested modifications seamlessly integrated. Start with \`<!DOCTYPE html>\` and end with \`</html>\` don't start with \`\`\` or anything first line should be <!DOCTYPE html>.
+2.  **BE SURGICAL:** Modify only the specific lines of code necessary to implement the user's request. Do not refactor, rename, or restyle anything else.
+3.  **PRESERVE FUNCTIONALITY:** The application must still work exactly as it did before, with the addition of the new feature. All existing logic, state, and IDs must be preserved.
+4.  **NO COMMENTARY:** Do not include any explanations, markdown formatting, or conversation in your response. Your output must be ONLY the raw HTML code.
 
-EXISTING CODE (preview):
-${existingCode.substring(0, 500)}${existingCode.length > 500 ? '...' : ''}
+**EXISTING CODEBASE:**
+\`\`\`html
+${existingCode}
+\`\`\`
 
----
-
-RULES:
-1. Return ENTIRE HTML file with changes integrated
-2. Modify ONLY code directly related to the request
-3. Preserve ALL existing functionality, state, and logic
-4. Use standard Tailwind classes (bg-white, not bg-background)
-5. Escape apostrophes: you're = you're or you\\'re
-6. Start with <!DOCTYPE html>, end with </html>
-7. No commentary, no markdown, no explanations
-
-OUTPUT THE COMPLETE, MODIFIED HTML FILE NOW.
-`;
+Now, carefully review the user's request and the existing code, and return the complete, modified HTML file.`;
 
 export const GENERATE_APP_IDEA_PROMPT = {
   system: `You are a creative app idea generator with expertise in identifying underserved niches and innovative solutions. You understand market trends, user psychology, and technical feasibility.

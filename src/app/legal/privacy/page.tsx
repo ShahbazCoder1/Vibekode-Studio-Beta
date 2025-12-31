@@ -6,14 +6,8 @@ import { Footer } from "@/components/Footer";
 import PersistentBetaBanner from "@/components/ScrollingBetaBanner";
 import SmoothScroll from "@/components/ui/SmoothScroll";
 import Link from "next/link";
-import { Shield, Lock, Mail, Globe, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
-
-const GradientText = ({ children }: { children: React.ReactNode }) => (
-  <span className="bg-gradient-to-r from-[#5b21b6] to-[#1e40af] bg-clip-text text-transparent">
-    {children}
-  </span>
-);
 
 export default function PrivacyPolicy() {
   return (
@@ -42,7 +36,7 @@ export default function PrivacyPolicy() {
                 <Shield className="w-8 h-8 text-[#7c3aed]" />
               </div>
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Privacy <GradientText>Policy</GradientText>
+                Privacy Policy
               </h1>
               <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
                 Your privacy is our priority. We are committed to protecting your personal data and being transparent about how we use it.
@@ -60,10 +54,10 @@ export default function PrivacyPolicy() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="bg-[#0f0f12]/60 backdrop-blur-md rounded-2xl p-8 md:p-12 border border-zinc-800 shadow-2xl"
           >
-            <div className="space-y-12 text-zinc-400 leading-relaxed">
+            <div className="space-y-8 text-zinc-300 leading-relaxed">
               
               <section>
-                <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-white mb-4">
                   1. Introduction
                 </h2>
                 <p className="mb-4">
@@ -77,32 +71,26 @@ export default function PrivacyPolicy() {
               <section>
                 <h2 className="text-2xl font-bold text-white mb-4">2. Information We Collect</h2>
                 
-                <div className="bg-[#18181b]/50 rounded-xl p-6 border border-zinc-800/50 mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></span>
-                    2.1 Personal Information
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-2 text-sm">
-                    <li>Email address (when you create an account)</li>
-                    <li>Name and profile information (if provided)</li>
-                    <li>Authentication data from third-party providers (Google, GitHub, etc.)</li>
-                    <li>Communication preferences</li>
-                  </ul>
-                </div>
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  2.1 Personal Information
+                </h3>
+                <ul className="list-disc pl-5 space-y-2 mb-6">
+                  <li>Email address (when you create an account)</li>
+                  <li>Name and profile information (if provided)</li>
+                  <li>Authentication data from third-party providers (Google, GitHub, etc.)</li>
+                  <li>Communication preferences</li>
+                </ul>
 
-                <div className="bg-[#18181b]/50 rounded-xl p-6 border border-zinc-800/50 mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1e40af]"></span>
-                    2.2 Usage Data
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-2 text-sm">
-                    <li>IP address and device information</li>
-                    <li>Browser type and version</li>
-                    <li>Pages visited and time spent on our service</li>
-                    <li>App creation prompts and generated code (anonymized for improvement purposes)</li>
-                    <li>Usage patterns and feature interactions</li>
-                  </ul>
-                </div>
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  2.2 Usage Data
+                </h3>
+                <ul className="list-disc pl-5 space-y-2 mb-6">
+                  <li>IP address and device information</li>
+                  <li>Browser type and version</li>
+                  <li>Pages visited and time spent on our service</li>
+                  <li>App creation prompts and generated code (anonymized for improvement purposes)</li>
+                  <li>Usage patterns and feature interactions</li>
+                </ul>
 
                 <h3 className="text-lg font-semibold text-white mb-3">2.3 Cookies and Tracking</h3>
                 <p>
@@ -112,29 +100,22 @@ export default function PrivacyPolicy() {
 
               <section>
                 <h2 className="text-2xl font-bold text-white mb-4">3. How We Use Your Information</h2>
-                <ul className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    "Providing our AI app-building service",
-                    "Processing app creation requests",
-                    "Personalizing your experience",
-                    "Communicating about updates",
-                    "Improving our AI models",
-                    "Detecting fraud or abuse",
-                    "Complying with legal obligations",
-                    "Sending promotional communications"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 p-3 rounded-lg bg-[#18181b]/30 border border-zinc-800/50 text-sm">
-                      <Lock className="w-4 h-4 text-[#7c3aed] flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Providing our AI app-building service</li>
+                  <li>Processing app creation requests</li>
+                  <li>Personalizing your experience</li>
+                  <li>Communicating about updates</li>
+                  <li>Improving our AI models</li>
+                  <li>Detecting fraud or abuse</li>
+                  <li>Complying with legal obligations</li>
+                  <li>Sending promotional communications</li>
                 </ul>
               </section>
 
               <section>
                 <h2 className="text-2xl font-bold text-white mb-4">4. Information Sharing</h2>
-                <p className="mb-4 font-medium text-white">
-                  We Do Not Sell Your Data. VibeKode does not sell, trade, or rent your personal information to third parties.
+                <p className="mb-4">
+                  <strong>We Do Not Sell Your Data.</strong> VibeKode does not sell, trade, or rent your personal information to third parties.
                 </p>
                 <p className="mb-4">We may share your information only in these circumstances:</p>
                 <ul className="list-disc pl-5 space-y-2">
@@ -166,28 +147,14 @@ export default function PrivacyPolicy() {
 
               <section>
                 <h2 className="text-2xl font-bold text-white mb-4">8. Contact Information</h2>
-                <div className="bg-[#18181b] p-6 rounded-xl border border-zinc-800">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#5b21b6]/10 rounded-lg">
-                        <Mail className="w-5 h-5 text-[#7c3aed]" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-zinc-500">Privacy Inquiries</p>
-                        <a href="mailto:privacy@vibekode.studio" className="text-white hover:text-[#7c3aed] transition-colors">hello.vibekode@gmail.com</a>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#1e40af]/10 rounded-lg">
-                        <Globe className="w-5 h-5 text-[#1e40af]" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-zinc-500">Website</p>
-                        <a href="https://vibekode.studio" className="text-white hover:text-[#1e40af] transition-colors">vibekode.studio</a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <p className="mb-2"><strong>Privacy Inquiries:</strong></p>
+                <p className="mb-4">
+                  Email: <a href="mailto:hello.vibekode@gmail.com" className="text-[#7c3aed] hover:underline">hello.vibekode@gmail.com</a>
+                </p>
+                <p className="mb-2"><strong>Website:</strong></p>
+                <p>
+                  <a href="https://vibekode.studio" className="text-[#7c3aed] hover:underline">vibekode.studio</a>
+                </p>
               </section>
 
             </div>

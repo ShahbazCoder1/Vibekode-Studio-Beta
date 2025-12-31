@@ -137,7 +137,7 @@ const AuthPanel = () => {
           const dest = localStorage.getItem("auth_redirect_destination") || "/project";
           localStorage.removeItem("auth_redirect_destination");
           localStorage.removeItem("auth_mobile_mode");
-          console.log("Redirect successful, navigating to:", dest);
+          // console.log("Redirect successful, navigating to:", dest);
           window.location.href = dest;
         }
       })
@@ -151,7 +151,7 @@ const AuthPanel = () => {
   useEffect(() => {
     let mounted = true;
     if (auth.currentUser && mounted) {
-      console.log("User already authenticated, redirecting...");
+      // console.log("User already authenticated, redirecting...");
       router.push("/project");
       return;
     }
@@ -160,7 +160,7 @@ const AuthPanel = () => {
       if (!mounted) return;
 
       if (user) {
-        console.log("Auth state changed - user found:", user.email);
+        // console.log("Auth state changed - user found:", user.email);
         try {
           await createUserDocument(user);
           router.push("/project");
@@ -185,7 +185,7 @@ const AuthPanel = () => {
       if (isMobileApp) {
         localStorage.setItem("auth_redirect_destination", "/project");
         localStorage.setItem("auth_mobile_mode", "true");
-        console.log("Starting mobile redirect flow...");
+        // console.log("Starting mobile redirect flow...");
         await signInWithGoogleMobile();
       } else {
         await signInWithGoogle();

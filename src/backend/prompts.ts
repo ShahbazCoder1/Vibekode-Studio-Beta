@@ -169,6 +169,8 @@ ${attempt > 1 ? `**ATTEMPT ${attempt}/${maxRetries} - The previous attempt faile
 2.  **BE SURGICAL:** Modify only the specific lines of code necessary to implement the user's request. Do not refactor, rename, or restyle anything else.
 3.  **PRESERVE FUNCTIONALITY:** The application must still work exactly as it did before, with the addition of the new feature. All existing logic, state, and IDs must be preserved.
 4.  **NO COMMENTARY:** Do not include any explanations, markdown formatting, or conversation in your response. Your output must be ONLY the raw HTML code.
+5.  **SIZE OF OUTPUT:** Size of output should never be less than the Existing Code. 
+6. **VALID HTML ONLY:** Return valid HTML only and no more.
 
 **EXISTING CODEBASE:**
 \`\`\`html

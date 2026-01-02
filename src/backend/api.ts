@@ -274,6 +274,8 @@ export async function generateImproveCode(
       });
 
       let improvedCode = completion.choices[0]?.message?.content?.trim() || "";
+      console.log(improvedCode);
+      
       improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
 
       if (improvedCode === existingCode) {

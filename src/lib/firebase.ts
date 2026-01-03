@@ -1,6 +1,11 @@
 // src/lib/firebase.ts
 
-import { initializeApp, getApps, FirebaseApp, FirebaseOptions } from 'firebase/app';
+import {
+  initializeApp,
+  getApps,
+  FirebaseApp,
+  FirebaseOptions,
+} from "firebase/app";
 import {
   getAuth,
   signOut,
@@ -14,7 +19,7 @@ import {
   Auth,
   User as FirebaseUser,
   Unsubscribe,
-} from 'firebase/auth';
+} from "firebase/auth";
 import {
   getFirestore,
   doc,
@@ -32,7 +37,7 @@ import {
   getDocs,
   deleteDoc,
   DocumentReference,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 
 // --- INTERFACES ---
 
@@ -44,8 +49,8 @@ export interface UserDocument {
   createdAt: Timestamp;
   lastLogin: Timestamp;
   projects: string[];
-  subscriptionType: 'free' | 'go' | 'pro';
-  subscriptionStatus: 'active' | 'cancelled' | 'past_due' | 'none';
+  subscriptionType: "free" | "go" | "pro";
+  subscriptionStatus: "active" | "cancelled" | "past_due" | "none";
   paypalSubscriptionId?: string;
   monthlyCredits: number;
   creditsUsed: number;
@@ -75,14 +80,16 @@ export interface ProjectDocument {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   userId: string;
-  visibility: 'public' | 'private';
-  mode: 'sketch' | 'voice';
+  visibility: "public" | "private";
+  mode: "sketch" | "voice";
+  lastConversationId?: string; // For x.ai conversation chaining
+  lastConversationUpdated?: Timestamp;
 }
 
 export interface ChatMessage {
   id: string; // The Firestore document ID
   version: number;
-  type: 'user' | 'bot';
+  type: "user" | "bot";
   content: string;
   timestamp: Timestamp;
   appArchitecture?: string;
@@ -128,15 +135,15 @@ const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => {
-    console.error("Error setting authentication persistence:", error);
-  });
-
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Error setting authentication persistence:", error);
+});
 
 // --- AUTHENTICATION FUNCTIONS ---
 
-export const subscribeToAuthChanges = (callback: (user: AppUser | null) => void): Unsubscribe => {
+export const subscribeToAuthChanges = (
+  callback: (user: AppUser | null) => void
+): Unsubscribe => {
   return onAuthStateChanged(auth, (user: FirebaseUser | null) => {
     if (user) {
       callback({
@@ -154,19 +161,19 @@ export const subscribeToAuthChanges = (callback: (user: AppUser | null) => void)
 };
 
 export const createUserDocument = async (user: FirebaseUser): Promise<void> => {
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db, "users", user.uid);
   const userDoc = await getDoc(userDocRef);
 
   if (!userDoc.exists()) {
-    const newUser: Omit<UserDocument, 'projects'> = {
+    const newUser: Omit<UserDocument, "projects"> = {
       uid: user.uid,
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
       createdAt: serverTimestamp() as Timestamp,
       lastLogin: serverTimestamp() as Timestamp,
-      subscriptionType: 'free',
-      subscriptionStatus: 'active', // Free is always active
+      subscriptionType: "free",
+      subscriptionStatus: "active", // Free is always active
       monthlyCredits: 30, // Default for free
       creditsUsed: 0,
       billingCycleStartDate: new Date().toISOString(), // Start billing cycle now
@@ -201,30 +208,33 @@ export const signInWithGoogleMobile = async (): Promise<void> => {
 };
 
 // Helper function to handle redirect result (call this on page load)
-export const handleGoogleRedirectResult = async (): Promise<FirebaseUser | null> => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result && result.user) {
-      await createUserDocument(result.user);
-      return result.user;
+export const handleGoogleRedirectResult =
+  async (): Promise<FirebaseUser | null> => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result && result.user) {
+        await createUserDocument(result.user);
+        return result.user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error handling redirect result:", error);
+      throw error;
     }
-    return null;
-  } catch (error) {
-    console.error("Error handling redirect result:", error);
-    throw error;
-  }
-};
+  };
 
 export const logout = async (): Promise<void> => {
   await signOut(auth);
 };
 
-
 // --- FIRESTORE FUNCTIONS ---
 
 const firebaseRequestCache = new Map<string, Promise<unknown>>();
 
-function createFirebaseCacheKey(operation: string, ...params: unknown[]): string {
+function createFirebaseCacheKey(
+  operation: string,
+  ...params: unknown[]
+): string {
   return `firebase_${operation}:${JSON.stringify(params)}`;
 }
 
@@ -246,7 +256,11 @@ async function executeFirebaseWithDeduplication<T>(
   return requestPromise;
 }
 
-function createContentHash(content: string, type: string, version: number): string {
+function createContentHash(
+  content: string,
+  type: string,
+  version: number
+): string {
   // Use TextEncoder to handle Unicode characters properly
   const text = `${type}_${version}_${content}`;
   const encoder = new TextEncoder();
@@ -254,14 +268,14 @@ function createContentHash(content: string, type: string, version: number): stri
 
   // Convert to base64 safely
   const base64 = btoa(String.fromCharCode(...Array.from(data)));
-  return base64.replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  return base64.replace(/[^a-zA-Z0-9]/g, "").substring(0, 16);
 }
 
 export const saveChatMessage = async (
   projectId: string,
   message: {
     version: number;
-    type: 'user' | 'bot';
+    type: "user" | "bot";
     content: string;
     appArchitecture?: string;
     appCode?: string;
@@ -269,12 +283,22 @@ export const saveChatMessage = async (
 ): Promise<string> => {
   if (!projectId) throw new Error("Project ID is required to save a message.");
 
-  const contentHash = createContentHash(message.content, message.type, message.version);
-  const cacheKey = createFirebaseCacheKey('saveChatMessage', projectId, contentHash, message.type, message.version);
+  const contentHash = createContentHash(
+    message.content,
+    message.type,
+    message.version
+  );
+  const cacheKey = createFirebaseCacheKey(
+    "saveChatMessage",
+    projectId,
+    contentHash,
+    message.type,
+    message.version
+  );
 
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
-      const chatRef = collection(db, 'projects', projectId, 'chat');
+      const chatRef = collection(db, "projects", projectId, "chat");
 
       const dataToSave: DocumentData = {
         version: message.version,
@@ -293,7 +317,7 @@ export const saveChatMessage = async (
       await updateDoc(docRef, { id: docRef.id });
 
       if (message.appCode) {
-        const previewDocRef = doc(db, 'preview', projectId);
+        const previewDocRef = doc(db, "preview", projectId);
         await setDoc(previewDocRef, {
           projectId,
           code: message.appCode,
@@ -303,7 +327,7 @@ export const saveChatMessage = async (
 
       return docRef.id;
     } catch (error) {
-      console.error('Error saving chat message:', error);
+      console.error("Error saving chat message:", error);
       throw error;
     }
   });
@@ -311,42 +335,53 @@ export const saveChatMessage = async (
 
 export const createProject = async (
   prompt: string,
-  visibility: 'public' | 'private' = 'public',
-  mode: 'sketch' | 'voice' = 'sketch'
+  visibility: "public" | "private" = "public",
+  mode: "sketch" | "voice" = "sketch"
 ): Promise<string> => {
   const user = auth.currentUser;
-  if (!user) throw new Error('User must be authenticated to create a project');
+  if (!user) throw new Error("User must be authenticated to create a project");
 
   // Check Chat/Credit Limits
   const limitStatus = await checkAndUpdateChatLimit(user.uid);
   if (!limitStatus.canSendMessage) {
-    throw new Error("Daily or monthly limit reached. Please upgrade to create more projects.");
+    throw new Error(
+      "Daily or monthly limit reached. Please upgrade to create more projects."
+    );
   }
 
   // --- PRIVATE PROJECT LIMIT CHECKS ---
-  if (visibility === 'private') {
-    const userDocRef = doc(db, 'users', user.uid);
+  if (visibility === "private") {
+    const userDocRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userDocRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as UserDocument;
-      const subType = userData.subscriptionType || 'free';
+      const subType = userData.subscriptionType || "free";
       const privateCount = userData.privateProjectsCount || 0;
 
-      if (subType === 'free') {
+      if (subType === "free") {
         throw new Error("Private projects are not available on the Free plan.");
       }
-      if (subType === 'go' && privateCount >= 5) {
-        throw new Error("You have reached the limit of 5 private projects on the Go plan.");
+      if (subType === "go" && privateCount >= 5) {
+        throw new Error(
+          "You have reached the limit of 5 private projects on the Go plan."
+        );
       }
     }
   }
 
-  const cacheKey = createFirebaseCacheKey('createProject', user.uid, prompt, visibility, mode);
+  const cacheKey = createFirebaseCacheKey(
+    "createProject",
+    user.uid,
+    prompt,
+    visibility,
+    mode
+  );
 
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
-      const projectName = prompt.length > 50 ? `${prompt.substring(0, 47)}...` : prompt;
-      const projectsRef = collection(db, 'projects');
+      const projectName =
+        prompt.length > 50 ? `${prompt.substring(0, 47)}...` : prompt;
+      const projectsRef = collection(db, "projects");
       const docRef = await addDoc(projectsRef, {
         name: projectName,
         prompt,
@@ -359,16 +394,18 @@ export const createProject = async (
 
       await updateDoc(docRef, { id: docRef.id });
 
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data() as UserDocument;
         const currentProjects = data.projects || [];
 
-        const updates:Partial<UserDocument> = { projects: [...currentProjects, docRef.id] };
+        const updates: Partial<UserDocument> = {
+          projects: [...currentProjects, docRef.id],
+        };
 
         // Increment private count if private
-        if (visibility === 'private') {
+        if (visibility === "private") {
           updates.privateProjectsCount = (data.privateProjectsCount || 0) + 1;
         }
 
@@ -380,19 +417,21 @@ export const createProject = async (
 
       return docRef.id;
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error("Error creating project:", error);
       throw error;
     }
   });
 };
 
-export const getProject = async (projectId: string): Promise<ProjectDocument | null> => {
+export const getProject = async (
+  projectId: string
+): Promise<ProjectDocument | null> => {
   if (!projectId) {
     console.warn("getProject called with no projectId.");
     return null;
   }
   try {
-    const projectDocRef = doc(db, 'projects', projectId);
+    const projectDocRef = doc(db, "projects", projectId);
     const projectDoc = await getDoc(projectDocRef);
     if (projectDoc.exists()) {
       return { id: projectDoc.id, ...projectDoc.data() } as ProjectDocument;
@@ -400,30 +439,35 @@ export const getProject = async (projectId: string): Promise<ProjectDocument | n
     console.log(`Project with ID ${projectId} not found.`);
     return null;
   } catch (error) {
-    console.error('Error fetching project:', error);
+    console.error("Error fetching project:", error);
     throw error;
   }
 };
 
-export const updateProjectName = async (projectId: string, name: string): Promise<void> => {
+export const updateProjectName = async (
+  projectId: string,
+  name: string
+): Promise<void> => {
   if (!projectId) throw new Error("Project ID is required for update.");
   try {
-    const projectDocRef = doc(db, 'projects', projectId);
+    const projectDocRef = doc(db, "projects", projectId);
     await updateDoc(projectDocRef, { name, updatedAt: serverTimestamp() });
   } catch (error) {
-    console.error('Error updating project name:', error);
+    console.error("Error updating project name:", error);
     throw error;
   }
 };
 
-export const getChatHistory = async (projectId: string): Promise<ChatMessage[]> => {
+export const getChatHistory = async (
+  projectId: string
+): Promise<ChatMessage[]> => {
   if (!projectId) return [];
   try {
-    const chatRef = collection(db, 'projects', projectId, 'chat');
-    const q = query(chatRef, orderBy('timestamp', 'asc'));
+    const chatRef = collection(db, "projects", projectId, "chat");
+    const q = query(chatRef, orderBy("timestamp", "asc"));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map(doc => {
+    return querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id, // Use the document ID
@@ -436,7 +480,7 @@ export const getChatHistory = async (projectId: string): Promise<ChatMessage[]> 
       } as ChatMessage;
     });
   } catch (error) {
-    console.error('Error fetching chat history:', error);
+    console.error("Error fetching chat history:", error);
     return [];
   }
 };
@@ -445,25 +489,27 @@ export const getChatHistory = async (projectId: string): Promise<ChatMessage[]> 
 export const chatExists = async (projectId: string): Promise<boolean> => {
   if (!projectId) return false;
   try {
-    const chatRef = collection(db, 'projects', projectId, 'chat');
-    const q = query(chatRef, orderBy('timestamp', 'asc'));
+    const chatRef = collection(db, "projects", projectId, "chat");
+    const q = query(chatRef, orderBy("timestamp", "asc"));
     const querySnapshot = await getDocs(q);
     return !querySnapshot.empty;
   } catch (error) {
-    console.error('Error checking if chat exists:', error);
+    console.error("Error checking if chat exists:", error);
     return false;
   }
 };
 
-export const getUserProjects = async (userId: string): Promise<ProjectDocument[]> => {
+export const getUserProjects = async (
+  userId: string
+): Promise<ProjectDocument[]> => {
   if (!userId) return [];
 
-  const cacheKey = createFirebaseCacheKey('getUserProjects', userId);
+  const cacheKey = createFirebaseCacheKey("getUserProjects", userId);
 
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       // Get user document to get project IDs
-      const userDocRef = doc(db, 'users', userId);
+      const userDocRef = doc(db, "users", userId);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
@@ -479,7 +525,7 @@ export const getUserProjects = async (userId: string): Promise<ProjectDocument[]
 
       // Fetch all projects for this user
       const projectPromises = projectIds.map(async (projectId: string) => {
-        const projectDocRef = doc(db, 'projects', projectId);
+        const projectDocRef = doc(db, "projects", projectId);
         const projectDoc = await getDoc(projectDocRef);
         if (projectDoc.exists()) {
           return { id: projectDoc.id, ...projectDoc.data() } as ProjectDocument;
@@ -488,9 +534,11 @@ export const getUserProjects = async (userId: string): Promise<ProjectDocument[]
       });
 
       const projects = await Promise.all(projectPromises);
-      return projects.filter((project): project is ProjectDocument => project !== null);
+      return projects.filter(
+        (project): project is ProjectDocument => project !== null
+      );
     } catch (error) {
-      console.error('Error fetching user projects:', error);
+      console.error("Error fetching user projects:", error);
       return [];
     }
   });
@@ -498,49 +546,55 @@ export const getUserProjects = async (userId: string): Promise<ProjectDocument[]
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   const user = auth.currentUser;
-  if (!user) throw new Error('User must be authenticated to delete a project');
+  if (!user) throw new Error("User must be authenticated to delete a project");
 
-  const cacheKey = createFirebaseCacheKey('deleteProject', projectId, user.uid);
+  const cacheKey = createFirebaseCacheKey("deleteProject", projectId, user.uid);
 
   return executeFirebaseWithDeduplication(cacheKey, async () => {
     try {
       // First, delete all chat messages in the project
-      const chatRef = collection(db, 'projects', projectId, 'chat');
-      const chatQuery = query(chatRef, orderBy('timestamp', 'asc'));
+      const chatRef = collection(db, "projects", projectId, "chat");
+      const chatQuery = query(chatRef, orderBy("timestamp", "asc"));
       const chatSnapshot = await getDocs(chatQuery);
 
-      const deletePromises = chatSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      const deletePromises = chatSnapshot.docs.map((doc) => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
 
       // Delete the project document
-      const projectDocRef = doc(db, 'projects', projectId);
+      const projectDocRef = doc(db, "projects", projectId);
       await deleteDoc(projectDocRef);
 
       // Remove project ID from user's projects array
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const currentProjects = userDoc.data().projects || [];
-        const updatedProjects = currentProjects.filter((id: string) => id !== projectId);
+        const updatedProjects = currentProjects.filter(
+          (id: string) => id !== projectId
+        );
         await updateDoc(userDocRef, { projects: updatedProjects });
       }
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error("Error deleting project:", error);
       throw error;
     }
   });
 };
 
-export const saveDeploymentInfo = async (projectId: string, deploymentData: {
-  url: string;
-  siteName: string;
-  deployId: string;
-  siteId: string;
-}): Promise<void> => {
-  if (!projectId) throw new Error("Project ID is required to save deployment info.");
+export const saveDeploymentInfo = async (
+  projectId: string,
+  deploymentData: {
+    url: string;
+    siteName: string;
+    deployId: string;
+    siteId: string;
+  }
+): Promise<void> => {
+  if (!projectId)
+    throw new Error("Project ID is required to save deployment info.");
 
   try {
-    const deploymentDocRef = doc(db, 'deployments', projectId);
+    const deploymentDocRef = doc(db, "deployments", projectId);
     await setDoc(deploymentDocRef, {
       projectId,
       url: deploymentData.url,
@@ -550,16 +604,18 @@ export const saveDeploymentInfo = async (projectId: string, deploymentData: {
       deployedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Error saving deployment info:', error);
+    console.error("Error saving deployment info:", error);
     throw error;
   }
 };
 
-export const getDeploymentInfo = async (projectId: string): Promise<DeploymentInfo | null> => {
+export const getDeploymentInfo = async (
+  projectId: string
+): Promise<DeploymentInfo | null> => {
   if (!projectId) return null;
 
   try {
-    const deploymentDocRef = doc(db, 'deployments', projectId);
+    const deploymentDocRef = doc(db, "deployments", projectId);
     const deploymentDoc = await getDoc(deploymentDocRef);
 
     if (deploymentDoc.exists()) {
@@ -567,30 +623,32 @@ export const getDeploymentInfo = async (projectId: string): Promise<DeploymentIn
     }
     return null;
   } catch (error) {
-    console.error('Error fetching deployment info:', error);
+    console.error("Error fetching deployment info:", error);
     return null;
   }
 };
 
-export const getLatestGeneratedCode = async (projectId: string): Promise<string | null> => {
+export const getLatestGeneratedCode = async (
+  projectId: string
+): Promise<string | null> => {
   if (!projectId) return null;
 
   try {
-    const chatRef = collection(db, 'projects', projectId, 'chat');
-    const q = query(chatRef, orderBy('timestamp', 'desc'));
+    const chatRef = collection(db, "projects", projectId, "chat");
+    const q = query(chatRef, orderBy("timestamp", "desc"));
     const querySnapshot = await getDocs(q);
 
     // Find the most recent message with appCode
     for (const doc of querySnapshot.docs) {
       const data = doc.data();
-      if (data.appCode && data.type === 'bot') {
+      if (data.appCode && data.type === "bot") {
         return data.appCode;
       }
     }
 
     return null;
   } catch (error) {
-    console.error('Error fetching latest generated code:', error);
+    console.error("Error fetching latest generated code:", error);
     return null;
   }
 };
@@ -599,7 +657,7 @@ const FREE_TIER_DAILY_LIMIT = 5;
 
 function getTodayDateString(): string {
   const now = new Date();
-  return now.toISOString().split('T')[0]; // YYYY-MM-DD
+  return now.toISOString().split("T")[0]; // YYYY-MM-DD
 }
 
 function getTomorrowMidnight(): Date {
@@ -609,10 +667,7 @@ function getTomorrowMidnight(): Date {
   return tomorrow;
 }
 
-
 const FREE_TIER_MONTHLY_LIMIT = 30;
-
-
 
 function getNextBillingDate(startDate: string): Date {
   if (!startDate) {
@@ -637,17 +692,24 @@ function getNextBillingDate(startDate: string): Date {
 
 const checkAndResetMonthlyCredits = async (
   userDocRef: DocumentReference,
-  userData: UserDocument,
+  userData: UserDocument
 ): Promise<UserDocument> => {
   // Paid subscriptions (Go/Pro) are reset by the billing API webhooks (PAYMENT.SALE.COMPLETED)
   // So we SHOULD NOT reset them here client-side.
-  if (userData.subscriptionType === 'go' || userData.subscriptionType === 'pro') {
+  if (
+    userData.subscriptionType === "go" ||
+    userData.subscriptionType === "pro"
+  ) {
     return userData;
   }
 
   // Free users don't have billing events, so we handle their monthly reset here
-  const lastReset = userData.lastResetDate ? new Date(userData.lastResetDate) : new Date(0);
-  const nextBilling = getNextBillingDate(userData.billingCycleStartDate || userData.createdAt.toDate().toISOString());
+  const lastReset = userData.lastResetDate
+    ? new Date(userData.lastResetDate)
+    : new Date(0);
+  const nextBilling = getNextBillingDate(
+    userData.billingCycleStartDate || userData.createdAt.toDate().toISOString()
+  );
 
   const currentPeriodStart = new Date(nextBilling);
   currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 1);
@@ -663,11 +725,13 @@ const checkAndResetMonthlyCredits = async (
   return userData;
 };
 
-export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimitStatus> => {
+export const checkAndUpdateChatLimit = async (
+  userId: string
+): Promise<ChatLimitStatus> => {
   if (!userId) throw new Error("User ID is required to check chat limit.");
 
   try {
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
@@ -680,7 +744,7 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
     // Check and Reset Monthly Credits
     userData = await checkAndResetMonthlyCredits(userDocRef, userData);
 
-    const subscriptionType = userData.subscriptionType || 'free';
+    const subscriptionType = userData.subscriptionType || "free";
     let chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
 
     if (chatUsage.lastCheckedDate !== today) {
@@ -689,9 +753,12 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
       userData.chatUsage = chatUsage;
     }
 
-    const nextBillingDate = getNextBillingDate(userData.billingCycleStartDate || userData.createdAt.toDate().toISOString());
+    const nextBillingDate = getNextBillingDate(
+      userData.billingCycleStartDate ||
+        userData.createdAt.toDate().toISOString()
+    );
 
-    if (subscriptionType === 'pro') {
+    if (subscriptionType === "pro") {
       const monthlyLimit = 150;
       const used = userData.creditsUsed || 0;
 
@@ -704,7 +771,7 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
       };
     }
 
-    if (subscriptionType === 'go') {
+    if (subscriptionType === "go") {
       const monthlyLimit = 50;
       const used = userData.creditsUsed || 0;
 
@@ -741,7 +808,7 @@ export const checkAndUpdateChatLimit = async (userId: string): Promise<ChatLimit
       resetsAt: getTomorrowMidnight(),
     };
   } catch (error) {
-    console.error('Error checking chat limit:', error);
+    console.error("Error checking chat limit:", error);
     throw error;
   }
 };
@@ -750,7 +817,7 @@ export const incrementChatCount = async (userId: string): Promise<void> => {
   if (!userId) throw new Error("User ID is required to increment chat count.");
 
   try {
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
@@ -764,24 +831,29 @@ export const incrementChatCount = async (userId: string): Promise<void> => {
     // For Free users, this tracks the 30/month limit
     const currentUsed = userData.creditsUsed || 0;
     const updates: Partial<UserDocument> = {
-      creditsUsed: currentUsed + 1
+      creditsUsed: currentUsed + 1,
     };
 
     // For Free users, also handle daily limit
-    if (!userData.subscriptionType || userData.subscriptionType === 'free') {
-      const chatUsage = userData.chatUsage || { count: 0, lastCheckedDate: today };
+    if (!userData.subscriptionType || userData.subscriptionType === "free") {
+      const chatUsage = userData.chatUsage || {
+        count: 0,
+        lastCheckedDate: today,
+      };
 
       if (chatUsage.lastCheckedDate !== today) {
         updates.chatUsage = { count: 1, lastCheckedDate: today };
       } else {
-        updates.chatUsage = { count: chatUsage.count + 1, lastCheckedDate: today };
+        updates.chatUsage = {
+          count: chatUsage.count + 1,
+          lastCheckedDate: today,
+        };
       }
     }
 
     await updateDoc(userDocRef, updates);
-
   } catch (error) {
-    console.error('Error incrementing chat count:', error);
+    console.error("Error incrementing chat count:", error);
     throw error;
   }
 };
@@ -790,14 +862,14 @@ export const isUserPremium = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
 
-  const subscriptionsRef = collection(db, 'users', user.uid, 'subscriptions');
+  const subscriptionsRef = collection(db, "users", user.uid, "subscriptions");
   const q = query(subscriptionsRef);
   const querySnapshot = await getDocs(q);
 
   let isActive = false;
   querySnapshot.forEach((doc) => {
     const data = doc.data();
-    if (data.status === 'active') {
+    if (data.status === "active") {
       isActive = true;
     }
   });
@@ -806,23 +878,86 @@ export const isUserPremium = async (): Promise<boolean> => {
 };
 
 // Add new function to check subscription type
-export const getUserSubscriptionType = async (): Promise<'free' | 'go' | 'pro'> => {
+export const getUserSubscriptionType = async (): Promise<
+  "free" | "go" | "pro"
+> => {
   const user = auth.currentUser;
-  if (!user) return 'free';
+  if (!user) return "free";
 
   try {
-    const userDocRef = doc(db, 'users', user.uid);
+    const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
       const userData = userDoc.data() as UserDocument;
-      return userData.subscriptionType || 'free';
+      return userData.subscriptionType || "free";
     }
-    return 'free';
+    return "free";
   } catch (error) {
-    console.error('Error fetching user subscription type:', error);
-    return 'free';
+    console.error("Error fetching user subscription type:", error);
+    return "free";
   }
 };
+
+export async function getLastConversationId(
+  projectId: string
+): Promise<string | null> {
+  try {
+    const projectRef = doc(db, "projects", projectId);
+    const projectDoc = await getDoc(projectRef);
+
+    if (!projectDoc.exists()) return null;
+
+    const data = projectDoc.data();
+    const lastConversationId = data?.lastConversationId;
+    const lastUpdated = data?.lastConversationUpdated;
+
+    if (!lastConversationId || !lastUpdated) return null;
+
+    // Convert Firestore value to Date
+    const lastUpdatedDate =
+      typeof lastUpdated === "string"
+        ? new Date(lastUpdated)
+        : lastUpdated.toDate?.() ?? null;
+
+    if (!lastUpdatedDate) return null;
+
+    // Check if older than 30 days
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const isExpired =
+      Date.now() - lastUpdatedDate.getTime() > THIRTY_DAYS_MS;
+
+    if (isExpired) {
+      console.warn(
+        `⏳ Conversation expired for project ${projectId}, ignoring old response ID`
+      );
+      return null;
+    }
+
+    return lastConversationId;
+  } catch (error) {
+    console.error("Error fetching conversation ID:", error);
+    return null;
+  }
+};
+
+export async function saveLastConversationId(
+  projectId: string,
+  responseId: string
+): Promise<void> {
+  try {
+    const projectRef = doc(db, "projects", projectId);
+    await setDoc(
+      projectRef,
+      {
+        lastConversationId: responseId,
+        lastConversationUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.error("Error saving conversation ID:", error);
+  }
+}
 
 export { auth, db };

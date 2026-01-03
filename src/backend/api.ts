@@ -10,35 +10,35 @@ import {
   GENERATE_IMPROVE_CODE_PROMPT,
   GENERATE_APP_IDEA_PROMPT,
 } from "./prompts";
+import { getLastConversationId, saveLastConversationId } from "@/lib/firebase";
 
-const XAI_API_KEY = process.env.NEXT_PUBLIC_XAI_API_KEY;
+const XAI_API_KEY = process.env.XAI_API_KEY;
 
 export async function generateAppIdea(): Promise<string> {
-  const cacheKey = createCacheKey("generateAppIdea");
-
-  return executeWithDeduplication(cacheKey, async () => {
-    const client = new OpenAI({
-      apiKey: XAI_API_KEY,
-      baseURL: "https://api.x.ai/v1",
-      timeout: 360000,
-    });
-
-    const completion = await client.chat.completions.create({
-      model: "grok-4-1-fast-non-reasoning",
-      messages: [
-        {
-          role: "system",
-          content: GENERATE_APP_IDEA_PROMPT.system,
-        },
-        {
-          role: "user",
-          content: GENERATE_APP_IDEA_PROMPT.user,
-        },
-      ],
-    });
-
-    return completion.choices[0]?.message?.content?.trim() || "";
+  const client = new OpenAI({
+    apiKey: XAI_API_KEY,
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000,
   });
+
+  const completion = await client.chat.completions.create({
+    model: "grok-4-1-fast-non-reasoning",
+    messages: [
+      {
+        role: "system",
+        content: GENERATE_APP_IDEA_PROMPT.system,
+      },
+      {
+        role: "user",
+        content: GENERATE_APP_IDEA_PROMPT.user(),
+      },
+    ],
+    top_p: 0.95,
+    max_completion_tokens: 100,
+    temperature: 0.85,
+  });
+
+  return completion.choices[0]?.message?.content?.trim() || "";
 }
 
 export async function generateAppName(prompt: string): Promise<string> {
@@ -60,6 +60,7 @@ export async function generateAppName(prompt: string): Promise<string> {
             content: GENERATE_APP_NAME_PROMPT(prompt),
           },
         ],
+        max_completion_tokens: 50,
       });
 
       let appName = completion.choices[0]?.message?.content?.trim() || "";
@@ -124,6 +125,7 @@ export async function generateMessage(
             )}`,
           },
         ],
+        max_completion_tokens: 250,
       });
 
       let message = completion.choices[0]?.message?.content?.trim() || "";
@@ -170,6 +172,7 @@ export async function generateAppArchitecture(
             content: prompt,
           },
         ],
+        max_completion_tokens: 16384,
       });
 
       const raw = completion.choices[0].message.content || "";
@@ -184,13 +187,16 @@ export async function generateCode(
   appIdea: string,
   appName: string,
   architecture: string,
+  projectId: string,
+  temperature = 0.2,
   maxRetries = 3
 ) {
   const cacheKey = createCacheKey(
     "generateCode",
     appIdea,
     appName,
-    architecture
+    architecture,
+    temperature
   );
 
   return executeWithDeduplication(cacheKey, async () => {
@@ -211,9 +217,9 @@ export async function generateCode(
           maxRetries
         );
 
-        const completion = await client.chat.completions.create({
+        const response = await client.responses.create({
           model: "grok-4-1-fast-reasoning",
-          messages: [
+          input: [
             {
               role: "system",
               content:
@@ -224,9 +230,14 @@ export async function generateCode(
               content: promptText,
             },
           ],
+          temperature: temperature + (attempt - 2) * 0.1,
+          max_output_tokens: 16384,
         });
 
-        const code = completion.choices[0]?.message?.content?.trim() || "";
+        const code = response.output_text || "";
+        const responseId = response.id;
+        await saveLastConversationId(projectId, responseId);
+        //console.log("code is here:", code, "\n\n responsce id:", responseId);
         return extractAndValidateHTML(code, appName, attempt);
       } catch (error) {
         lastError = error as Error;
@@ -242,6 +253,8 @@ export async function generateImproveCode(
   improvementPrompt: string,
   appName: string,
   appIdea: string,
+  projectId: string,
+  temperature: number = 0.2,
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | null = null;
@@ -254,28 +267,90 @@ export async function generateImproveCode(
         timeout: 360000,
       });
 
-      const promptText = GENERATE_IMPROVE_CODE_PROMPT(
-        existingCode,
-        improvementPrompt,
-        appName,
-        appIdea,
-        attempt,
-        maxRetries
-      );
+      const lastResponseId = await getLastConversationId(projectId);
+      let response;
 
-      const completion = await client.chat.completions.create({
-        model: "grok-4-1-fast-reasoning",
-        messages: [
+      if (lastResponseId != null) {
+        // 🎯 CHAIN CONVERSATION - Send only the improvement request
+        //console.log( "Chaining conversation with lastResponseId:",lastResponseId);
+        response = await client.responses.create({
+          model: "grok-code-fast-1",
+          previous_response_id: lastResponseId, // ← Key change!
+          input: [
+            {
+              role: "user",
+              content: `You are an expert senior developer specializing in single-file HTML applications. Your task is to implement a user's requested change into their existing code.
+
+**CONTEXT:**
+- App Name: ${appName}
+- Original App Idea: ${appIdea}
+- User's Change Request: "${improvementPrompt}"
+
+${
+  attempt > 1
+    ? `**ATTEMPT ${attempt}/${maxRetries} - The previous attempt failed, likely due to incomplete output. You MUST return the complete, runnable HTML file.**`
+    : ""
+}
+
+**CRITICAL INSTRUCTIONS:**
+1.  **RETURN THE ENTIRE FILE:** You must return the complete, original HTML file with the requested modifications seamlessly integrated. Start with \`<!DOCTYPE html>\` and end with \`</html>\` don't start with \`\`\` or anything first line should be <!DOCTYPE html>.
+2.  **BE SURGICAL:** Modify only the specific lines of code necessary to implement the user's request. Do not refactor, rename, or restyle anything else.
+3.  **PRESERVE FUNCTIONALITY:** The application must still work exactly as it did before, with the addition of the new feature. All existing logic, state, and IDs must be preserved.
+4.  **NO COMMENTARY:** Do not include any explanations, markdown formatting, or conversation in your response. Your output must be ONLY the raw HTML code.
+5.  **SIZE OF OUTPUT:** Size of output should never be less than the Existing Code. 
+6. **VALID HTML ONLY:** Return valid HTML only and no more.
+
+Now, carefully review the user's request and the existing code, and return the complete, modified HTML file.`,
+            },
+          ],
+          temperature: temperature + (attempt - 1) * 0.1,
+          max_output_tokens: 16384,
+        });
+      } else {
+        const promptText = GENERATE_IMPROVE_CODE_PROMPT(
+          existingCode,
+          improvementPrompt,
+          appName,
+          appIdea,
+          attempt,
+          maxRetries
+        );
+
+        let conversationMessages: Array<{
+          role: "system" | "user" | "assistant";
+          content: string;
+        }> = [];
+
+        conversationMessages = [
+          {
+            role: "system",
+            content:
+              "You are an expert senior developer specializing in single-file HTML applications. You previously generated a complete HTML app, and now the user wants improvements.",
+          },
+          {
+            role: "assistant",
+            content: existingCode,
+          },
           {
             role: "user",
             content: promptText,
           },
-        ],
-      });
+        ];
 
-      let improvedCode = completion.choices[0]?.message?.content?.trim() || "";
-      console.log(improvedCode);
-      
+        //console.log("Conversation Messages:", conversationMessages, "\n\n");
+
+        response = await client.responses.create({
+          model: "grok-code-fast-1",
+          input: conversationMessages,
+          temperature: temperature + (attempt - 1) * 0.1,
+          max_output_tokens: 16384,
+        });
+      }
+
+      let improvedCode = response.output_text || "";
+      const newResponseId = response.id;
+      //console.log("\n\n", improvedCode, "\n\n New Response ID:", newResponseId);
+
       improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
 
       if (improvedCode === existingCode) {
@@ -288,6 +363,7 @@ export async function generateImproveCode(
         );
       }
 
+      await saveLastConversationId(projectId, newResponseId);
       return improvedCode;
     } catch (error) {
       console.error(`❌ Code improvement attempt ${attempt} failed:`, error);

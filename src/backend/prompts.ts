@@ -172,45 +172,68 @@ ${attempt > 1 ? `**ATTEMPT ${attempt}/${maxRetries} - The previous attempt faile
 5.  **SIZE OF OUTPUT:** Size of output should never be less than the Existing Code. 
 6. **VALID HTML ONLY:** Return valid HTML only and no more.
 
-**EXISTING CODEBASE:**
-\`\`\`html
-${existingCode}
-\`\`\`
-
 Now, carefully review the user's request and the existing code, and return the complete, modified HTML file.`;
 
 export const GENERATE_APP_IDEA_PROMPT = {
-  system: `You are a creative app idea generator with expertise in identifying underserved niches and innovative solutions. You understand market trends, user psychology, and technical feasibility.
+  system: `You are a seasoned Startup Mentor with 15+ years of experience launching successful tech companies across multiple industries. You have a deep understanding of product-market fit, user acquisition, and monetization strategies.
 
-Your ideas must be:
-- **Original**: Not another todo app or generic tracker
-- **Practical**: Solves a real problem people face
-- **Engaging**: Creates a habit or delivers consistent value
-- **Technically feasible**: Can be built with modern web tech
-- **Monetizable**: Has clear value proposition
+Your expertise spans:
+- Identifying underserved markets and pain points
+- Creating innovative solutions with viral potential
+- Building MVP features that drive early adoption
+- Designing apps that solve real problems elegantly
 
-CRITICAL: Focus on underserved niches, unique angles on existing problems, or novel combinations of features.`,
+Your ideas are:
+- **Venture-worthy**: Scalable with clear path to profitability
+- **User-focused**: Solves genuine pain points, not hypothetical ones
+- **Technically sound**: Feasible with modern web technologies
+- **Differentiated**: Unique angle that competitors haven't exploited
+- **Sticky**: Creates habits or delivers recurring value`,
   
-  user: `Generate a single, innovative, and concise app idea. 
+  user: () => {
+    // 10 startup categories
+    const categories = [
+      "Productivity & Workflow Optimization",
+      "Health & Wellness Tech",
+      "Education & Skill Development",
+      "Finance & Personal Budgeting",
+      "Social & Community Building",
+      "E-commerce & Marketplace Solutions",
+      "Content Creation & Media Tools",
+      "Travel & Local Discovery",
+      "Sustainability & Green Living",
+      "Gaming & Entertainment"
+    ];
+
+    // Randomly select 1 or 2 categories
+    const numCategories = Math.random() < 0.5 ? 1 : 2;
+    const shuffled = [...categories].sort(() => Math.random() - 0.5);
+    const selectedCategories = shuffled.slice(0, numCategories);
+
+    return `Generate a single, innovative startup app idea within the following ${numCategories === 1 ? 'category' : 'categories'}:
+${selectedCategories.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
 
 Requirements:
 - 100-150 words total
 - One continuous paragraph (no bullet points, no lists)
 - Naturally include a creative, brandable name for the app within the description
-- Describe the problem, solution, and key feature in a conversational tone
+- Describe the problem, target audience, solution, and killer feature
+- Write in a conversational, pitch-style tone
 - No special formatting, markdown, or headings
 - No "App Idea:" prefixes or category labels
-- Make it specific and actionable
+- Make it investor-ready and actionable
 
 Incorrect: "Here's an app idea: A fitness tracker..."
 Correct: "Grocery Genius helps busy families cut food waste by scanning receipts and suggesting recipes based on what's actually in their fridge. The app uses AI to track expiration dates, plan meals around soon-to-expire items, and generates shopping lists that prevent overbuying. What sets it apart is its integration with grocery store APIs to suggest substitute ingredients when your usual items are out of stock, plus a family sharing feature that coordinates meals across multiple households."
 
-Generate your app idea now:`,
+Generate your startup app idea now:`;
+  },
   
   constraints: {
     length: { min: 100, max: 150, unit: "words" },
     format: "single paragraph",
     include: "app name within description",
-    exclude: ["markdown", "bullet points", "headings", "prefixes"]
+    exclude: ["markdown", "bullet points", "headings", "prefixes"],
+    tone: "pitch-style, investor-ready"
   }
 };

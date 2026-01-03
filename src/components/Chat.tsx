@@ -38,6 +38,9 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 
+const FREE_TIER_MONTHLY_LIMIT = 30;
+
+
 // --- Interfaces ---
 interface Task {
   id: string;
@@ -421,7 +424,7 @@ export default function Chat({
       );
 
       // Step 3
-      const appCode = await generateCode(prompt, appName, appArchitecture);
+      const appCode = await generateCode(prompt, appName, appArchitecture, projectId);
       setCurrentCode(appCode);
       onCodeGenerated?.(appCode);
       setMessages((prev) =>
@@ -516,11 +519,11 @@ export default function Chat({
       const limitStatus = await checkAndUpdateChatLimit(user.uid);
 
       if (!limitStatus.canSendMessage) {
-        const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
+        // const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', {
+        //   hour: 'numeric',
+        //   minute: '2-digit',
+        //   hour12: true
+        // });
 
         if (limitStatus.isPremium) {
           toast.error("Monthly credit limit reached", {
@@ -529,22 +532,30 @@ export default function Chat({
             action: {
               label: "Manage Subscription",
               onClick: () => {
-                // TODO: Navigate to subscription settings
-                console.log("Navigate to settings");
+                // Navigate to settings page
+                window.location.href = "/settings/subscription";
               },
             },
           });
         } else {
-         
-          if (limitStatus.total > 10) { // Assuming daily is 5, monthly is 30
+          // Better logic to distinguish between daily and monthly limits
+          const resetTime = limitStatus.resetsAt.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          
+          // Check if it's a monthly limit (30) or daily limit (5)
+          const isMonthlyLimit = limitStatus.total === FREE_TIER_MONTHLY_LIMIT;
+          
+          if (isMonthlyLimit) {
             toast.error("Monthly free limit reached", {
               description: `You've used all ${limitStatus.total} free credits for this month. Upgrade to Go or Pro for more!`,
               duration: 6000,
               action: {
                 label: "Upgrade",
                 onClick: () => {
-                  // TODO: Navigate to pricing
-                  console.log("Navigate to upgrade");
+                  window.location.href = "/pricing"; // Update with actual pricing page route
                 },
               },
             });
@@ -555,8 +566,7 @@ export default function Chat({
               action: {
                 label: "Upgrade",
                 onClick: () => {
-                  // TODO: Navigate to pricing
-                  console.log("Navigate to upgrade");
+                  window.location.href = "/pricing"; // Update with actual pricing page route
                 },
               },
             });
@@ -648,7 +658,8 @@ export default function Chat({
         currentCode,
         currentInput,
         appName,
-        appIdea
+        appIdea,
+        projectId
       );
       setCurrentCode(improvedCode);
       onCodeGenerated?.(improvedCode);

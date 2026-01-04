@@ -6,7 +6,7 @@ import {
 import crypto from 'crypto';
 
 const clientId = process.env.PAYPAL_CLIENT_ID || "";
-const clientSecret = process.env.CLIENT_SECRET || "";
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET || "";
 
 if (!clientId || !clientSecret) {
     console.warn("PayPal credentials not set in environment variables.");

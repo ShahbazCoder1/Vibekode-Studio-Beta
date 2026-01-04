@@ -22,8 +22,6 @@ import Header from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import PersistentBetaBanner from "@/components/ScrollingBetaBanner";
 import SmoothScroll from "@/components/ui/SmoothScroll";
-import { auth } from "@/lib/firebase";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 // --- TYPES ---
@@ -315,35 +313,9 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const router = useRouter();
 
-  const handleSubscribe = async (tierName: string) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error("Please log in to subscribe");
-      router.push("/login"); // Or trigger login modal
-      return;
-    }
-
-    try {
-      toast.loading(`Processing ${tierName} subscription...`);
-      const idToken = await user.getIdToken();
-      // Send tierName directly to server; server handles plan ID mapping securely.
-      const response = await fetch("/api/paypal/create-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tierName, idToken }),
-      });
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      if (data.approvalUrl) {
-        window.location.href = data.approvalUrl;
-      }
-    } catch (error: unknown) {
-      console.error(error);
-      toast.dismiss();
-      toast.error("Failed to start subscription: " + (error instanceof Error ? error.message : String(error)));
-    }
+  const handleSubscribe = (tierName: string) => {
+    // Redirect to the checkout page with the selected plan
+    router.push(`/subscription/checkout?plan=${tierName}`);
   };
 
   return (

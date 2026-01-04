@@ -5,8 +5,8 @@ import {
 } from "@paypal/paypal-server-sdk";
 import crypto from 'crypto';
 
-const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
-const clientSecret = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_SECRET || "";
+const clientId = process.env.PAYPAL_CLIENT_ID || "";
+const clientSecret = process.env.CLIENT_SECRET || "";
 
 if (!clientId || !clientSecret) {
     console.warn("PayPal credentials not set in environment variables.");

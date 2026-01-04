@@ -424,7 +424,7 @@ export default function Chat({
       );
 
       // Step 3
-      const appCode = await generateCode(prompt, appName, appArchitecture, projectId);
+      const appCode = await generateCode(prompt, appName, appArchitecture);
       setCurrentCode(appCode);
       onCodeGenerated?.(appCode);
       setMessages((prev) =>
@@ -659,7 +659,6 @@ export default function Chat({
         currentInput,
         appName,
         appIdea,
-        projectId
       );
       setCurrentCode(improvedCode);
       onCodeGenerated?.(improvedCode);

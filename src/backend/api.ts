@@ -10,7 +10,6 @@ import {
   GENERATE_IMPROVE_CODE_PROMPT,
   GENERATE_APP_IDEA_PROMPT,
 } from "./prompts";
-import { getLastConversationId, saveLastConversationId } from "@/lib/firebase";
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 
@@ -187,7 +186,6 @@ export async function generateCode(
   appIdea: string,
   appName: string,
   architecture: string,
-  projectId: string,
   temperature = 0.2,
   maxRetries = 3
 ) {
@@ -235,8 +233,8 @@ export async function generateCode(
         });
 
         const code = response.output_text || "";
-        const responseId = response.id;
-        await saveLastConversationId(projectId, responseId);
+        // const responseId = response.id;
+        // await saveLastConversationId(projectId, responseId);
         //console.log("code is here:", code, "\n\n responsce id:", responseId);
         return extractAndValidateHTML(code, appName, attempt);
       } catch (error) {
@@ -253,7 +251,6 @@ export async function generateImproveCode(
   improvementPrompt: string,
   appName: string,
   appIdea: string,
-  projectId: string,
   temperature: number = 0.2,
   maxRetries: number = 3
 ): Promise<string> {
@@ -267,46 +264,6 @@ export async function generateImproveCode(
         timeout: 360000,
       });
 
-      const lastResponseId = await getLastConversationId(projectId);
-      let response;
-
-      if (lastResponseId != null) {
-        // 🎯 CHAIN CONVERSATION - Send only the improvement request
-        //console.log( "Chaining conversation with lastResponseId:",lastResponseId);
-        response = await client.responses.create({
-          model: "grok-code-fast-1",
-          previous_response_id: lastResponseId, // ← Key change!
-          input: [
-            {
-              role: "user",
-              content: `You are an expert senior developer specializing in single-file HTML applications. Your task is to implement a user's requested change into their existing code.
-
-**CONTEXT:**
-- App Name: ${appName}
-- Original App Idea: ${appIdea}
-- User's Change Request: "${improvementPrompt}"
-
-${
-  attempt > 1
-    ? `**ATTEMPT ${attempt}/${maxRetries} - The previous attempt failed, likely due to incomplete output. You MUST return the complete, runnable HTML file.**`
-    : ""
-}
-
-**CRITICAL INSTRUCTIONS:**
-1.  **RETURN THE ENTIRE FILE:** You must return the complete, original HTML file with the requested modifications seamlessly integrated. Start with \`<!DOCTYPE html>\` and end with \`</html>\` don't start with \`\`\` or anything first line should be <!DOCTYPE html>.
-2.  **BE SURGICAL:** Modify only the specific lines of code necessary to implement the user's request. Do not refactor, rename, or restyle anything else.
-3.  **PRESERVE FUNCTIONALITY:** The application must still work exactly as it did before, with the addition of the new feature. All existing logic, state, and IDs must be preserved.
-4.  **NO COMMENTARY:** Do not include any explanations, markdown formatting, or conversation in your response. Your output must be ONLY the raw HTML code.
-5.  **SIZE OF OUTPUT:** Size of output should never be less than the Existing Code. 
-6. **VALID HTML ONLY:** Return valid HTML only and no more.
-
-Now, carefully review the user's request and the existing code, and return the complete, modified HTML file.`,
-            },
-          ],
-          temperature: temperature + (attempt - 1) * 0.1,
-          max_output_tokens: 16384,
-        });
-      } else {
         const promptText = GENERATE_IMPROVE_CODE_PROMPT(
           existingCode,
           improvementPrompt,
@@ -339,16 +296,16 @@ Now, carefully review the user's request and the existing code, and return the c
 
         //console.log("Conversation Messages:", conversationMessages, "\n\n");
 
-        response = await client.responses.create({
+        const response = await client.responses.create({
           model: "grok-code-fast-1",
           input: conversationMessages,
           temperature: temperature + (attempt - 1) * 0.1,
           max_output_tokens: 16384,
         });
-      }
+      
 
       let improvedCode = response.output_text || "";
-      const newResponseId = response.id;
+      // const newResponseId = response.id;
       //console.log("\n\n", improvedCode, "\n\n New Response ID:", newResponseId);
 
       improvedCode = extractAndValidateHTML(improvedCode, appName, attempt);
@@ -363,7 +320,7 @@ Now, carefully review the user's request and the existing code, and return the c
         );
       }
 
-      await saveLastConversationId(projectId, newResponseId);
+      // await saveLastConversationId(projectId, newResponseId);
       return improvedCode;
     } catch (error) {
       console.error(`❌ Code improvement attempt ${attempt} failed:`, error);

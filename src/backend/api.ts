@@ -2,6 +2,7 @@
 import { createCacheKey, executeWithDeduplication } from "./cache";
 import { extractAndValidateHTML } from "./utils";
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import {
   GENERATE_APP_NAME_PROMPT,
   GENERATE_MESSAGE_PROMPT,
@@ -12,6 +13,9 @@ import {
 } from "./prompts";
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY_NORMAL,
+});
 
 export async function generateAppIdea(): Promise<string> {
   const client = new OpenAI({
@@ -182,6 +186,70 @@ export async function generateAppArchitecture(
   });
 }
 
+// export async function generateCode(
+//   appIdea: string,
+//   appName: string,
+//   architecture: string,
+//   temperature = 0.2,
+//   maxRetries = 3
+// ) {
+//   const cacheKey = createCacheKey(
+//     "generateCode",
+//     appIdea,
+//     appName,
+//     architecture,
+//     temperature
+//   );
+
+//   return executeWithDeduplication(cacheKey, async () => {
+//     let lastError: Error | null = null;
+
+//     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+//       try {
+//         const client = new OpenAI({
+//           apiKey: XAI_API_KEY,
+//           baseURL: "https://api.x.ai/v1",
+//           timeout: 360000,
+//         });
+
+//         const promptText = GENERATE_CODE_PROMPT(
+//           appIdea,
+//           architecture,
+//           attempt,
+//           maxRetries
+//         );
+
+//         const response = await client.responses.create({
+//           model: "grok-4-1-fast-reasoning",
+//           input: [
+//             {
+//               role: "system",
+//               content:
+//                 "You are a world-class senior full-stack developer and UI/UX designer specializing in single-file web applications. Your task is to generate complete, production-ready HTML files based on detailed user requirements, adhering strictly to technical and structural guidelines.",
+//             },
+//             {
+//               role: "user",
+//               content: promptText,
+//             },
+//           ],
+//           temperature: temperature + (attempt - 2) * 0.1,
+//           max_output_tokens: 16384,
+//         });
+
+//         const code = response.output_text || "";
+//         // const responseId = response.id;
+//         // await saveLastConversationId(projectId, responseId);
+//         //console.log("code is here:", code, "\n\n responsce id:", responseId);
+//         return extractAndValidateHTML(code, appName, attempt);
+//       } catch (error) {
+//         lastError = error as Error;
+//       }
+//     }
+
+//     throw new Error(`Failed after ${maxRetries} attempts: ${lastError}`);
+//   });
+// }
+
 export async function generateCode(
   appIdea: string,
   appName: string,
@@ -198,22 +266,61 @@ export async function generateCode(
   );
 
   return executeWithDeduplication(cacheKey, async () => {
-    let lastError: Error | null = null;
+    const promptText = GENERATE_CODE_PROMPT(
+      appIdea,
+      architecture,
+      1,
+      maxRetries
+    );
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    // Try Gemini first
+    try {
+      console.log("Attempting code generation with Gemini...");
+      
+      const config = {
+        temperature: temperature,
+        thinkingConfig: {
+          thinkingBudget: -1,
+        },
+      };
+
+      const model = 'gemini-3-flash-preview';
+      const contents = [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: promptText,
+            },
+          ],
+        },
+      ];
+
+      const response = await ai.models.generateContent({
+        model,
+        config,
+        contents,
+      });
+
+      const generatedCode = response?.text?.trim() || "";
+
+      if (generatedCode) {
+        return extractAndValidateHTML(generatedCode, appName, 1);
+      }
+      
+      throw new Error("Gemini returned empty response");
+      
+    } catch (geminiError) {
+      console.error("Gemini failed:", geminiError);
+      console.log("Falling back to Grok...");
+
+      // Fallback to Grok
       try {
         const client = new OpenAI({
           apiKey: XAI_API_KEY,
           baseURL: "https://api.x.ai/v1",
           timeout: 360000,
         });
-
-        const promptText = GENERATE_CODE_PROMPT(
-          appIdea,
-          architecture,
-          attempt,
-          maxRetries
-        );
 
         const response = await client.responses.create({
           model: "grok-4-1-fast-reasoning",
@@ -228,21 +335,25 @@ export async function generateCode(
               content: promptText,
             },
           ],
-          temperature: temperature + (attempt - 2) * 0.1,
+          temperature: temperature,
           max_output_tokens: 16384,
         });
 
         const code = response.output_text || "";
-        // const responseId = response.id;
-        // await saveLastConversationId(projectId, responseId);
-        //console.log("code is here:", code, "\n\n responsce id:", responseId);
-        return extractAndValidateHTML(code, appName, attempt);
-      } catch (error) {
-        lastError = error as Error;
+        
+        if (!code) {
+          throw new Error("Grok returned empty response");
+        }
+
+        return extractAndValidateHTML(code, appName, 1);
+        
+      } catch (grokError) {
+        console.error("Grok also failed:", grokError);
+        throw new Error(
+          `Both Gemini and Grok failed. Gemini error: ${geminiError}. Grok error: ${grokError}`
+        );
       }
     }
-
-    throw new Error(`Failed after ${maxRetries} attempts: ${lastError}`);
   });
 }
 
@@ -264,45 +375,44 @@ export async function generateImproveCode(
         timeout: 360000,
       });
 
-        const promptText = GENERATE_IMPROVE_CODE_PROMPT(
-          existingCode,
-          improvementPrompt,
-          appName,
-          appIdea,
-          attempt,
-          maxRetries
-        );
+      const promptText = GENERATE_IMPROVE_CODE_PROMPT(
+        existingCode,
+        improvementPrompt,
+        appName,
+        appIdea,
+        attempt,
+        maxRetries
+      );
 
-        let conversationMessages: Array<{
-          role: "system" | "user" | "assistant";
-          content: string;
-        }> = [];
+      let conversationMessages: Array<{
+        role: "system" | "user" | "assistant";
+        content: string;
+      }> = [];
 
-        conversationMessages = [
-          {
-            role: "system",
-            content:
-              "You are an expert senior developer specializing in single-file HTML applications. You previously generated a complete HTML app, and now the user wants improvements.",
-          },
-          {
-            role: "assistant",
-            content: existingCode,
-          },
-          {
-            role: "user",
-            content: promptText,
-          },
-        ];
+      conversationMessages = [
+        {
+          role: "system",
+          content:
+            "You are an expert senior developer specializing in single-file HTML applications. You previously generated a complete HTML app, and now the user wants improvements.",
+        },
+        {
+          role: "assistant",
+          content: existingCode,
+        },
+        {
+          role: "user",
+          content: promptText,
+        },
+      ];
 
-        //console.log("Conversation Messages:", conversationMessages, "\n\n");
+      //console.log("Conversation Messages:", conversationMessages, "\n\n");
 
-        const response = await client.responses.create({
-          model: "grok-code-fast-1",
-          input: conversationMessages,
-          temperature: temperature + (attempt - 1) * 0.1,
-          max_output_tokens: 16384,
-        });
-      
+      const response = await client.responses.create({
+        model: "grok-code-fast-1",
+        input: conversationMessages,
+        temperature: temperature + (attempt - 1) * 0.1,
+        max_output_tokens: 16384,
+      });
 
       let improvedCode = response.output_text || "";
       // const newResponseId = response.id;

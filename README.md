@@ -5,6 +5,7 @@ VibeKode Studio is an AI-powered application builder that helps users turn ideas
 Describe what you want to build, generate an app idea with AI, use voice input, choose project visibility, and explore projects created by the VibeKode community.
 
 ## Live Website
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/69500411-be53-4743-a137-f7325f7cc372" />
 
 [https://vibekode.studio.devloper.xyz](https://vibekode.studio.devloper.xyz)
 

@@ -6,7 +6,7 @@ Describe what you want to build, generate an app idea with AI, use voice input, 
 
 ## Live Website
 
-[https://vibekode.studio](https://vibekode.studio)
+[https://vibekode.studio.devloper.xyz](https://vibekode.studio.devloper.xyz)
 
 ## Features
 
@@ -249,4 +249,4 @@ This project is private and proprietary unless a separate license is provided by
 
 ## Contact
 
-For questions or support, visit [vibekode.studio](https://vibekode.studio).
+For questions or support, visit [vibekode.studio.devloper.xyz](https://vibekode.studio.devloper.xyz).
